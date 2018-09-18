@@ -1,0 +1,20 @@
+---
+title: "Paper Title (Something about Applying LIME to Bullet Data)"
+author: "Katherine Goode and Heike Hoffman"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background/Literature Review
+
+# Problem Statement
+
+# Overview of LIME
+
+# Explain the Data (TS 224)
+
+# Results (using LIME on a TS)
