@@ -1,8 +1,9 @@
 ---
 title: "Paper Title (Something about Applying LIME to Bullet Data)"
-author: "Katherine Goode and Heike Hoffman"
+author: "Katherine Goode and Heike Hofmann"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
+bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -15,6 +16,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Overview of LIME
 
-# Explain the Data (TS 224)
+# The Hamby 224 Clone
+
+The Hamby 224 Clone is organized as a test set of a cloned (sub-)set of the Hamby 224 bullets. As with all Hamby sets [@hamby], Hamby set 224, is a collection of 35 bullets, organized as 20 known bullets and 15 questioned bullets. The known bullets are fired in pairs of two through one of ten consecutively manufactures P-85 barrels.
+Clone set 224 is arranged as a test set of fifteen tests, one for each questioned bullet. Each test set is arranged as a combination of three bullets: two known bullets and a questioned bullet. The test asks for a decision on whether the questioned bullet comes from the same source as the two known bullets  or from a different source. This situation is similar to what a Firearms and Toolmarks Examiner might encounter in case work. 
 
 # Results (using LIME on a TS)
+
+# References
