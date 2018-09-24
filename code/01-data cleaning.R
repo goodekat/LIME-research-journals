@@ -20,7 +20,7 @@ hamby224_set1_cleaned <- hamby224_set1 %>%
          bullet2 = bulletB, 
          land1 = landA,
          land2 = landB) %>%
-  mutate(study = factor("Hamby 224"), 
+  mutate(study = factor("Hamby_224"), 
          set = factor("1"),
          bullet1 = factor(bullet1),
          bullet2 = factor(bullet2),
@@ -35,7 +35,7 @@ hamby224_set11_cleaned <- hamby224_set11 %>%
          bullet2 = bulletB, 
          land1 = landA,
          land2 = landB) %>%
-  mutate(study = factor("Hamby 224"), 
+  mutate(study = factor("Hamby_224"), 
          set = factor("2"),
          bullet1 = recode(factor(bullet1), 
                           "Bullet 1" = "1", 
