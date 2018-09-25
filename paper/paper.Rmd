@@ -103,7 +103,7 @@ hamby224_test_explain %>%
   theme_bw()
 ```
 
-```{r}
+```{r, fig.width = 8, fig.height = 4}
 hamby224_explain <- readRDS("../data/hamby224_explain.rds")
 
 lime::plot_explanations(hamby224_explain)
@@ -130,7 +130,8 @@ hamby224_test_explain %>%
   geom_tile(aes(fill = feature_weight)) + 
   facet_grid(bullet1 ~ bullet2, space = "free", scale = "free") + 
   theme(axis.text.x = element_text(angle = 90)) +
-  scale_fill_gradient2(midpoint = 0)
+  scale_fill_gradient2(midpoint = 0) +
+  theme(legend.position = "bottom")
 ```
 
 # Results
