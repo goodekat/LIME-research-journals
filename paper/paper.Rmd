@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 # Load libraries
 library(dplyr)
 library(ggplot2)
+library(lime)
 ```
 
 # Introduction
@@ -23,9 +24,19 @@ library(ggplot2)
 - literature review
 - problem statement
 
+Bullet matching is a practice that has historically been performed by hand by specially trained firearm examiners. The examiners visually assess the striation markings on the bullets under a high powered microscope to determine whether the bullets were fired from the same gun barrel. In more recent times, the scientific community has been calling for the inclusion of more data driven techniques to be used in forensic investigations that would allow for the reporting of an uncertainty along with the conclusion drawn from the analysis. 
+
+This led Hare, Hofmann, and Carriquiry (2017) to propose a new computer automated method of bullet matching. The method involves obtaining a bullet signature from a scan of the bullet, computing a handful of variables that measure the similarity between two signatures, and fitting a random forest model to the obtained similarity variables. The model can be trained on a set of known bullet matches and non-matches and used to predict on a new set of bullet signature comparisons. The results from the paper suggest that the random forest model leads to accurate bullet matching predictions. The authors found that when their model was applied to a testing dataset (?), the resulting error rate was 0%.
+
+While random forest models often result in good predictions (reference?), it well known that a disadvantage of random forest models and other machine learning techniques is that it is difficult to understand which variables played an important role in the creation of the predictions. This issue led to the development of LIME (reference), which is an algorithm that examines the behavior of the complicated model on a local scale around a new prediction.
+
+Bullet matching is commonly used as evidence for convictions in court cases. Thus, it is important to not only provide accurate predictions and an associated uncertainty level but also to explain which variables were important in making the prediction. This paper applies LIME to the random forest model used for bullet matching to assess which variables are driving the predictions made by the model.
+
 # Data
 
 ## Training Data: The Hamby...
+
+(fill in once we know which data will be used to train the new random forest model)
 
 ## Testing Data: The Hamby 224 Clone
 
@@ -35,6 +46,8 @@ Clone set 224 is arranged as a test set of fifteen tests, one for each questione
 #  Methods
 
 ## Random Forest Model
+
+(fill in once the new random forest model has been fit)
 
 ## Overview of LIME
 
@@ -86,6 +99,36 @@ hamby224_test_explain %>%
   geom_tile(aes(fill = samesource)) +
   facet_grid(bullet1 ~ bullet2) +
   theme_bw()
+```
+
+```{r}
+hamby224_explain <- readRDS("../data/hamby224_explain.rds")
+
+lime::plot_explanations(hamby224_explain)
+
+hamby224_test_explain %>%
+  filter(set == "1") %>%
+  ggplot(aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(feature ~ label, space = "free", scale = "free") + 
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(midpoint = 0)
+
+hamby224_test_explain %>%
+  filter(set == "1", samesource == "FALSE") %>%
+  ggplot(aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(feature ~ bullet1, space = "free", scale = "free") + 
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(midpoint = 0)
+
+hamby224_test_explain %>%
+  filter(set == "1", samesource == "FALSE") %>%
+  ggplot(aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(bullet1 ~ bullet2, space = "free", scale = "free") + 
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(midpoint = 0)
 ```
 
 # Results
