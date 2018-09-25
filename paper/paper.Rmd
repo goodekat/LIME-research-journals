@@ -114,7 +114,10 @@ hamby224_test_explain %>%
   geom_tile(aes(fill = feature_weight)) + 
   facet_grid(feature ~ label, space = "free", scale = "free") + 
   theme(axis.text.x = element_text(angle = 90)) +
-  scale_fill_gradient2(midpoint = 0)
+  scale_fill_gradient2(midpoint = 0) +
+  theme(legend.position = "bottom") +
+  ylab("Feature Sets") 
+  
 
 hamby224_test_explain %>%
   filter(set == "1", samesource == "FALSE") %>%
