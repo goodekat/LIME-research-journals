@@ -55,6 +55,8 @@ Clone set 224 is arranged as a test set of fifteen tests, one for each questione
 
 ## Visualizing the LIME Explanations
 
+Some plots to tryout working with the new explanations...
+
 ```{r}
 # Read in the Hamby 224 combined test data and explanations
 hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
