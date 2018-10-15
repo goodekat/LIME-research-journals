@@ -9,7 +9,7 @@ bibliography: references.bib
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE, cache = TRUE)
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, cache = TRUE)
 
 # Load libraries
 library(tidyverse)
@@ -25,7 +25,7 @@ library(randomForest)
 - literature review
 - problem statement
 
-Bullet matching is a practice that has historically been performed by hand by specially trained firearm examiners. The examiners visually assess the striation markings on the bullets under a high powered microscope to determine whether the bullets were fired from the same gun barrel. In more recent times, the scientific community has been calling for the inclusion of more data driven techniques to be used in forensic investigations that would allow for the reporting of an uncertainty along with the conclusion drawn from the analysis. 
+The process of matching bullets to the gun that shot the bullet has traditionally been performed by hand by specially trained firearm examiners. The examiners visually assess the striation markings on the bullets under a high powered microscope to determine whether the bullets were fired from the same gun barrel. Recently, the scientific community has been encouraging the inclusion of more data driven techniques to be used in forensic investigations that would allow for the reporting of an uncertainty along with the conclusion drawn from the analysis. 
 
 This led Hare, Hofmann, and Carriquiry (2017) to propose a new computer automated method of bullet matching. The method involves obtaining a bullet signature from a scan of the bullet, computing a handful of variables that measure the similarity between two signatures, and fitting a random forest model to the obtained similarity variables. The model can be trained on a set of known bullet matches and non-matches and used to predict on a new set of bullet signature comparisons. The results from the paper suggest that the random forest model leads to accurate bullet matching predictions. The authors found that when their model was applied to a testing dataset (?), the resulting error rate was 0%.
 
@@ -39,21 +39,23 @@ Bullet matching is commonly used as evidence for convictions in court cases. Thu
 
 (fill in once we know which data will be used to train the new random forest model)
 
+```{r}
+# Load in the training data (Hamby Data 173 and 252)
+hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
+```
+
 ## Testing Data: The Hamby 224 Clone
 
 The Hamby 224 Clone is organized as a test set of a cloned (sub-)set of the Hamby 224 bullets. As with all Hamby sets [@hamby], Hamby set 224, is a collection of 35 bullets, organized as 20 known bullets and 15 questioned bullets. The known bullets are fired in pairs of two through one of ten consecutively manufactures P-85 barrels.
 Clone set 224 is arranged as a test set of fifteen tests, one for each questioned bullet. Each test set is arranged as a combination of three bullets: two known bullets and a questioned bullet. The test asks for a decision on whether the questioned bullet comes from the same source as the two known bullets  or from a different source. This situation is similar to what a Firearms and Toolmarks Examiner might encounter in case work. 
 
-#  Methods
-
-```{r echo = FALSE}
-
-# Cleaning the Hamby 224 data -------------------------------------------------
-
+```{r}
 # Load in the Hamby 224 datasets
 hamby224_set1 <- readRDS("../data/h224-set1-features.rds")
 hamby224_set11 <- readRDS("../data/h224-set11-features.rds")
+```
 
+```{r}
 # Obtain features used when fitting the rtrees random forest
 rf_features <- rownames(rtrees$importance)
 
@@ -100,7 +102,12 @@ hamby224_set11_cleaned <- hamby224_set11 %>%
 # Join the two cleaned Hamby 224 sets into one testing set
 hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
                                             hamby224_set11_cleaned))
+
+# Save the test data as a .csv file
+write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
 ```
+
+#  Methods
 
 ## Random Forest Model
 
@@ -111,12 +118,6 @@ hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
 ## Applying LIME
 
 ```{r echo = FALSE}
-
-# Applying LIME -------------------------------------------------
-
-# Load in the training data (Hamby Data 173 and 252)
-hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
-
 # Apply the lime function from the lime package (with a seed set)
 # Note that the as_classifier must be added since rtrees is from the
 # randomForest package and not fit using caret or one of the other 
@@ -127,6 +128,11 @@ set.seed(84902)
 hamby224_lime <- lime(x = hamby173and252_train %>% select(rf_features),
                       model = as_classifier(rtrees))
 
+# Save the lime object
+saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
+```
+
+```{r}
 # Apply the explain function from the lime package (with a seed set)
 set.seed(84902)
 hamby224_explain <- lime::explain(hamby224_test %>% select(rf_features), 
@@ -134,6 +140,11 @@ hamby224_explain <- lime::explain(hamby224_test %>% select(rf_features),
                                   n_labels = 1, 
                                   n_features = 3)
 
+# Save the explainer object
+saveRDS(hamby224_explain, "../data/hamby224_explain.rds")
+```
+
+```{r echo = FALSE}
 # Add a case variable to the test data
 hamby224_test <- hamby224_test %>%
   mutate(case = as.character(1:dim(hamby224_test)[1])) %>%
@@ -152,21 +163,25 @@ hamby224_test_explain <- full_join(hamby224_test, hamby224_explain, by = "case")
          land2 = factor(land2)) %>%
   mutate(mypred = rep(predict(rtrees, hamby224_test %>% select(rf_features), 
                               type = "prob")[,2], each = 3)) %>%
-  select(case:rfscore, mypred, samesource:prediction)
+  select(case:rfscore, mypred, samesource:prediction) %>%
+  mutate(feature_desc = factor(feature_desc),
+         feature = factor(feature)) %>%
+  mutate(feature_number = readr::parse_number(feature_desc),
+         strictly_less = FALSE)
 
-hamby224_test_explain$feature_desc <- factor(hamby224_test_explain$feature_desc)
-hamby224_test_explain$feature <- factor(hamby224_test_explain$feature)
-
-hamby224_test_explain$feature_number <- readr::parse_number(hamby224_test_explain$feature_desc)
-hamby224_test_explain$strictly_less <- FALSE
+# Finish creating the strictly less than variable
 hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
 
+# Reorder the variable of feature_desc for plotting purposes
 hamby224_test_explain <- hamby224_test_explain %>%
   mutate(
     feature_desc = reorder(feature_desc, strictly_less),
     feature_desc = reorder(feature_desc, feature_number),
     feature_desc = reorder(feature_desc, as.numeric(feature))
   )
+
+# Save the combined test and explain data
+saveRDS(hamby224_test_explain, "../data/hamby224_test_explain.rds")
 ```
 
 ## Visualizing the LIME Explanations
@@ -178,7 +193,9 @@ hamby224_test_explain %>%
   ggplot(aes(x = feature_desc)) + 
   geom_bar() +
   coord_flip()
+```
 
+```{r}
 hamby224_test_explain %>%
   filter(set == "1") %>%
   select(case, bullet1:land2, rfscore) %>%
@@ -188,27 +205,9 @@ hamby224_test_explain %>%
   facet_grid(bullet1 ~ bullet2) +
   theme_bw() +
   scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5)
+```
 
-hamby224_test_explain %>%
-  filter(set == "1") %>%
-  select(case, bullet1:land2, mypred) %>%
-  distinct() %>%
-  ggplot(aes(x = land1, y = land2)) +
-  geom_tile(aes(fill = mypred)) +
-  facet_grid(bullet1 ~ bullet2) +
-  theme_bw() +
-  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5)
-
-hamby224_test_explain %>%
-  filter(set == "1") %>%
-  select(case, bullet1:land2, label_prob) %>%
-  distinct() %>%
-  ggplot(aes(x = land1, y = land2)) +
-  geom_tile(aes(fill = label_prob)) +
-  facet_grid(bullet1 ~ bullet2) +
-  theme_bw() +
-  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5)
-
+```{r}
 hamby224_test_explain %>%
   filter(set == "1") %>%
   select(case, bullet1:land2, samesource) %>%
@@ -220,10 +219,10 @@ hamby224_test_explain %>%
 ```
 
 ```{r, fig.width = 8, fig.height = 4}
-hamby224_explain <- readRDS("../data/hamby224_explain.rds")
-
 lime::plot_explanations(hamby224_explain)
+```
 
+```{r}
 hamby224_test_explain %>%
   filter(set == "1") %>%
   ggplot(aes(x = case, y = feature_desc)) + 
@@ -233,8 +232,9 @@ hamby224_test_explain %>%
   scale_fill_gradient2(midpoint = 0) +
   theme(legend.position = "bottom") +
   ylab("Feature Sets") 
-  
+```  
 
+```{r}
 hamby224_test_explain %>%
   filter(set == "1", samesource == "FALSE") %>%
   ggplot(aes(x = case, y = feature_desc)) + 
@@ -242,7 +242,9 @@ hamby224_test_explain %>%
   facet_grid(feature ~ bullet1, space = "free", scale = "free") + 
   theme(axis.text.x = element_text(angle = 90)) +
   scale_fill_gradient2(midpoint = 0)
+```
 
+```{r}
 hamby224_test_explain %>%
   filter(set == "1", samesource == "FALSE") %>%
   ggplot(aes(x = case, y = feature_desc)) + 
