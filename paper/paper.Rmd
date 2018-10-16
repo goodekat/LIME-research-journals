@@ -9,6 +9,7 @@ bibliography: references.bib
 ---
 
 ```{r setup, include = FALSE}
+# Set knitr options
 knitr::opts_chunk$set(echo = FALSE, eval = TRUE, cache = TRUE)
 
 # Load libraries
@@ -82,7 +83,7 @@ hamby224_set11_cleaned <- hamby224_set11 %>%
          land1 = landA,
          land2 = landB) %>%
   mutate(study = factor("Hamby_224"), 
-         set = factor("2"),
+         set = factor("11"),
          bullet1 = recode(factor(bullet1), 
                           "Bullet 1" = "1", 
                           "Bullet 2" = "2", 
