@@ -27,7 +27,8 @@ ui <- fluidPage(
       # Show a plot of the generated distribution
       mainPanel(h1("Plots"),
                 plotlyOutput("tileplot"),
-                plotOutput("featureplot")
+                plotOutput("featureplot"),
+                plotOutput("myfeatureplot")
                 )
    )
 )
@@ -65,6 +66,38 @@ server <- function(input, output) {
     # Create the LIME features plot
     plot_features(hamby224_test_explain %>% filter(set == chosen) %>% slice(1:3))
 
+  })
+  
+  # Create my own feature plot
+  output$myfeatureplot <- renderPlot({
+    
+    # Grab the number of the chosen test set
+    chosen = unlist(strsplit(input$testset, split = " "))[2]
+    
+    try <- hamby224_test_explain %>%
+      filter(set == chosen) %>%
+      slice(1:3) %>%
+      mutate(feature_desc = reorder(feature_desc, as.numeric(feature_weight)),
+             evidence = if_else(feature_weight >= 0, "Supports", "Contradicts"))
+    
+    tryinfo <- try %>% 
+      slice(1) %>%
+      select(study, set, bullet1, bullet2, land1, land2)
+    
+    ggplot(try, aes(x = feature_desc, y = feature_weight)) + 
+      geom_col(aes(fill = evidence)) + 
+      coord_flip() + 
+      theme_minimal() +
+      theme(legend.position = "bottom") +
+      labs(x = "Feature Weight", y = "Feature Bin", fill = "Evidence:",
+           title = paste0("Lime Explanation for \n", 
+                          "   Study: ", tryinfo$study, "\n",
+                          "   Set: ", tryinfo$set, "\n",
+                          "   1st Bullet: ", tryinfo$bullet1, "\n",
+                          "   Second Bullet: ", tryinfo$bullet2, "\n",
+                          "   First Land: ", tryinfo$land1, "\n",
+                          "   Second Land: ", tryinfo$land2, "\n"))
+    
   })
     
 }
