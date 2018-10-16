@@ -10,6 +10,20 @@ library(lime)
 # Input data
 hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 
+# tiny1 <- data.frame(expand.grid(land1 = factor(1:6),
+#                                land2 = factor(1:6), 
+#                                bullet1 = factor(c("1", "2", "Q")),
+#                                bullet2 = factor(c("1", "2", "Q"))))
+# 
+# tiny2 <- data.frame(expand.grid(land1 = factor(1:6),
+#                                land2 = factor(1:6), 
+#                                bullet1 = factor(c("1", "2", "I")),
+#                                bullet2 = factor(c("1", "2", "I"))))
+# 
+# tiny <- rbind(tiny1, tiny2)
+# 
+# hamby224_test_explain <- left_join(tiny, hamby224_test_explain, by = c("land1", "land2", "bullet1", "bullet2"))
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(
    
@@ -27,6 +41,7 @@ ui <- fluidPage(
       # Show a plot of the generated distribution
       mainPanel(h1("Plots"),
                 plotlyOutput("tileplot"),
+                verbatimTextOutput("click"),
                 plotOutput("featureplot"),
                 plotOutput("myfeatureplot")
                 )
@@ -43,11 +58,12 @@ server <- function(input, output) {
     chosen = unlist(strsplit(input$testset, split = " "))[2]
     
     # Create a tile plot of the random forest predictions for all land comparisons
-    hamby224_test_explain %>%
+    plot <- hamby224_test_explain %>%
       filter(set == chosen) %>%
       select(case, bullet1:land2, rfscore) %>%
       distinct() %>%
-      ggplot(aes(x = land1, y = land2)) +
+      mutate(rfscore = replace(rfscore, is.na(rfscore), -1)) %>%
+      ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2, key = case)) +
       geom_tile(aes(fill = rfscore)) +
       facet_grid(bullet1 ~ bullet2) +
       theme_bw() +
@@ -55,21 +71,42 @@ server <- function(input, output) {
       labs(x = "Land 1", y = "Land 2", fill = "RF Score", 
            title = paste0("Hamby 224 Data (", input$testset, ")"))
     
+    ggplotly(plot, source = "tileplot")
+    
   })
-  
+
+  output$click <- renderPrint({
+    d <- event_data("plotly_click", source = "tileplot")
+    if (is.null(d)) "nothing there" else d
+  })
+    
   # Create the feature plot
   output$featureplot <- renderPlot({
+    
+    s <<- event_data("plotly_click", source = "tileplot") 
+    
+    vars <- c(s[["x"]], s[["y"]])
+    names(vars) <- c("land1", "land2")
+    d <<- data.frame(land1 = vars[["land1"]], land2 = vars[["land2"]], case = s$key)
     
     # Grab the number of the chosen test set
     chosen = unlist(strsplit(input$testset, split = " "))[2]
 
     # Create the LIME features plot
-    plot_features(hamby224_test_explain %>% filter(set == chosen) %>% slice(1:3))
+    plot_features(hamby224_test_explain %>% filter(set == chosen, case == s$curveNumber))
 
   })
   
+  # output$selection <- renderPrint({
+  #   s <- event_data("plotly_click")
+  #   cat("You selected: \n\n")
+  #   data.frame(s)
+  # })
+  
   # Create my own feature plot
   output$myfeatureplot <- renderPlot({
+    
+    s <- event_data("plotly_click", source = "tileplot")
     
     # Grab the number of the chosen test set
     chosen = unlist(strsplit(input$testset, split = " "))[2]
