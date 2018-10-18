@@ -10,19 +10,22 @@ library(lime)
 # Input data
 hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 
-# tiny1 <- data.frame(expand.grid(land1 = factor(1:6),
-#                                land2 = factor(1:6), 
-#                                bullet1 = factor(c("1", "2", "Q")),
-#                                bullet2 = factor(c("1", "2", "Q"))))
-# 
-# tiny2 <- data.frame(expand.grid(land1 = factor(1:6),
-#                                land2 = factor(1:6), 
-#                                bullet1 = factor(c("1", "2", "I")),
-#                                bullet2 = factor(c("1", "2", "I"))))
-# 
-# tiny <- rbind(tiny1, tiny2)
-# 
-# hamby224_test_explain <- left_join(tiny, hamby224_test_explain, by = c("land1", "land2", "bullet1", "bullet2"))
+# Create a dataset with all combinations of lands and bullets for each set
+perms1 <- data.frame(set = factor(1),
+                    expand.grid(land1 = factor(1:6),
+                                land2 = factor(1:6),
+                                bullet1 = factor(c("1", "2", "Q")),
+                                bullet2 = factor(c("1", "2", "Q"))))
+perms11 <- data.frame(set = factor(11),
+                    expand.grid(land1 = factor(1:6),
+                                land2 = factor(1:6), 
+                                bullet1 = factor(c("1", "2", "I")),
+                                bullet2 = factor(c("1", "2", "I"))))
+perms <- rbind(perms1, perms11)
+
+# Join the combinations and the data so that all combinations have a row in the data
+hamby224_test_explain_NAs <- left_join(perms, hamby224_test_explain,
+                                       by = c("set", "land1", "land2", "bullet1", "bullet2"))
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -42,9 +45,7 @@ ui <- fluidPage(
       mainPanel(h1("Plots"),
                 plotlyOutput("tileplot"),
                 verbatimTextOutput("click"),
-                plotOutput("featureplot"),
-                plotOutput("myfeatureplot")
-                )
+                plotOutput("featureplot"))
    )
 )
 
@@ -58,11 +59,10 @@ server <- function(input, output) {
     chosen = unlist(strsplit(input$testset, split = " "))[2]
     
     # Create a tile plot of the random forest predictions for all land comparisons
-    plot <- hamby224_test_explain %>%
+    plot <- hamby224_test_explain_NAs %>%
       filter(set == chosen) %>%
-      select(case, bullet1:land2, rfscore) %>%
+      select(case, bullet1, bullet2, land1, land2, rfscore) %>%
       distinct() %>%
-      mutate(rfscore = replace(rfscore, is.na(rfscore), -1)) %>%
       ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2, key = case)) +
       geom_tile(aes(fill = rfscore)) +
       facet_grid(bullet1 ~ bullet2) +
@@ -74,44 +74,25 @@ server <- function(input, output) {
     ggplotly(plot, source = "tileplot")
     
   })
-
+  
+  # Print the values of the event data
   output$click <- renderPrint({
     d <- event_data("plotly_click", source = "tileplot")
     if (is.null(d)) "nothing there" else d
   })
-    
-  # Create the feature plot
-  output$featureplot <- renderPlot({
-    
-    s <<- event_data("plotly_click", source = "tileplot") 
-    
-    vars <- c(s[["x"]], s[["y"]])
-    names(vars) <- c("land1", "land2")
-    d <<- data.frame(land1 = vars[["land1"]], land2 = vars[["land2"]], case = s$key)
-    
-    # Grab the number of the chosen test set
-    chosen = unlist(strsplit(input$testset, split = " "))[2]
-
-    # Create the LIME features plot
-    plot_features(hamby224_test_explain %>% filter(set == chosen, case == s$curveNumber))
-
-  })
-  
-  # output$selection <- renderPrint({
-  #   s <- event_data("plotly_click")
-  #   cat("You selected: \n\n")
-  #   data.frame(s)
-  # })
   
   # Create my own feature plot
-  output$myfeatureplot <- renderPlot({
+  output$featureplot <- renderPlot({
     
-    s <- event_data("plotly_click", source = "tileplot")
+    # s <<- event_data("plotly_click", source = "tileplot")
+    # vars <- c(s[["x"]], s[["y"]])
+    # names(vars) <- c("land1", "land2")
+    # d <<- data.frame(land1 = vars[["land1"]], land2 = vars[["land2"]], case = s$key)
     
     # Grab the number of the chosen test set
     chosen = unlist(strsplit(input$testset, split = " "))[2]
     
-    try <- hamby224_test_explain %>%
+    try <- hamby224_test_explain_NAs %>%
       filter(set == chosen) %>%
       slice(1:3) %>%
       mutate(feature_desc = reorder(feature_desc, as.numeric(feature_weight)),
@@ -141,19 +122,3 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
-# Example code (https://plot.ly/r/shinyapp-linked-click/)
-# s <- event_data("plotly_click", source = "tileplot")
-# if (length(s)) {
-#   vars <- c(s[["x"]], s[["y"]])
-#   d <- setNames(hamby224_test_explain[vars], c("x", "y"))
-#   yhat <- fitted(lm(y ~ x, data = d))
-#   plot_ly(d, x = ~x) %>%
-#     add_markers(y = ~y) %>%
-#     add_lines(y = ~yhat) %>%
-#     layout(xaxis = list(title = s[["x"]]),
-#            yaxis = list(title = s[["y"]]),
-#            showlegend = FALSE)
-# } else {
-#   plotly_empty()
-# }
