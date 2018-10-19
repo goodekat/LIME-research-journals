@@ -1,4 +1,4 @@
-## The beginning of a Shiny app for visualizing the LIME explanations
+## Shiny app for visualizing the LIME explanations for the bullet comparisons
 
 # Load libraries
 library(shiny)
@@ -29,7 +29,11 @@ combs <- rbind(combs1, combs11)
 
 # Join the combinations and the data so that all combinations have a row in the data
 hamby224_test_explain_NAs <<- left_join(combs, hamby224_test_explain,
-                                       by = c("set", "land1", "land2", "bullet1", "bullet2"))
+                                       by = c("set", "land1", "land2", "bullet1", "bullet2")) %>%
+  mutate(bullet1 = forcats::fct_recode(bullet1, "bullet 1" = "1", "bullet 2" = "2", 
+                                       "bullet Q" = "Q", "bullet I" = "I"),
+         bullet2 = forcats::fct_recode(bullet2, "bullet 1" = "1", "bullet 2" = "2", 
+                                       "bullet Q" = "Q", "bullet I" = "I"))
 
 ## ------------------------------------------------------------------------------------
 ## UI setup
@@ -104,52 +108,65 @@ server <- function(input, output) {
     
     if(length(click_data) > 0){
       
-      # Obtain the number of the chosen test set
-      chosen_set = unlist(strsplit(input$testset, split = " "))[2]
-      
-      # Create a dataset with the connection between the curveNumbers and the bullet facets
-      bullet_locations <- data.frame(set = rep(c("1", "11"), each = 9),
-                                     curveNumber = rep(0:8, 2),
-                                     bullet1 = c(rep(c("1", "2", "Q"), 3), 
-                                                 rep(c("1", "2", "I"), 3)),
-                                     bullet2 = c(rep(c("1", "2", "Q"), each = 3), 
-                                                 rep(c("1", "2", "I"), each = 3)))
-      
-      # Create a dataset with the location of cell that was clicked
-      location <- data.frame(land1 = click_data$x, 
-                             land2 = click_data$y,
-                             bullet_locations %>% 
-                               filter(set == chosen_set, 
-                                      curveNumber == click_data$curveNumber))
-      
-      # Create a dataset with the feature information for the selected comparison
-      selected_comparison <- hamby224_test_explain_NAs %>%
-        filter(set == chosen_set, 
-               land1 == location$land1, 
-               land2 == location$land2,
-               bullet1 == location$bullet1,
-               bullet2 == location$bullet2) %>%
-        slice(1:3) %>%
-        mutate(feature_desc = reorder(feature_desc, as.numeric(feature_weight)),
-               evidence = if_else(feature_weight >= 0, "Supports", "Contradicts"))
-      
-      labels <- selected_comparison %>% 
-        slice(1) %>%
-        select(study, set, bullet1, bullet2, land1, land2)
-      
-      ggplot(selected_comparison, aes(x = feature_desc, y = feature_weight)) + 
-        geom_col(aes(fill = evidence)) + 
-        coord_flip() + 
-        theme_minimal() +
-        theme(legend.position = "bottom") +
-        labs(y = "Feature Weight", x = "Feature Bin", fill = "Evidence:",
-             title = paste0("Lime Explanation for \n", 
-                            "   Study: ", labels$study, "\n",
-                            "   Set: ", labels$set, "\n",
-                            "   1st Bullet: ", labels$bullet1, "\n",
-                            "   Second Bullet: ", labels$bullet2, "\n",
-                            "   First Land: ", labels$land1, "\n",
-                            "   Second Land: ", labels$land2, "\n"))
+      if(!is.na(click_data$z)){
+        
+        # Obtain the number of the chosen test set
+        chosen_set = unlist(strsplit(input$testset, split = " "))[2]
+        
+        # Create a dataset with the connection between the curveNumbers and the bullet facets
+        bullet_locations <- data.frame(set = rep(c("1", "11"), each = 9),
+                                       curveNumber = rep(0:8, 2),
+                                       bullet1 = c(rep(c("bullet 1", "bullet 2", "bullet Q"), 3), 
+                                                   rep(c("bullet 1", "bullet 2", "bullet I"), 3)),
+                                       bullet2 = c(rep(c("bullet 1", "bullet 2", "bullet Q"), each = 3), 
+                                                   rep(c("bullet 1", "bullet 2", "bullet I"), each = 3)))
+        
+        # Create a dataset with the location of cell that was clicked
+        location <- data.frame(land1 = click_data$x, 
+                               land2 = click_data$y,
+                               bullet_locations %>% 
+                                 filter(set == chosen_set, 
+                                        curveNumber == click_data$curveNumber))
+        
+        # Create a dataset with the feature information for the selected comparison
+        selected_comparison <- hamby224_test_explain_NAs %>%
+          filter(set == chosen_set,
+                 land1 == location$land1,
+                 land2 == location$land2,
+                 bullet1 == location$bullet1,
+                 bullet2 == location$bullet2) %>%
+          slice(1:3) %>%
+          mutate(feature_desc = reorder(feature_desc, as.numeric(feature_weight)),
+                 evidence = factor(if_else(feature_weight >= 0, "Supports", "Contradicts"), 
+                                   levels = c("Contradicts", "Supports")))
+        
+        labels <- selected_comparison %>% 
+          slice(1) %>%
+          select(study, set, bullet1, bullet2, land1, land2)
+        
+        ggplot(selected_comparison, aes(x = feature_desc, y = feature_weight)) + 
+          geom_col(aes(fill = evidence)) + 
+          coord_flip() + 
+          theme_minimal() +
+          theme(legend.position = "bottom") +
+          labs(y = "Feature Weight", x = "Feature Bin", fill = "Evidence:",
+               title = "Top Three Features Chosen by LIME for the Selected Comparison",
+               subtitle = paste0("Selected comparison information: \n", 
+                                 "   Study: ", labels$study, "\n",
+                                 "   Set: ", labels$set, "\n",
+                                 "   1st Bullet: ", labels$bullet1, "\n",
+                                 "   2nd Bullet: ", labels$bullet2, "\n",
+                                 "   First Land: ", labels$land1, "\n",
+                                 "   Second Land: ", labels$land2, "\n")) + 
+          scale_fill_manual(values = c("Supports" = "#00BFC4", "Contradicts" = "#F8766D"),
+                            drop = FALSE)
+        
+      } else{
+        
+        # Print a black plot
+        ggplot() + geom_blank() + theme_classic()
+        
+      }
       
     } else{
       
