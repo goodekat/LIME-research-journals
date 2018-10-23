@@ -12,7 +12,7 @@ library(lime)
 ## ------------------------------------------------------------------------------------
 
 # Input data
-hamby224_test_explain <<- readRDS("../data/hamby224_test_explain.rds")
+hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 
 # Create a dataset with all combinations of lands and bullets comparisons for each set
 combs1 <- data.frame(set = factor(1),
@@ -28,7 +28,7 @@ combs11 <- data.frame(set = factor(11),
 combs <- rbind(combs1, combs11)
 
 # Join the combinations and the data so that all combinations have a row in the data
-hamby224_test_explain_NAs <<- left_join(combs, hamby224_test_explain,
+hamby224_test_explain_NAs <- left_join(combs, hamby224_test_explain,
                                        by = c("set", "land1", "land2", "bullet1", "bullet2")) %>%
   mutate(bullet1 = forcats::fct_recode(bullet1, "bullet 1" = "1", "bullet 2" = "2", 
                                        "bullet Q" = "Q", "bullet I" = "I"),
@@ -48,12 +48,12 @@ ui <- fluidPage(
    fluidRow(column(3, selectInput("testset", 
                         label = "Select a Hamby 224 dataset", 
                         choices = c("Set 1", "Set 11")))),
-   
-   # fluidRow(column(3, selectInput("testset", 
-   #                                label = "Select a Hamby 224 test dataset", 
-   #                                choices = c("Set 1", "Set 11"))),
-   #          column(3, verbatimTextOutput("click"))),
-   
+
+   # fluidRow(column(3, selectInput("testset",
+   #                                 label = "Select a Hamby 224 test dataset",
+   #                                 choices = c("Set 1", "Set 11"))),
+   #           column(3, verbatimTextOutput("click"))),
+
    fluidRow(column(6, plotlyOutput("tileplot")),
             column(6, plotOutput("featureplot")))
    
@@ -89,12 +89,12 @@ server <- function(input, output) {
     
   })
   
-  # # Print the values of the event data
+  # Print the values of the event data
   # output$click <- renderPrint({
-  #   
+  # 
   #   # Obtain the click data
   #   click_data <- event_data("plotly_click", source = "tileplot")
-  #   
+  # 
   #   # Print selected comparison
   #   if(length(click_data) > 0) click_data else "nothing selected"
   # 
@@ -104,7 +104,7 @@ server <- function(input, output) {
   output$featureplot <- renderPlot({
     
     # Obtain the click data
-    click_data <<- event_data("plotly_click", source = "tileplot")
+    click_data <- event_data("plotly_click", source = "tileplot")
     
     if(length(click_data) > 0){
       
