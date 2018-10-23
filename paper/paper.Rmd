@@ -1,5 +1,5 @@
 ---
-title: "Interpreting Random Forest Predictions for Bullet Matching Using LIME (?)"
+title: "Interpreting Random Forest Predictions for Firearm Identification Using LIME"
 author: "Katherine Goode and Heike Hofmann"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: 
@@ -21,18 +21,13 @@ library(randomForest)
 
 # Introduction
 
-- background
-- motivation
-- literature review
-- problem statement
+The discipline of firearm identification examines bullets to determine the likelihood that a bullet found in a criminal case was fired from a particular gun. This is a procedure that has traditionally been performed by hand. Specially trained examiners visually assess the striations on the unknown bullet from the crime that were created when the bullet passed through the gun barrel to those on a known bullet that was fired from the gun under evalution. Often a comparison microscope is used that allows the examiners to view both bullets at the same time (National Research Counci 2009). The examiners use the ability to compare the two bullets to determine whether the two bullets were fired from the same gun barrel.
 
-The process of matching bullets to the gun that shot the bullet has traditionally been performed by hand by specially trained firearm examiners. The examiners visually assess the striation markings on the bullets under a high powered microscope to determine whether the bullets were fired from the same gun barrel. Recently, the scientific community has been encouraging the inclusion of more data driven techniques to be used in forensic investigations that would allow for the reporting of an uncertainty along with the conclusion drawn from the analysis. 
+Recently, the scientific community has been encouraging the inclusion of more data driven techniques to be used in forensic investigations that would allow for the reporting of a measure of uncertainty in addition to the conclusion drawn from the analysis. This led Hare, Hofmann, and Carriquiry (2017) to propose a new computer automated method of bullet matching. The method involves obtaining bullet signatures from the scans of the two bullets, computing a handful of variables that measure the similarity between two signatures, and fitting a random forest model to the similarity variables. The model can be trained on a set of known bullet matches and non-matches. Then it can be used to predict on a new set of bullet signature comparisons. The results from the paper suggest that the random forest model leads to highly accurate bullet matching predictions. The authors found that when their model was applied to a testing dataset (?), the resulting error rate was 0%.
 
-This led Hare, Hofmann, and Carriquiry (2017) to propose a new computer automated method of bullet matching. The method involves obtaining a bullet signature from a scan of the bullet, computing a handful of variables that measure the similarity between two signatures, and fitting a random forest model to the obtained similarity variables. The model can be trained on a set of known bullet matches and non-matches and used to predict on a new set of bullet signature comparisons. The results from the paper suggest that the random forest model leads to accurate bullet matching predictions. The authors found that when their model was applied to a testing dataset (?), the resulting error rate was 0%.
+While random forest models often result in good predictions, it is well known that a disadvantage of random forest models and other machine learning techniques is that it is difficult to interpret the models (reference?). For example, it is not possible to tell which variables played an important role in the creation of individual predictions. This issue led to the development of LIME (reference), which is an algorithm that examines the behavior of the complicated model on a local scale around a new prediction using a linear model. This allows for the ability to understand which were the driving variables in a prediction of interest.
 
-While random forest models often result in good predictions (reference?), it well known that a disadvantage of random forest models and other machine learning techniques is that it is difficult to understand which variables played an important role in the creation of the predictions. This issue led to the development of LIME (reference), which is an algorithm that examines the behavior of the complicated model on a local scale around a new prediction.
-
-Bullet matching is commonly used as evidence for convictions in court cases. Thus, it is important to not only provide accurate predictions and an associated uncertainty level but also to explain which variables were important in making the prediction. This paper applies LIME to the random forest model used for bullet matching to assess which variables are driving the predictions made by the model.
+Since firearm identification identification is commonly used as evidence for convictions in court cases, it is important to not only provide accurate predictions and an associated uncertainty level but also to understand which variables were important in making the prediction. Firearm examiners could use LIME to check whether or not the predictions created by LIME are reasonable. This paper provides an example of the application of LIME to an updated version of the random forest model from the Hare paper used for bullet matching.
 
 # Data
 
