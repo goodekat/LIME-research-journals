@@ -4,33 +4,18 @@ TO DO LIST
 -------------
 
 Questions:
-- Do you know why some of the cells are not functioning with ploltly?
-- How do we want to handle the issue with different LIME explanations for the 
-  symmetric comparisons due to permutations?
-- Is is possible to have the legend not overlap the heatmap plot?
-  - I found that if facet_grid is not used, then the legend does not overlap.
-  - Ganesh found a souce that seems to suggest Carson recommends creating 
-    individual plots and then using subplot
-- Do you save your workspace when working with papers in R markdown?
-- Did you hear about yesterday's seminar?
-- What is the timeline for this paper?
-    - When will the rf model be fit? 
-    - When would you like me to have a draft of the paper done by?
-- What visualizations do we want to include in this paper?
 
 Completed:
-- input rows for the missing data
-- see how plotly handles the missing values
-- get the click function working correctly
-- improve the layout of the Shiny app
-- figure out why are some of the colors are wrong for the evidence variable
-- add in an option for feature plot when missing observation
-- made more informative labels
-- worked more on the introduction for the paper
 
 Current:
+- add in the if else statement to the paper
+- email Carson about the dead space in the plot and the legend
+- get rid of the lower portion of the heatmap
+- try creating the plot individually
 - finish a draft of the introduction to the paper
 - write a draft of the LIME overview section
+- write about the training data and the random forest model from Hare
+- working on figuring out which images to include
 - figure out why the rf scores do not match the ones from LIME
 
 Later:

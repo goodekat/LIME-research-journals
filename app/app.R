@@ -49,11 +49,6 @@ ui <- fluidPage(
                         label = "Select a Hamby 224 dataset", 
                         choices = c("Set 1", "Set 11")))),
 
-   # fluidRow(column(3, selectInput("testset",
-   #                                 label = "Select a Hamby 224 test dataset",
-   #                                 choices = c("Set 1", "Set 11"))),
-   #           column(3, verbatimTextOutput("click"))),
-
    fluidRow(column(6, plotlyOutput("tileplot")),
             column(6, plotOutput("featureplot")))
    
@@ -79,7 +74,7 @@ server <- function(input, output) {
       distinct() %>%
       ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
       geom_tile(aes(fill = rfscore)) +
-      facet_grid(bullet1 ~ bullet2) +
+      facet_grid(bullet1 ~ bullet2, scales = "free") +
       theme_bw() +
       scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
       labs(x = "Land 1", y = "Land 2", fill = "RF Score", 
@@ -88,17 +83,6 @@ server <- function(input, output) {
     ggplotly(plot, source = "tileplot", width = 700, height = 550)
     
   })
-  
-  # Print the values of the event data
-  # output$click <- renderPrint({
-  # 
-  #   # Obtain the click data
-  #   click_data <- event_data("plotly_click", source = "tileplot")
-  # 
-  #   # Print selected comparison
-  #   if(length(click_data) > 0) click_data else "nothing selected"
-  # 
-  # })
   
   # Create my own feature plot
   output$featureplot <- renderPlot({
