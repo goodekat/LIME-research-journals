@@ -59,52 +59,65 @@ hamby224_set11 <- readRDS("../data/h224-set11-features.rds")
 # Obtain features used when fitting the rtrees random forest
 rf_features <- rownames(rtrees$importance)
 
-# Clean the Hamby 224 set 1 data
-hamby224_set1_cleaned <- hamby224_set1 %>%
-  select(-bullet_score, -land1, -land2, -aligned, -striae, -features) %>%
-  rename(bullet1 = bulletA,
-         bullet2 = bulletB, 
-         land1 = landA,
-         land2 = landB) %>%
-  mutate(study = factor("Hamby_224"), 
-         set = factor("1"),
-         bullet1 = factor(bullet1),
-         bullet2 = factor(bullet2),
-         land1 = factor(land1),
-         land2 = factor(land2)) %>%
-  select(study, set, bullet1:land2, rf_features, rfscore, samesource)
+# If the test data does not exist, clean the data, create the test data, and save it
+# Otherwise, load in the test data
+if(!file.exists("../data/hamby224_test.csv")) {
+  
+  # Clean the Hamby 224 set 1 data
+  hamby224_set1_cleaned <- hamby224_set1 %>%
+    select(-bullet_score, -land1, -land2, -aligned, -striae, -features) %>%
+    rename(bullet1 = bulletA,
+           bullet2 = bulletB, 
+           land1 = landA,
+           land2 = landB) %>%
+    mutate(study = factor("Hamby_224"), 
+           set = factor("1"),
+           bullet1 = factor(bullet1),
+           bullet2 = factor(bullet2),
+           land1 = factor(land1),
+           land2 = factor(land2)) %>%
+    select(study, set, bullet1:land2, rf_features, rfscore, samesource)
 
-# Clean the Hamby 224 set 11 data
-hamby224_set11_cleaned <- hamby224_set11 %>%
-  select(-bullet_score, -land1, -land2, -aligned, -striae, -features) %>%
-  rename(bullet1 = bulletA,
-         bullet2 = bulletB, 
-         land1 = landA,
-         land2 = landB) %>%
-  mutate(study = factor("Hamby_224"), 
-         set = factor("11"),
-         bullet1 = recode(factor(bullet1), 
-                          "Bullet 1" = "1", 
-                          "Bullet 2" = "2", 
-                          "Bullet I" = "I"),
-         bullet2 = recode(factor(bullet2), 
-                          "Bullet 1" = "1", 
-                          "Bullet 2" = "2", 
-                          "Bullet I" = "I"),
-         land1 = recode(factor(land1), 
-                        "Land 1" = "1", "Land 2" = "2", "Land 3" = "3", 
-                        "Land 4" = "4", "Land 5" = "5", "Land 6" = "6"),
-         land2 = recode(factor(land2), 
-                        "Land 1" = "1", "Land 2" = "2", "Land 3" = "3", 
-                        "Land 4" = "4", "Land 5" = "5", "Land 6" = "6")) %>%
-  select(study, set, bullet1:land2, rf_features, rfscore, samesource)
+  # Clean the Hamby 224 set 11 data
+  hamby224_set11_cleaned <- hamby224_set11 %>%
+    select(-bullet_score, -land1, -land2, -aligned, -striae, -features) %>%
+    rename(bullet1 = bulletA,
+           bullet2 = bulletB, 
+           land1 = landA,
+           land2 = landB) %>%
+    mutate(study = factor("Hamby_224"), 
+           set = factor("11"),
+           bullet1 = recode(factor(bullet1), 
+                            "Bullet 1" = "1", 
+                            "Bullet 2" = "2", 
+                            "Bullet I" = "I"),
+           bullet2 = recode(factor(bullet2), 
+                            "Bullet 1" = "1", 
+                            "Bullet 2" = "2", 
+                            "Bullet I" = "I"),
+           land1 = recode(factor(land1), 
+                          "Land 1" = "1", "Land 2" = "2", "Land 3" = "3", 
+                          "Land 4" = "4", "Land 5" = "5", "Land 6" = "6"),
+           land2 = recode(factor(land2), 
+                          "Land 1" = "1", "Land 2" = "2", "Land 3" = "3", 
+                          "Land 4" = "4", "Land 5" = "5", "Land 6" = "6")) %>%
+    select(study, set, bullet1:land2, rf_features, rfscore, samesource)
+  
+  # Join the two cleaned Hamby 224 sets into one testing set
+  hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
+                                              hamby224_set11_cleaned)) %>%
+    mutate(case = as.character(1:length(study))) %>%
+    select(case, study:samesource)
+  
+  # Save the test data as a .csv file
+  write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
 
-# Join the two cleaned Hamby 224 sets into one testing set
-hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
-                                            hamby224_set11_cleaned))
-
-# Save the test data as a .csv file
-write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
+} else {
+ 
+  # Read in the test data
+  hamby224_test <- read.csv("../data/hamby224_test.csv")
+  
+}
 ```
 
 #  Methods
@@ -118,70 +131,94 @@ write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
 ## Applying LIME
 
 ```{r echo = FALSE}
-# Apply the lime function from the lime package (with a seed set)
-# Note that the as_classifier must be added since rtrees is from the
-# randomForest package and not fit using caret or one of the other 
-# available models specified in the lime package. Additionally, the
-# randomForest package must be loaded in order to run the functions
-# from the lime package. (I should check on exactly how this works.)
-set.seed(84902)
-hamby224_lime <- lime(x = hamby173and252_train %>% select(rf_features),
-                      model = as_classifier(rtrees))
+# Apply the lime function if the file does not already exist
+if(!file.exists("../data/hamby224_lime.rds")) {
+  
+  # Apply the lime function from the lime package (with a seed set)
+  # Note that the as_classifier must be added since rtrees is from the
+  # randomForest package and not fit using caret or one of the other 
+  # available models specified in the lime package. Additionally, the
+  # randomForest package must be loaded in order to run the functions
+  # from the lime package. (I should check on exactly how this works.)
+  set.seed(84902)
+  hamby224_lime <- lime(x = hamby173and252_train %>% select(rf_features),
+                        model = as_classifier(rtrees))
+  
+  # Save the lime object
+  saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
 
-# Save the lime object
-saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
+} else {
+  
+  # Load in the lime object
+  hamby224_lime <- readRDS("../data/hamby224_lime.rds")
+  
+}
 ```
 
 ```{r}
-# Apply the explain function from the lime package (with a seed set)
-set.seed(84902)
-hamby224_explain <- lime::explain(hamby224_test %>% select(rf_features), 
-                                  hamby224_lime, 
-                                  n_labels = 1, 
-                                  n_features = 3)
-
-# Save the explainer object
-saveRDS(hamby224_explain, "../data/hamby224_explain.rds")
+# Apply explain function if the file does not already exist
+if(!file.exists("../data/hamby224_explain.rds")) {
+  
+  # Apply the explain function from the lime package (with a seed set)
+  set.seed(84902)
+  hamby224_explain <- lime::explain(hamby224_test %>% select(rf_features), 
+                                    hamby224_lime, 
+                                    n_labels = 1, 
+                                    n_features = 3)
+  
+  # Save the explainer object
+  saveRDS(hamby224_explain, "../data/hamby224_explain.rds")
+  
+} else {
+  
+  # Load in the explain object
+  hamby224_explain <- readRDS("../data/hamby224_explain.rds")
+  
+}
 ```
 
 ```{r echo = FALSE}
-# Add a case variable to the test data
-hamby224_test <- hamby224_test %>%
-  mutate(case = as.character(1:dim(hamby224_test)[1])) %>%
-  select(case, study:samesource)
-
-# Obtain features used when fitting the rtrees random forest
-rf_features <- rownames(rtrees$importance)
-
-# Join the data and the explanations and edit and add additional variables
-hamby224_test_explain <- full_join(hamby224_test, hamby224_explain, by = "case") %>%
-  mutate(case = factor(case),
-         set = factor(set),
-         bullet1 = factor(bullet1),
-         bullet2 = factor(bullet2),
-         land1 = factor(land1),
-         land2 = factor(land2)) %>%
-  mutate(mypred = rep(predict(rtrees, hamby224_test %>% select(rf_features), 
-                              type = "prob")[,2], each = 3)) %>%
-  select(case:rfscore, mypred, samesource:prediction) %>%
-  mutate(feature_desc = factor(feature_desc),
-         feature = factor(feature)) %>%
-  mutate(feature_number = readr::parse_number(feature_desc),
-         strictly_less = FALSE)
-
-# Finish creating the strictly less than variable
-hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
-
-# Reorder the variable of feature_desc for plotting purposes
-hamby224_test_explain <- hamby224_test_explain %>%
-  mutate(
-    feature_desc = reorder(feature_desc, strictly_less),
-    feature_desc = reorder(feature_desc, feature_number),
-    feature_desc = reorder(feature_desc, as.numeric(feature))
-  )
-
-# Save the combined test and explain data
-saveRDS(hamby224_test_explain, "../data/hamby224_test_explain.rds")
+# Create the test_explain combined data if the file does not already exist
+if(!file.exists("../data/hamby224_test_explain.rds")) {
+  
+  # Join the data and the explanations and edit and add additional variables
+  hamby224_test_explain <- hamby224_test %>%
+    mutate(case = as.character(case)) %>%
+    full_join(hamby224_explain, by = "case") %>%
+    mutate(case = factor(case),
+           set = factor(set),
+           bullet1 = factor(bullet1),
+           bullet2 = factor(bullet2),
+           land1 = factor(land1),
+           land2 = factor(land2)) %>%
+    mutate(mypred = rep(predict(rtrees, hamby224_test %>% select(rf_features), 
+                                type = "prob")[,2], each = 3)) %>%
+    select(case:rfscore, mypred, samesource:prediction) %>%
+    mutate(feature_desc = factor(feature_desc),
+           feature = factor(feature)) %>%
+    mutate(feature_number = readr::parse_number(feature_desc),
+           strictly_less = FALSE)
+  
+  # Finish creating the strictly less than variable
+  hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
+  
+  # Reorder the variable of feature_desc for plotting purposes
+  hamby224_test_explain <- hamby224_test_explain %>%
+    mutate(
+      feature_desc = reorder(feature_desc, strictly_less),
+      feature_desc = reorder(feature_desc, feature_number),
+      feature_desc = reorder(feature_desc, as.numeric(feature))
+    )
+  
+  # Save the combined test and explain data
+  saveRDS(hamby224_test_explain, "../data/hamby224_test_explain.rds")
+   
+} else {
+  
+  # Load in the data
+  hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+  
+}
 ```
 
 ## Visualizing the LIME Explanations
@@ -205,54 +242,6 @@ hamby224_test_explain %>%
   facet_grid(bullet1 ~ bullet2) +
   theme_bw() +
   scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5)
-```
-
-```{r}
-hamby224_test_explain %>%
-  filter(set == "1") %>%
-  select(case, bullet1:land2, samesource) %>%
-  distinct() %>%
-  ggplot(aes(x = land1, y = land2)) +
-  geom_tile(aes(fill = samesource)) +
-  facet_grid(bullet1 ~ bullet2) +
-  theme_bw()
-```
-
-```{r, fig.width = 8, fig.height = 4}
-lime::plot_explanations(hamby224_explain)
-```
-
-```{r}
-hamby224_test_explain %>%
-  filter(set == "1") %>%
-  ggplot(aes(x = case, y = feature_desc)) + 
-  geom_tile(aes(fill = feature_weight)) + 
-  facet_grid(feature ~ label, space = "free", scale = "free") + 
-  theme(axis.text.x = element_text(angle = 90)) +
-  scale_fill_gradient2(midpoint = 0) +
-  theme(legend.position = "bottom") +
-  ylab("Feature Sets") 
-```  
-
-```{r}
-hamby224_test_explain %>%
-  filter(set == "1", samesource == "FALSE") %>%
-  ggplot(aes(x = case, y = feature_desc)) + 
-  geom_tile(aes(fill = feature_weight)) + 
-  facet_grid(feature ~ bullet1, space = "free", scale = "free") + 
-  theme(axis.text.x = element_text(angle = 90)) +
-  scale_fill_gradient2(midpoint = 0)
-```
-
-```{r}
-hamby224_test_explain %>%
-  filter(set == "1", samesource == "FALSE") %>%
-  ggplot(aes(x = case, y = feature_desc)) + 
-  geom_tile(aes(fill = feature_weight)) + 
-  facet_grid(bullet1 ~ bullet2, space = "free", scale = "free") + 
-  theme(axis.text.x = element_text(angle = 90)) +
-  scale_fill_gradient2(midpoint = 0) +
-  theme(legend.position = "bottom")
 ```
 
 # Results
