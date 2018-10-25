@@ -9,7 +9,14 @@ Completed:
 
 Current:
 - add in the if else statement to the paper
+- set the x-axis scale to be the same for all feature plots (find the maximum)
+- add the RF probability and the decision to the feature plot description
+- change the plot to show support in both directions
+- join bullet and land into one line in the info section
+- set lower triangle to NA's
+- change bins to lower, middle, and high and add a key
 - email Carson about the dead space in the plot and the legend
+  - make a toy example to show this
 - get rid of the lower portion of the heatmap
 - try creating the plot individually
 - finish a draft of the introduction to the paper
