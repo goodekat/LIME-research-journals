@@ -4,25 +4,28 @@ TO DO LIST
 -------------
 
 Questions:
+- What is samesource again?
 
 Completed:
+- add in the if else statement to the paper
+- join bullet and land into one line in the info section
+- redo bullet levels
+- set the x-axis scale to be the same for all feature plots (find the maximum)
+- plot the bars in descending order
+- add the RF probability and the decision to the feature plot description
+- get rid of the upper triangle of the heatmap
+- replaced NA with a more meaningful message in tooltip
+- changed theme in heatmap which fixed the legend issue
+- fix the curve number issue
+- try creating the plot individually
 
 Current:
-- add in the if else statement to the paper
-- set the x-axis scale to be the same for all feature plots (find the maximum)
-- add the RF probability and the decision to the feature plot description
 - change the plot to show support in both directions
-- join bullet and land into one line in the info section
-- set lower triangle to NA's
 - change bins to lower, middle, and high and add a key
-- email Carson about the dead space in the plot and the legend
-  - make a toy example to show this
-- get rid of the lower portion of the heatmap
-- try creating the plot individually
+- email Carson about the dead space in the plot (make a toy example to show this)
 - finish a draft of the introduction to the paper
 - write a draft of the LIME overview section
 - write about the training data and the random forest model from Hare
-- working on figuring out which images to include
 - figure out why the rf scores do not match the ones from LIME
 
 Later:
