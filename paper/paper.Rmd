@@ -10,7 +10,7 @@ bibliography: references.bib
 
 ```{r setup, include = FALSE}
 # Set knitr options
-knitr::opts_chunk$set(echo = FALSE, eval = TRUE, cache = TRUE)
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE)
 
 # Load libraries
 library(tidyverse)
@@ -108,7 +108,7 @@ if(!file.exists("../data/hamby224_test.csv")) {
                                               hamby224_set11_cleaned)) %>%
     mutate(case = as.character(1:length(study))) %>%
     select(case, study:samesource)
-  
+    
   # Save the test data as a .csv file
   write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
 
@@ -162,8 +162,8 @@ if(!file.exists("../data/hamby224_explain.rds")) {
   # Apply the explain function from the lime package (with a seed set)
   set.seed(84902)
   hamby224_explain <- lime::explain(hamby224_test %>% select(rf_features), 
-                                    hamby224_lime, 
-                                    n_labels = 1, 
+                                    hamby224_lime,
+                                    labels = "TRUE",
                                     n_features = 3)
   
   # Save the explainer object
@@ -178,6 +178,36 @@ if(!file.exists("../data/hamby224_explain.rds")) {
 ```
 
 ```{r echo = FALSE}
+# Function to use for creating bin labels in the test_explain dataset
+bin_labeller <- function(bin_cuts, feature, feature_value){
+
+  # Create a dataframe of bins cuts
+  bin_cuts <- data.frame(matrix(unlist(hamby224_lime$bin_cuts), nrow = 9, byrow = TRUE)) %>%
+    rename("Q0" = X1, "Q25" = X2, "Q50" = X3, "Q75" = X4, "Q100" = X5) %>%
+    mutate(Feature = rf_features) %>%
+    select(Feature, Q0:Q100)
+  
+  # Subset the bin cuts table to the selected feature
+  feature_bin_cuts <- bin_cuts %>% filter(Feature == feature)
+
+  # Determine which bin the case falls in
+  if(feature_value < feature_bin_cuts$Q25){
+    feature_bin <- "lower"
+  } else if (feature_bin_cuts$Q25 <= feature_value & feature_value < feature_bin_cuts$Q50){
+    feature_bin <- "lower middle"
+  } else if (feature_bin_cuts$Q50 <= feature_value & feature_value < feature_bin_cuts$Q75){
+    feature_bin <- "upper middle"
+  } else if (feature_bin_cuts$Q75 <= feature_value){
+    feature_bin <- "upper"
+  }
+
+  # Return the bin
+  return(feature_bin)
+
+}
+```
+
+```{r}
 # Create the test_explain combined data if the file does not already exist
 if(!file.exists("../data/hamby224_test_explain.rds")) {
   
@@ -204,11 +234,11 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
   
   # Reorder the variable of feature_desc for plotting purposes
   hamby224_test_explain <- hamby224_test_explain %>%
-    mutate(
-      feature_desc = reorder(feature_desc, strictly_less),
-      feature_desc = reorder(feature_desc, feature_number),
-      feature_desc = reorder(feature_desc, as.numeric(feature))
-    )
+    mutate(feature_desc = reorder(feature_desc, strictly_less),
+           feature_desc = reorder(feature_desc, feature_number),
+           feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
+    mutate(feature_bin = mapply(bin_labeller, feature = feature, feature_value = feature_value)) %>%
+    select(case:feature_desc, feature_number:feature_bin, data, prediction)
   
   # Save the combined test and explain data
   saveRDS(hamby224_test_explain, "../data/hamby224_test_explain.rds")
