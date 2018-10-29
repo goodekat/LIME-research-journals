@@ -5,6 +5,18 @@ TO DO LIST
 
 Questions:
 - What is samesource again?
+- Plotting the "magnitudes"?
+- Can we talk about the interpretation? I'm not sure that supports quite makes sense. It is more that
+  if the variable increases, then the probability that TRUE occures increases.
+
+Thoughts:
+- It would be interesting to see the "magnitude" associated with a variable for a prediction, but
+  this would require obtaining the scaled values of the perturbations.
+- This seems much more meaningful to me than just the model coefficient associated with the variable.
+- The current version shows which variables in the model have the largest coefficients.
+- However, the importance of the variable might change depending on the observed value associated
+  with the prediction of interest.
+- I tried the individual plots, but I don't like it.
 
 Completed:
 - add in the if else statement to the paper
@@ -16,11 +28,11 @@ Completed:
 - get rid of the upper triangle of the heatmap
 - replaced NA with a more meaningful message in tooltip
 - changed theme in heatmap which fixed the legend issue
-- fix the curve number issue
 - try creating the plot individually
+- fix the curve number issue
+- change the plot to show support in both directions
 
 Current:
-- change the plot to show support in both directions
 - change bins to lower, middle, and high and add a key
 - email Carson about the dead space in the plot (make a toy example to show this)
 - finish a draft of the introduction to the paper
