@@ -6,9 +6,9 @@
 # Running under: macOS  10.14
 
 # Load libraries
-library(plotly) # version ‘4.8.0’
-library(ggplot2) # version ‘3.1.0’
-library(tidyr) # version ‘0.8.2’
+library(plotly) # version 4.8.0
+library(ggplot2) # version 3.1.0
+library(tidyr) # version 0.8.2
 
 # Example from: https://plot.ly/r/heatmaps/ -------------------------------------------
 
