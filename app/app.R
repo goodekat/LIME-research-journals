@@ -44,7 +44,6 @@ hamby224_test_explain_NAs <<- left_join(combinations, hamby224_test_explain,
 ## UI setup
 ## ------------------------------------------------------------------------------------
 
-# Define UI for application that draws a histogram
 ui <- fluidPage(
    
    # Application title
@@ -63,7 +62,6 @@ ui <- fluidPage(
 ## Server setup
 ## ------------------------------------------------------------------------------------
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
   
   # Create the tile plot
@@ -131,7 +129,7 @@ server <- function(input, output) {
                  land2 == location$land2,
                  bullet1 == location$bullet1,
                  bullet2 == location$bullet2) %>%
-          mutate(feature_desc = reorder(feature_desc, abs(as.numeric(feature_weight))),
+          mutate(feature = reorder(feature, abs(as.numeric(feature_weight))),
                  evidence = factor(if_else(feature_weight >= 0, "Supports Same Source", "Supports Different Source"), 
                                    levels = c("Supports Different Source", "Supports Same Source")))
         
@@ -142,19 +140,20 @@ server <- function(input, output) {
         
         # Grab the observed predictor values for the case of interest
         case_data <- selected_comparison %>%
-          select(feature, feature_value) %>%
-          mutate(feature_value = round(feature_value, 3)) %>%
-          arrange(feature_value) %>%
+          select(feature, feature_weight, feature_value) %>%
+          mutate(feature_value = round(feature_value, 3),
+                 feature = reorder(feature, -abs(as.numeric(feature_weight)))) %>%
+          select(-feature_weight) %>%
           spread(key = feature, value = feature_value)
         
         # Create the feature plot
-        feature_plot <- ggplot(selected_comparison, aes(x = feature_desc, y = abs(feature_weight))) +
+        feature_plot <- ggplot(selected_comparison, aes(x = feature, y = abs(feature_weight))) +
           geom_col(aes(fill = evidence)) +
           ylim(0, xlimit1) +
           coord_flip() +
           theme_minimal() +
           theme(legend.position = "none") +
-          labs(y = "Feature Weight", x = "Feature Bin", fill = "") +
+          labs(y = "Feature Magnitude (Absolute Value of Ridge Regression Coefficient)", x = "Feature", fill = "") +
           scale_fill_manual(values = c("Supports Same Source" = "darkorange", "Supports Different Source" = "darkgrey"),
                             drop = FALSE)
         
@@ -169,7 +168,7 @@ server <- function(input, output) {
         #                     drop = FALSE)
         
         # Create a title
-        title <- ggdraw() + draw_label("Top Three Features Chosen by LIME for the Selected Comparison",
+        title <- ggdraw() + draw_label("Top Three Features Chosen by LIME for the Selected Prediction",
                                        hjust = 0,
                                        x = 0,
                                        fontface = "bold")
