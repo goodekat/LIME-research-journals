@@ -191,14 +191,14 @@ bin_labeller <- function(bin_cuts, feature, feature_value){
   feature_bin_cuts <- bin_cuts %>% filter(Feature == feature)
 
   # Determine which bin the case falls in
-  if(feature_value < feature_bin_cuts$Q25){
-    feature_bin <- "lower"
-  } else if (feature_bin_cuts$Q25 <= feature_value & feature_value < feature_bin_cuts$Q50){
-    feature_bin <- "lower middle"
-  } else if (feature_bin_cuts$Q50 <= feature_value & feature_value < feature_bin_cuts$Q75){
-    feature_bin <- "upper middle"
-  } else if (feature_bin_cuts$Q75 <= feature_value){
-    feature_bin <- "upper"
+  if(feature_value <= feature_bin_cuts$Q25){
+    feature_bin <- paste("lower", feature, "bin")
+  } else if (feature_bin_cuts$Q25 < feature_value & feature_value <= feature_bin_cuts$Q50){
+    feature_bin <- paste("lower middle", feature, "bin")
+  } else if (feature_bin_cuts$Q50 < feature_value & feature_value <= feature_bin_cuts$Q75){
+    feature_bin <- paste("upper middle", feature, "bin")
+  } else if (feature_bin_cuts$Q75 < feature_value){
+    feature_bin <- paste("upper", feature, "bin")
   }
 
   # Return the bin
@@ -227,17 +227,17 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     mutate(feature_desc = factor(feature_desc),
            feature = factor(feature)) %>%
     mutate(feature_number = readr::parse_number(feature_desc),
-           strictly_less = FALSE)
+           strictly_less = FALSE) %>%
+    mutate(feature_bin = mapply(bin_labeller, feature = feature, feature_value = feature_value))
   
   # Finish creating the strictly less than variable
   hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
   
-  # Reorder the variable of feature_desc for plotting purposes
+  # Reorder the variables of feature_desc and feature_bin for plotting purposes
   hamby224_test_explain <- hamby224_test_explain %>%
     mutate(feature_desc = reorder(feature_desc, strictly_less),
            feature_desc = reorder(feature_desc, feature_number),
            feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
-    mutate(feature_bin = mapply(bin_labeller, feature = feature, feature_value = feature_value)) %>%
     select(case:feature_desc, feature_number:feature_bin, data, prediction)
   
   # Save the combined test and explain data
