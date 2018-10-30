@@ -22,7 +22,7 @@ Thoughts:
 - I tried the individual plots, but I don't like it.
 
 Completed:
-- add in the if else statement to the paper
+- add in the if else statement to the paper (I decided to remove the cache option)
 - join bullet and land into one line in the info section
 - redo bullet levels
 - set the x-axis scale to be the same for all feature plots (find the maximum)
