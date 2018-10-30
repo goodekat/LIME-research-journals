@@ -7,7 +7,10 @@ Questions:
 - What is samesource again?
 - Plotting the "magnitudes"?
 - Can we talk about the interpretation? I'm not sure that supports quite makes sense. It is more that
-  if the variable increases, then the probability that TRUE occures increases.
+  if the variable increases, then the probability that TRUE occures increases. Does this necessarily 
+  mean that this variable supports TRUE?
+- I can't decide what to show on the y-axis of the feature plot. What are your thoughts? In some ways,
+  I just want to put the name of the variable.
 
 Thoughts:
 - It would be interesting to see the "magnitude" associated with a variable for a prediction, but
@@ -31,10 +34,13 @@ Completed:
 - try creating the plot individually
 - fix the curve number issue
 - change the plot to show support in both directions
+- explored deadspace issue further and created a toy example
+- change bins to lower, middle, and high
 
 Current:
-- change bins to lower, middle, and high and add a key
-- email Carson about the dead space in the plot (make a toy example to show this)
+- tryout deadspace example on a different computer
+- email Carson about the dead space in the plot
+- add a key for the bins
 - finish a draft of the introduction to the paper
 - write a draft of the LIME overview section
 - write about the training data and the random forest model from Hare
