@@ -15,7 +15,7 @@ library(tidyr) # version 0.8.2
 # Create dataset
 m <- matrix(rnorm(9), nrow = 3, ncol = 3)
 
-# Create plotly heatmap - no deadspace to be found
+# Create plotly heatmap - no dead space to be found
 plot_ly(x = c("a", "b", "c"), y = c("d", "e", "f"), z = m, type = "heatmap")
 
 # Example using ggplotly function -----------------------------------------------------
@@ -28,7 +28,17 @@ m_gathered <- data.frame(m) %>%
 
 # Create ggplot heatmap
 p <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
-  geom_tile()
+  geom_tile() + 
+  scale_x_discrete(expand = c(0, 0)) + 
+  scale_y_discrete(expand = c(0, 0))
 
-# Apply plotly to ggplot heatmap - deadspace in the middle of (X1, X1)
+# Apply plotly to ggplot heatmap - dead space in the middle of (X1, X1)
 ggplotly(p)
+
+# Create ggplot heatmap without a legend
+p_nolegend <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
+  geom_tile() +
+  theme(legend.position = "none") 
+
+# Apply plotly to ggplot heatmap - the dead space is gone!
+ggplotly(p_nolegend)

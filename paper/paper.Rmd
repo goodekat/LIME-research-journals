@@ -163,7 +163,7 @@ if(!file.exists("../data/hamby224_explain.rds")) {
   set.seed(84902)
   hamby224_explain <- lime::explain(hamby224_test %>% select(rf_features), 
                                     hamby224_lime,
-                                    labels = "TRUE",
+                                    labels = "FALSE",
                                     n_features = 3)
   
   # Save the explainer object
@@ -253,7 +253,14 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
 
 ## Visualizing the LIME Explanations
 
-Some plots to tryout working with the new explanations...
+Thoughts on the visualizations: 
+
+- It would be interesting to see the "magnitude" associated with a variable for a prediction, but
+  this would require obtaining the scaled values of the perturbations.
+- This seems much more meaningful to me than just the model coefficient associated with the variable.
+- The current version shows which variables in the model have the largest coefficients.
+- However, the importance of the variable might change depending on the observed value associated
+  with the prediction of interest.
 
 ```{r}
 hamby224_test_explain %>%

@@ -4,47 +4,23 @@ TO DO LIST
 -------------
 
 Questions:
-- What is samesource again?
-- Plotting the "magnitudes"?
-- Can we talk about the interpretation? I'm not sure that supports quite makes sense. It is more that
-  if the variable increases, then the probability that TRUE occures increases. Does this necessarily 
-  mean that this variable supports TRUE?
-- I can't decide what to show on the y-axis of the feature plot. What are your thoughts? In some ways,
-  I just want to put the name of the variable.
 
 Thoughts:
-- It would be interesting to see the "magnitude" associated with a variable for a prediction, but
-  this would require obtaining the scaled values of the perturbations.
-- This seems much more meaningful to me than just the model coefficient associated with the variable.
-- The current version shows which variables in the model have the largest coefficients.
-- However, the importance of the variable might change depending on the observed value associated
-  with the prediction of interest.
-- I tried the individual plots, but I don't like it.
+- What if the intercept was forced to be 0.5?
 
 Completed:
-- add in the if else statement to the paper (I decided to remove the cache option)
-- join bullet and land into one line in the info section
-- redo bullet levels
-- set the x-axis scale to be the same for all feature plots (find the maximum)
-- plot the bars in descending order
-- add the RF probability and the decision to the feature plot description
-- get rid of the upper triangle of the heatmap
-- replaced NA with a more meaningful message in tooltip
-- changed theme in heatmap which fixed the legend issue
-- try creating the plot individually
-- fix the curve number issue
-- change the plot to show support in both directions
-- explored deadspace issue further and created a toy example
-- change bins to lower, middle, and high
 
 Current:
-- tryout deadspace example on a different computer
-- email Carson about the dead space in the plot
+- add marks to heatmap on selected cell (talk to Ganesh about this)
+- try out different LIME default settings
+- write paper section on LIME with all of the details of the algorithm
+- figure out why the rf scores do not match the ones from LIME
+- compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
+- compare the LIME predictions to the RF predictions
+- look into what the original paper meant to be plotted
 - add a key for the bins (if necessary)
 - finish a draft of the introduction to the paper
-- write a draft of the LIME overview section
 - write about the training data and the random forest model from Hare
-- figure out why the rf scores do not match the ones from LIME
 
 Later:
 - read new paper on Anchor

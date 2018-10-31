@@ -37,8 +37,9 @@ hamby224_test_explain_NAs <<- left_join(combinations, hamby224_test_explain,
                                        "Questioned" = "Q", "Questioned" = "I"),
          bullet2 = forcats::fct_recode(bullet2, "Known 1" = "1", "Known 2" = "2", 
                                        "Questioned" = "Q", "Questioned" = "I"),
-         rfscore = round(rfscore, 3),
-         feature_magnitude = feature_weight * feature_value)
+         land1 = forcats::fct_recode(land1, "Land 1" = "1", "Land 2" = "2", "Land 3" = "3", 
+                                     "Land 4" = "4", "Land 5" = "5", "Land 6" = "6"),
+         rfscore = round(rfscore, 3))
 
 ## ------------------------------------------------------------------------------------
 ## UI setup
@@ -64,6 +65,8 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   
+  tileplot_mark <- reactiveValues(a = NULL)
+  
   # Create the tile plot
   output$tileplot <- renderPlotly({
     
@@ -72,29 +75,38 @@ server <- function(input, output) {
     
     # Create a tile plot of the random forest predictions for all land comparisons
     plot <- hamby224_test_explain_NAs %>%
-      filter(set == chosen_set,
-             !(bullet1 == "Questioned" & bullet2 == "Known 1"),
-             !(bullet1 == "Questioned" & bullet2 == "Known 2"),
-             !(bullet1 == "Known 2" & bullet2 == "Known 1")) %>%
-      select(case, bullet1, bullet2, land1, land2, rfscore) %>%
-      distinct() %>%
-      ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
-                 text = paste('Bullets Compared: ', bullet1, "- Land ", land1, "vs", bullet2, "- Land", land2,
-                              '\nRandom Forest Score: ', ifelse(is.na(rfscore), "Missing due to tank rash", rfscore)))) +
-      geom_tile(aes(fill = rfscore)) +
-      facet_grid(bullet2 ~ bullet1, scales = "free") +
-      theme_minimal() +
-      scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
-      labs(x = "Land 1", y = "Land 2", fill = "RF Score", 
-           title = paste0("Hamby 224 Data (", input$testset, ")"))
+        filter(set == chosen_set,
+               !(bullet1 == "Questioned" & bullet2 == "Known 1"),
+               !(bullet1 == "Questioned" & bullet2 == "Known 2"),
+               !(bullet1 == "Known 2" & bullet2 == "Known 1")) %>%
+        select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+        distinct() %>%
+        ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
+                   text = paste('Bullets Compared: ', bullet1, "- Land ", land1, "vs", bullet2, "- Land", land2,
+                                '\nRandom Forest Score: ', ifelse(is.na(rfscore), "Missing due to tank rash", rfscore)))) +
+        geom_tile(aes(fill = rfscore)) +
+        facet_grid(bullet2 ~ bullet1, scales = "free") +
+        theme_minimal() +
+        scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
+        theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+        labs(x = "Land 1", y = "Land 2", fill = "RF Score", 
+             title = paste0("Hamby 224 Data (", input$testset, ")")) +
+        scale_x_discrete(expand = c(0, 0)) + 
+        scale_y_discrete(expand = c(0, 0))
+      
+    if(length(tileplot_mark$a)){
+        ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text") %>%
+          add_annotations(x =  click_data$x, y = click_data$y, curveNumber = click_data$curveNumber,
+                          text = "x", showarrow = FALSE)
+    } else {
+      ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text")  
+    }
     
-    ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text")
     
   })
   
   # Obtain the xlimits
   xlimit1 <- max(abs(hamby224_test_explain_NAs$feature_weight), na.rm = TRUE)
-  xlimit2 <- max(abs(hamby224_test_explain_NAs$feature_magnitude), na.rm = TRUE)
   
   # Create my own feature plot
   output$featureplot <- renderPlot({
@@ -116,21 +128,23 @@ server <- function(input, output) {
                                        bullet2 = c("Known 1", "Known 2", "Known 2", "Questioned", "Questioned", "Questioned"))
         
         # Create a dataset with the location of cell that was clicked
-        location <- data.frame(land1 = click_data$x, 
+        location <<- data.frame(land1 = paste("Land", click_data$x), 
                                land2 = click_data$y,
                                bullet_locations %>%
                                  filter(set == chosen_set, 
                                         curveNumber == click_data$curveNumber))
         
+        tileplot_mark$a <- location
+        
         # Create a dataset with the feature information for the selected comparison
         selected_comparison <- hamby224_test_explain_NAs %>%
           filter(set == chosen_set,
-                 land1 == location$land1,
+                 land1 == as.character(location$land1),
                  land2 == location$land2,
                  bullet1 == location$bullet1,
                  bullet2 == location$bullet2) %>%
-          mutate(feature = reorder(feature, abs(as.numeric(feature_weight))),
-                 evidence = factor(if_else(feature_weight >= 0, "Supports Same Source", "Supports Different Source"), 
+          mutate(feature = reorder(feature_bin, abs(as.numeric(feature_weight))),
+                 evidence = factor(if_else(feature_weight <= 0, "Supports Same Source", "Supports Different Source"), 
                                    levels = c("Supports Different Source", "Supports Same Source")))
         
         # Create a data frame with the appropriate labels
@@ -147,7 +161,7 @@ server <- function(input, output) {
           spread(key = feature, value = feature_value)
         
         # Create the feature plot
-        feature_plot <- ggplot(selected_comparison, aes(x = feature, y = abs(feature_weight))) +
+        feature_plot <- ggplot(selected_comparison, aes(x = feature_bin, y = abs(feature_weight))) +
           geom_col(aes(fill = evidence)) +
           ylim(0, xlimit1) +
           coord_flip() +
