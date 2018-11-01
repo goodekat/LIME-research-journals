@@ -6,9 +6,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(plotly)
-library(lime)
 library(cowplot)
-library(grDevices)
 
 ## ------------------------------------------------------------------------------------
 ## Data Steps
