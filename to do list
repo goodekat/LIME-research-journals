@@ -9,14 +9,15 @@ Thoughts:
 - What if the intercept was forced to be 0.5?
 
 Completed:
+- add marks to heatmap on selected cell (talk to Ganesh about this)
+- moved all data cleaning and reshaping code to paper from app
 
 Current:
-- add marks to heatmap on selected cell (talk to Ganesh about this)
 - try out different LIME default settings
 - write paper section on LIME with all of the details of the algorithm
 - figure out why the rf scores do not match the ones from LIME
-- compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 - compare the LIME predictions to the RF predictions
+- compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 - look into what the original paper meant to be plotted
 - add a key for the bins (if necessary)
 - finish a draft of the introduction to the paper
