@@ -28,12 +28,13 @@ m_gathered <- data.frame(m) %>%
 
 # Create ggplot heatmap
 p <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
-  geom_tile() + 
-  scale_x_discrete(expand = c(0, 0)) + 
-  scale_y_discrete(expand = c(0, 0))
+  geom_tile()
 
 # Apply plotly to ggplot heatmap - dead space in the middle of (X1, X1)
 ggplotly(p)
+
+# Carson's suggested fix for now
+style(ggplotly(p), hoverinfo = "skip", traces = 2)
 
 # Create ggplot heatmap without a legend
 p_nolegend <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
@@ -42,3 +43,5 @@ p_nolegend <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
 
 # Apply plotly to ggplot heatmap - the dead space is gone!
 ggplotly(p_nolegend)
+
+plotly_json(p)

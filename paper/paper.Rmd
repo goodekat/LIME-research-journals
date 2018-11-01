@@ -70,12 +70,14 @@ if(!file.exists("../data/hamby224_test.csv")) {
            bullet2 = bulletB, 
            land1 = landA,
            land2 = landB) %>%
-    mutate(study = factor("Hamby_224"), 
-           set = factor("1"),
-           bullet1 = factor(bullet1),
-           bullet2 = factor(bullet2),
-           land1 = factor(land1),
-           land2 = factor(land2)) %>%
+    mutate(study = factor("Hamby 224"), 
+           set = factor("Set 1"),
+           bullet1 = recode(factor(bullet1), "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
+           bullet2 = recode(factor(bullet2), "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
+           land1 = recode(factor(land1), "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
+                          "4" = "Land 4", "5" = "Land 5", "6" = "Land 6"),
+           land2 = recode(factor(land2), "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
+                          "4" = "Land 4", "5" = "Land 5", "6" = "Land 6")) %>%
     select(study, set, bullet1:land2, rf_features, rfscore, samesource)
 
   # Clean the Hamby 224 set 11 data
@@ -85,29 +87,39 @@ if(!file.exists("../data/hamby224_test.csv")) {
            bullet2 = bulletB, 
            land1 = landA,
            land2 = landB) %>%
-    mutate(study = factor("Hamby_224"), 
-           set = factor("11"),
-           bullet1 = recode(factor(bullet1), 
-                            "Bullet 1" = "1", 
-                            "Bullet 2" = "2", 
-                            "Bullet I" = "I"),
-           bullet2 = recode(factor(bullet2), 
-                            "Bullet 1" = "1", 
-                            "Bullet 2" = "2", 
-                            "Bullet I" = "I"),
-           land1 = recode(factor(land1), 
-                          "Land 1" = "1", "Land 2" = "2", "Land 3" = "3", 
-                          "Land 4" = "4", "Land 5" = "5", "Land 6" = "6"),
-           land2 = recode(factor(land2), 
-                          "Land 1" = "1", "Land 2" = "2", "Land 3" = "3", 
-                          "Land 4" = "4", "Land 5" = "5", "Land 6" = "6")) %>%
+    mutate(study = factor("Hamby 224"), 
+           set = factor("Set 11"),
+           bullet1 = recode(factor(bullet1), "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
+                            "Bullet I" = "Questioned"),
+           bullet2 = recode(factor(bullet2), "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
+                            "Bullet I" = "Questioned")) %>%
     select(study, set, bullet1:land2, rf_features, rfscore, samesource)
+
+  # Create a dataset with all combinations of lands and bullets comparisons for each set
+  combinations <- data.frame(set = factor(rep(c("Set 1", "Set 11"), each = 324)),
+                      expand.grid(land1 = factor(c("Land 1", "Land 2", "Land 3", 
+                                                   "Land 4", "Land 5", "Land 6")),
+                                  land2 = factor(c("Land 1", "Land 2", "Land 3", 
+                                                   "Land 4", "Land 5", "Land 6")),
+                                  bullet1 = factor(c("Known 1", "Known 2", "Questioned")),
+                                  bullet2 = factor(c("Known 1", "Known 2", "Questioned"))))
   
   # Join the two cleaned Hamby 224 sets into one testing set
   hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
                                               hamby224_set11_cleaned)) %>%
-    mutate(case = as.character(1:length(study))) %>%
+    mutate(set = factor(set),
+           bullet1 = factor(bullet1),
+           bullet2 = factor(bullet2),
+           land1 = factor(land1),
+           land2 = factor(land2)) %>%
+    right_join(combinations, by = c("set", "land1", "land2", "bullet1", "bullet2")) %>%
+    filter(!(bullet1 == "Questioned" & bullet2 == "Known 1"),
+           !(bullet1 == "Questioned" & bullet2 == "Known 2"),
+           !(bullet1 == "Known 2" & bullet2 == "Known 1")) %>%
+    arrange(rfscore) %>%
+    mutate(case = factor(1:length(study))) %>%
     select(case, study:samesource)
+    
     
   # Save the test data as a .csv file
   write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
@@ -161,7 +173,10 @@ if(!file.exists("../data/hamby224_explain.rds")) {
   
   # Apply the explain function from the lime package (with a seed set)
   set.seed(84902)
-  hamby224_explain <- lime::explain(hamby224_test %>% select(rf_features), 
+  hamby224_explain <- lime::explain(hamby224_test %>% 
+                                      arrange(case) %>% 
+                                      select(rf_features) %>% 
+                                      na.omit(), 
                                     hamby224_lime,
                                     labels = "FALSE",
                                     n_features = 3)
@@ -179,26 +194,35 @@ if(!file.exists("../data/hamby224_explain.rds")) {
 
 ```{r echo = FALSE}
 # Function to use for creating bin labels in the test_explain dataset
-bin_labeller <- function(bin_cuts, feature, feature_value){
+bin_labeller <- function(feature, feature_value){
 
-  # Create a dataframe of bins cuts
-  bin_cuts <- data.frame(matrix(unlist(hamby224_lime$bin_cuts), nrow = 9, byrow = TRUE)) %>%
-    rename("Q0" = X1, "Q25" = X2, "Q50" = X3, "Q75" = X4, "Q100" = X5) %>%
-    mutate(Feature = rf_features) %>%
-    select(Feature, Q0:Q100)
+  if (is.na(feature)) {
+    
+    # Set feature_bin to NA if feature is NA
+    feature_bin <- NA
+    
+  } else {
+    
+    # Create a dataframe of bins cuts
+    bin_cuts <- data.frame(matrix(unlist(hamby224_lime$bin_cuts), nrow = 9, byrow = TRUE)) %>%
+      rename("Q0" = X1, "Q25" = X2, "Q50" = X3, "Q75" = X4, "Q100" = X5) %>%
+      mutate(Feature = rf_features) %>%
+      select(Feature, Q0:Q100)
+    
+    # Subset the bin cuts table to the selected feature
+    feature_bin_cuts <- bin_cuts %>% filter(Feature == feature)
   
-  # Subset the bin cuts table to the selected feature
-  feature_bin_cuts <- bin_cuts %>% filter(Feature == feature)
-
-  # Determine which bin the case falls in
-  if(feature_value <= feature_bin_cuts$Q25){
-    feature_bin <- paste("lower", feature, "bin")
-  } else if (feature_bin_cuts$Q25 < feature_value & feature_value <= feature_bin_cuts$Q50){
-    feature_bin <- paste("lower middle", feature, "bin")
-  } else if (feature_bin_cuts$Q50 < feature_value & feature_value <= feature_bin_cuts$Q75){
-    feature_bin <- paste("upper middle", feature, "bin")
-  } else if (feature_bin_cuts$Q75 < feature_value){
-    feature_bin <- paste("upper", feature, "bin")
+    # Determine which bin the case falls in
+    if(feature_value <= feature_bin_cuts$Q25){
+      feature_bin <- paste(feature, "(lower bin)")
+    } else if (feature_bin_cuts$Q25 < feature_value & feature_value <= feature_bin_cuts$Q50){
+      feature_bin <- paste(feature, "(lower middle bin)")
+    } else if (feature_bin_cuts$Q50 < feature_value & feature_value <= feature_bin_cuts$Q75){
+      feature_bin <- paste(feature, "(upper middle bin)")
+    } else if (feature_bin_cuts$Q75 < feature_value){
+      feature_bin <- paste(feature, "(upper bin)")
+    }
+       
   }
 
   # Return the bin
@@ -216,19 +240,11 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     mutate(case = as.character(case)) %>%
     full_join(hamby224_explain, by = "case") %>%
     mutate(case = factor(case),
-           set = factor(set),
-           bullet1 = factor(bullet1),
-           bullet2 = factor(bullet2),
-           land1 = factor(land1),
-           land2 = factor(land2)) %>%
-    mutate(mypred = rep(predict(rtrees, hamby224_test %>% select(rf_features), 
-                                type = "prob")[,2], each = 3)) %>%
-    select(case:rfscore, mypred, samesource:prediction) %>%
-    mutate(feature_desc = factor(feature_desc),
-           feature = factor(feature)) %>%
+           feature_desc = factor(feature_desc),
+           feature = factor(feature),
+           feature_bin = mapply(bin_labeller, feature = feature, feature_value = feature_value)) %>%
     mutate(feature_number = readr::parse_number(feature_desc),
-           strictly_less = FALSE) %>%
-    mutate(feature_bin = mapply(bin_labeller, feature = feature, feature_value = feature_value))
+           strictly_less = FALSE)
   
   # Finish creating the strictly less than variable
   hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
@@ -239,7 +255,7 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
            feature_desc = reorder(feature_desc, feature_number),
            feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
     select(case:feature_desc, feature_number:feature_bin, data, prediction)
-  
+
   # Save the combined test and explain data
   saveRDS(hamby224_test_explain, "../data/hamby224_test_explain.rds")
    
@@ -271,14 +287,25 @@ hamby224_test_explain %>%
 
 ```{r}
 hamby224_test_explain %>%
-  filter(set == "1") %>%
-  select(case, bullet1:land2, rfscore) %>%
-  distinct() %>%
-  ggplot(aes(x = land1, y = land2)) +
-  geom_tile(aes(fill = rfscore)) +
-  facet_grid(bullet1 ~ bullet2) +
-  theme_bw() +
-  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5)
+      filter(set == "Set 1") %>%
+      mutate(rfscore = round(rfscore, 3)) %>%
+      select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+      distinct() %>%
+      ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
+                 text = paste('Bullets Compared: ', bullet1, "-", land1, 
+                              "vs", bullet2, "-", land2,
+                              '\nRandom Forest Score: ', 
+                              ifelse(is.na(rfscore), "Missing due to tank rash", rfscore)))) +
+      geom_tile(aes(fill = rfscore)) +
+      facet_grid(bullet2 ~ bullet1, scales = "free") +
+      theme_minimal() +
+      scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1),
+            strip.text.x = element_blank(),
+            strip.text.y = element_blank()) +
+      labs(x = "Known 1                            Known 2                            Questioned", 
+           y = "Known 1                            Known 2                            Questioned", 
+           fill = "RF Score")
 ```
 
 # Results

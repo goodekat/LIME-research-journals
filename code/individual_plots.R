@@ -108,5 +108,7 @@ p9 <- hamby224_test_explain_NAs %>%
   scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5, limits = c(0,1)) +
   labs(x = "Land 1", y = "Land 2", fill = "RF Score")
 
-subplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, nrows = 3, titleX = TRUE, titleY = TRUE, margin = 0.03)
+style(subplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, nrows = 3, titleX = TRUE, titleY = TRUE, margin = 0.03),
+      hoverinfo = "skip",
+      traces = 7)
 
