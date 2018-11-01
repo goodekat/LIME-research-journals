@@ -83,18 +83,14 @@ server <- function(input, output) {
                        aes(label = "x"))
       
       # Make the plot interactive
-      style(ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text"),
-            hoverinfo = "skip", 
-            traces = 8)
+      ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text")
       
     } else {
       
       # Make the plot interactive
-      style(ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text"),
-            hoverinfo = "skip", 
-            traces = 7)
-    }
+      ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text")
     
+      }
     
   })
   
