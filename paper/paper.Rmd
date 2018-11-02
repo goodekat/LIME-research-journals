@@ -136,9 +136,38 @@ if(!file.exists("../data/hamby224_test.csv")) {
 
 ## Random Forest Model
 
-(fill in once the new random forest model has been fit)
-
 ## Overview of LIME
+
+Step 0: Split iris data into training and testing datasets
+Step 1: Fit a complex model to the training data
+Step 2: Obtain distributions of the variables from the training data
+Step 3: Sample from each of the variable distributions $n$ times
+Step 4: Obtain predictions for sampled values using the complex model
+For each testing case use the random forest model to make a prediction for each of the $n=5000$ samples
+In the iris data, the predictions are represented by the probability that a flower is a particular species
+Step 5: Obtain similarity score between data observation and sampled values
+LIME uses exponential kernel function
+  ...
+where
+$x_{obs}$: observed data vector to predict
+$x_{sampled}$: sampled data vector from distribution of training variables
+$D(\cdot, \cdot)$: distance function such as euclidean distance, cosine distance, etc.
+$\sigma$: width (default set to 0.75 in lime)
+Step 6: Perform feature selection by fiting a model to the sampled data and associated predictions (weighted by the similarity scores)
+The user can specify the number of variables (features) they would like to select: $m$
+With the iris data, the following three models will be fit to perform variable selection to select $m=2$ features:
+To perform variable selection lime supports: 
+ forward selection with ridge regression
+ highest weight with ridge regression
+ LASSO
+ tree models
+auto: forward selection if $m\le6$, highest weight otherwise
+Step 7: Fit a simple model to regress the predictions on the $m$ selected predictor variables (weighted by the similarity scores)
+Currently, `lime` is programmed to use ridge regression as the simple model
+If the response is categorical, the user can select how many categories they want to explain
+In this example, only setosa will be explained
+If petal length and sepal length were selected as the most important features for the first case in the testing data, then the simple model is
+Step 8: Extract the feature weights and use them as the explanations
 
 ## Applying LIME
 
