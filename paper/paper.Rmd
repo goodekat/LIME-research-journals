@@ -10,7 +10,7 @@ bibliography: references.bib
 
 ```{r setup, include = FALSE}
 # Set knitr options
-knitr::opts_chunk$set(echo = FALSE, eval = TRUE)
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE)
 
 # Load libraries
 library(tidyverse)
@@ -35,9 +35,7 @@ This paper provides an example of the application of LIME to a bullet matching p
 
 # Data
 
-## Training Data: The Hamby...
-
-(fill in once we know which data will be used to train the new random forest model)
+## Training Data: The Hamby 173 and 252 Datasets
 
 ```{r}
 # Load in the training data (Hamby Data 173 and 252)
@@ -47,7 +45,7 @@ hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 ## Testing Data: The Hamby 224 Clone
 
 The Hamby 224 Clone is organized as a test set of a cloned (sub-)set of the Hamby 224 bullets. As with all Hamby sets [@hamby], Hamby set 224, is a collection of 35 bullets, organized as 20 known bullets and 15 questioned bullets. The known bullets are fired in pairs of two through one of ten consecutively manufactures P-85 barrels.
-Clone set 224 is arranged as a test set of fifteen tests, one for each questioned bullet. Each test set is arranged as a combination of three bullets: two known bullets and a questioned bullet. The test asks for a decision on whether the questioned bullet comes from the same source as the two known bullets  or from a different source. This situation is similar to what a Firearms and Toolmarks Examiner might encounter in case work. 
+Clone set 224 is arranged as a test set of fifteen tests, one for each questioned bullet. Each test set is arranged as a combination of three bullets: two known bullets and a questioned bullet. The test asks for a decision on whether the questioned bullet comes from the same source as the two known bullets  or from a different source. This situation is similar to what a firearms and toolmarks examiner might encounter in case work. 
 
 ```{r}
 # Load in the Hamby 224 datasets
@@ -138,36 +136,62 @@ if(!file.exists("../data/hamby224_test.csv")) {
 
 ## Overview of LIME
 
-Step 0: Split iris data into training and testing datasets
-Step 1: Fit a complex model to the training data
-Step 2: Obtain distributions of the variables from the training data
-Step 3: Sample from each of the variable distributions $n$ times
-Step 4: Obtain predictions for sampled values using the complex model
-For each testing case use the random forest model to make a prediction for each of the $n=5000$ samples
-In the iris data, the predictions are represented by the probability that a flower is a particular species
-Step 5: Obtain similarity score between data observation and sampled values
-LIME uses exponential kernel function
-  ...
-where
-$x_{obs}$: observed data vector to predict
-$x_{sampled}$: sampled data vector from distribution of training variables
-$D(\cdot, \cdot)$: distance function such as euclidean distance, cosine distance, etc.
-$\sigma$: width (default set to 0.75 in lime)
-Step 6: Perform feature selection by fiting a model to the sampled data and associated predictions (weighted by the similarity scores)
-The user can specify the number of variables (features) they would like to select: $m$
-With the iris data, the following three models will be fit to perform variable selection to select $m=2$ features:
-To perform variable selection lime supports: 
- forward selection with ridge regression
- highest weight with ridge regression
- LASSO
- tree models
-auto: forward selection if $m\le6$, highest weight otherwise
-Step 7: Fit a simple model to regress the predictions on the $m$ selected predictor variables (weighted by the similarity scores)
-Currently, `lime` is programmed to use ridge regression as the simple model
-If the response is categorical, the user can select how many categories they want to explain
-In this example, only setosa will be explained
-If petal length and sepal length were selected as the most important features for the first case in the testing data, then the simple model is
-Step 8: Extract the feature weights and use them as the explanations
+LIME was developed by Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin in response to the issue of black box prediction models, which are complex models that may produce accurate predictions but do not allow for interpretability. The LIME algorithm can be applied to any predictive model. It provides an explanation for an individual prediction of interest by fitting a linear regression model in a local region around the prediction. Linear regression models contain a well known form and coefficients that can be interpreted.
+
+The developers of LIME wrote a Python package to implement LIME, and Thomas Lin Pedersen adapted their work to create an R package called `lime`. This paper will use version `r packageVersion("lime")` of the R package `lime`. The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.
+
+\begin{enumerate}
+\item Distributions for each of the features in the training data are obtained.
+
+\begin{quote}
+The method that `lime` uses to obtain the distribution differs based on the feature type. All of the features in the Hamby datasets are numeric. For numeric features, the default option in `lime` (`quantile\_bins = TRUE`) computes the quantiles of each feature based on the number of bins selected. The default number of bins is 4 (`n\_bins = 4`).
+\end{quote}
+
+\item $n$ samples from each of the feature distributions are drawn.
+
+\begin{quote}
+To do this, `lime` draws a sample from a Uniform(0,1) distribution and uses the bin information to compute a sample drawn from the feature distribution.
+\end{quote}
+
+\item Predictions for the testing data using the random forest model are computed.
+
+\begin{quote}
+The random forest model `rtrees` is used to make a prediction for the observation from the test dataset and each of the $n=5000$ samples as to whether or not the comparison of the two bullets in the test case are a match. Since the random forest is a classification model, `lime` is set to return the prediction probabilities.
+\end{quote}
+
+\item Similarity score between the observation in the testing data and each of the $n=5000$ sampled values are obtained.
+
+\begin{quote}
+The way that the similarity score is computed depends on the type of feature. Since all of the features in the Hamby 224 test dataset are continuous, the simulated values are first converted into 0-1 features where a 1 indicates that the feature from the simulated value falls in the same bin as the observed data point and a 0 indicates that the feature is not in the same bin as the observed data point. Then, by default, the Gower distance is used to compute the similarity score. (using the `gower` package in R)
+\end{quote}
+
+\item Feature selection is performed by fitting some type of regression model weighted by the similarity scores is to the simulated data and the observed value. The 0-1 versions of the features are used.
+
+\begin{quote}
+The user can specify the number of features, $m$, they would like to select to explain the prediction. `lime` supports the following options for feature selection
+\begin{enumerate}
+\item forward selection with ridge regression
+\item highest weight with ridge regression
+\item LASSO model
+\item tree model
+\item default: forward selection if $m\le6$ with a ridge regression model, highest weight with ridge regression otherwise
+\end{enumerate}
+\end{quote}
+
+\item A ridge regression model is fit as the simple model by regressing the prediction probabilities on the $m$ selected predictor variables and weighted by the similarity scores. If the response is categorical, the user can select how many categories and which categories they want to explain.
+
+  $$P(Match = TRUE) = \beta_0 + 
+  \beta_1 \cdot I\left[X_1 \in \mbox{obs bin}\right] + 
+  \beta_2 \cdot I\left[X_2 \in \mbox{obs bin}\right] + 
+  \beta_3 \cdot I\left[X_3 \in \mbox{obs bin}\right]$$
+  
+For the prediction of interest, 
+
+  $$P(Match = TRUE) = \beta_0 + \beta_1 + \beta_2 + \beta_3.$$
+
+\item The feature weights are extracted and used as the explanations.
+
+\end{enumerate}
 
 ## Applying LIME
 
@@ -283,7 +307,7 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     mutate(feature_desc = reorder(feature_desc, strictly_less),
            feature_desc = reorder(feature_desc, feature_number),
            feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
-    select(case:feature_desc, feature_number:feature_bin, data, prediction)
+    select(case:feature_desc, feature_bin:strictly_less, data, prediction)
 
   # Save the combined test and explain data
   saveRDS(hamby224_test_explain, "../data/hamby224_test_explain.rds")
@@ -296,16 +320,65 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
 }
 ```
 
+```{r}
+# Check to see if model_prediction is the sum of the coefficients from the simple model
+hamby224_test_explain %>% 
+  filter(case == 1) %>%
+  select(model_intercept, feature, feature_weight, model_prediction, rfscore)
+
+simple_model <-  data.frame(term = c("intercept", 
+                    as.character(hamby224_test_explain %>% filter(case == 1) %>% pull(feature))),
+           coefficients = c(subset(hamby224_test_explain, case == 1)$model_intercept[1],
+                            hamby224_test_explain %>% filter(case == 1) %>% pull(feature_weight)))
+
+# It is!
+sum(simple_model$coefficients)
+subset(hamby224_test_explain, case == 1)$model_prediction[1]
+```
+
+```{r}
+check <- hamby224_test_explain %>%
+  select(-data, -prediction) %>%
+  group_by(case) %>%
+  slice(1) %>%
+  select(case, set, rfscore, model_prediction) %>%
+  mutate(diff = rfscore - model_prediction,
+         mean = (rfscore + model_prediction) / 2)
+
+sum((subset(check$diff, check$set == "Set 1"))^2, na.rm = TRUE)
+sum((subset(check$diff, check$set == "Set 11"))^2, na.rm = TRUE)
+```
+
+Below is are plots of the probability of a match computed from the "simple" (ridge regression) model in `lime` versus the probability of a match computed from the `rtrees` random forest model for both the Hamby224 Set 1 and Set 11 test cases. Linear regression lines have been fit through the points. Both plots show that there is a weak negative linear relationship between the two variables. This suggests that as the probability of a match increases in the random forest, the simple model is doing a worse job of computing a probability that agrees with the random forest model. However, the Hamby 224 test sets 1 and 11 do not have many observations with high random forest scores. Each test set should only have 18 matches. The trend may be different if there was more cases with high random forest scores. However, it appears that the cases that are a match have some of the lowest model_prediction scores overall.
+
+```{r fig.width = 6, fig.height = 4}
+ggplot(check, aes(x = rfscore, y = model_prediction)) + 
+  geom_point() + 
+  facet_grid( ~ set) + 
+  theme_bw() + 
+  stat_smooth(method = "lm")
+```
+
+The plots below show the absolute value of the difference between the random forest probability and the simple model probabilty versus the random forest probability. These plots show a clear v-shaped trend that suggests that the simple model is doing the best job of replicating the random forest probabilty around the random forest probability of 0.5. That is, the simple model seems to be doing a worse job of computing accurate predictions in the extremes of the random forest scores.
+
+```{r fig.width = 6, fig.height = 4}
+ggplot(check, aes(x = rfscore, y = abs(diff))) + 
+  geom_point() + 
+  facet_grid( ~ set) +
+  theme_bw()
+```
+
+The plot below shows the difference of the two model probabilities versus the random forest score. This shows that when the random forest score is low, the simple model is over estimating the probability, and when the random forest score is high, the simple model is underestimating the probability.
+
+```{r fig.width = 6, fig.height = 4}
+ggplot(check, aes(x = rfscore, y = diff)) + 
+  geom_point() + 
+  facet_grid( ~ set) +
+  geom_hline(yintercept = 0, color = "blue") +
+  theme_bw()
+```
+
 ## Visualizing the LIME Explanations
-
-Thoughts on the visualizations: 
-
-- It would be interesting to see the "magnitude" associated with a variable for a prediction, but
-  this would require obtaining the scaled values of the perturbations.
-- This seems much more meaningful to me than just the model coefficient associated with the variable.
-- The current version shows which variables in the model have the largest coefficients.
-- However, the importance of the variable might change depending on the observed value associated
-  with the prediction of interest.
 
 ```{r}
 hamby224_test_explain %>%
