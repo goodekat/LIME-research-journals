@@ -13,7 +13,7 @@ library(cowplot)
 ## ------------------------------------------------------------------------------------
 
 # Input data
-hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds") 
+hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 
 ## ------------------------------------------------------------------------------------
 ## UI Setup
@@ -139,7 +139,8 @@ server <- function(input, output) {
         # Create a data frame with the appropriate labels
         labels <- selected_comparison %>% 
           slice(1) %>%
-          select(study, set, bullet1, bullet2, land1, land2, rfscore)
+          select(study, set, bullet1, bullet2, land1, land2, 
+                 rfscore, model_r2, model_prediction, model_intercept)
         
         # Grab the observed predictor values for the case of interest
         case_data <- selected_comparison %>%
@@ -169,7 +170,10 @@ server <- function(input, output) {
         # Create a subtitle
         subtitle <- ggdraw() + draw_label(paste("Study: ", labels$study, labels$set,
                                                 "\nBullets Compared: ", labels$bullet1, "-", labels$land1, " vs ", labels$bullet2, "-", labels$land2,
-                                                "\nRandom Forest Score: ", round(labels$rfscore, 3),
+                                                "\nRandom Forest Probability of a Match: ", round(labels$rfscore, 3),
+                                                "\nSimple Model Probability of a Match: ", round(labels$model_prediction, 3),
+                                                "\nSimple Model R2: ", round(labels$model_r2, 3),
+                                                "\nSimple Model Intercept: ", round(labels$model_intercept, 3),
                                                 "\n\nObserved Variable Values:", 
                                                 "\n", names(case_data)[1], " = ", case_data[,1],
                                                 "\n", names(case_data)[2], " = ", case_data[,2],
@@ -181,7 +185,7 @@ server <- function(input, output) {
         legend <- get_legend(feature_plot + theme(legend.position = "bottom"))
         
         # Create a grid of plotting components
-        plot_grid(title, subtitle, feature_plot, legend, ncol = 1, rel_heights = c(0.1, 0.4, 1))
+        plot_grid(title, subtitle, feature_plot, legend, ncol = 1, rel_heights = c(0.1, 0.6, 1))
         
       } else{
         
