@@ -6,17 +6,22 @@ TO DO LIST
 Questions:
 
 Thoughts:
-- What if the intercept was forced to be 0.5?
+- I think I have realized that the 0-1 option is used for interpreting the coefficients.
 
 Completed:
-- add marks to heatmap on selected cell (talk to Ganesh about this)
+- add marks to heatmap on selected cell
 - moved all data cleaning and reshaping code to paper from app
-
-Current:
-- try out different LIME default settings
-- write paper section on LIME with all of the details of the algorithm
+- subset the data to only create lime explanations on the necessary observations 
+  - e.g. only kept one of the symmetric comparisons
+- got response from Carson and dead space problem is now fixed
 - figure out why the rf scores do not match the ones from LIME
 - compare the LIME predictions to the RF predictions
+- write paper section on LIME with all of the details of the algorithm
+
+Current:
+- need to clean up the section on the description of LIME (better notation and explanation)
+- add the section on the random forest as well to have a starting point for the notation
+- try out different LIME default settings
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 - look into what the original paper meant to be plotted
 - add a key for the bins (if necessary)
