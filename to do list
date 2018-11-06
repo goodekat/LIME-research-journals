@@ -17,6 +17,7 @@ Completed:
 - figure out why the rf scores do not match the ones from LIME
 - compare the LIME predictions to the RF predictions
 - write paper section on LIME with all of the details of the algorithm
+- add a key for the bins
 
 Current:
 - need to clean up the section on the description of LIME (better notation and explanation)
@@ -24,9 +25,9 @@ Current:
 - try out different LIME default settings
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 - look into what the original paper meant to be plotted
-- add a key for the bins (if necessary)
 - finish a draft of the introduction to the paper
 - write about the training data and the random forest model from Hare
+- need to fix NA problem with selected cell mark
 
 Later:
 - read new paper on Anchor
