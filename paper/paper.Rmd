@@ -134,11 +134,27 @@ if(!file.exists("../data/hamby224_test.csv")) {
 
 ## Random Forest Model
 
+
+
 ## Overview of LIME
 
-LIME was developed by Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin in response to the issue of black box prediction models, which are complex models that may produce accurate predictions but do not allow for interpretability. The LIME algorithm can be applied to any predictive model. It provides an explanation for an individual prediction of interest by fitting a linear regression model in a local region around the prediction. Linear regression models contain a well known form and coefficients that can be interpreted.
+Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin developed LIME in response to the interpretabiliby issue of many machine learning techniques. Many models used in machine learning are referred to as black box prediction models since they are complex models that may provide accurate predictions but are not able to be interpreted. That is, it is not possible to understand the relationship between the features and the response variable. Without being able to interpret the models, it becomes difficult to diagnose why a model is producing the predictions that it is. The developers claim that LIME allows users to check which variables are driving the predictions made by the model. This further allows users to determine whether their model is trustworthy.
 
-The developers of LIME wrote a Python package to implement LIME, and Thomas Lin Pedersen adapted their work to create an R package called `lime`. This paper will use version `r packageVersion("lime")` of the R package `lime`. The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.
+LIME was designed to be a generalized algorithm that can be applied to any predictive model to return an "explanation" for an individual prediction of interest. This explanation is meant to convey which features from the model are driving the prediction created by the complex model. In the next section, I will provide a detailed description of how the LIME algorithm obtains the explanation when applied to a random forest model with numeric features. For now, general overview of the LIME algorithm will be explained.
+
+Suppose that a complex model has been fit on a training dataset with $k$ features and a response variable that may either be numeric or categorical. This trained model will be applied to a testing dataset containing the $k$ features to obtain predictions. It is of interest to understand which variables played an important role in the predictions. LIME will be applied to one of the cases in the testing dataset to obtain an explanation. To create the explanation, LIME starts by approximating the distribution of each of the $k$ features in the training dataset. It then simulates a large dataframe from these distributions. The simulated data are used to perform feature selection to determine the $m$ most important features. Then a weighted ridge regression model is fit to standardized versions of the selected $m$ features from the simulated data. The model assigns higher weights to observations closer to the observed case of interest. A linear model is used since it has a well known form and coefficients that can be interpreted. The coefficients from the model are extracted and used to "explain" the importance of the variables. Features with a larger absolute value of their coefficient are implied to play a larger role in the creation of the prediction.
+
+## Applying LIME
+
+The developers of LIME wrote a Python package to implement LIME, and Thomas Lin Pedersen adapted their work to create an R package called `lime`. This paper will use version `r packageVersion("lime")` of the R package `lime` in the analysis of the bullet matching data. The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.
+
+Let
+  $$Y_{jk} = \begin{cases} 
+  1 & \mbox{ if bullets } j \mbox{ and } k \mbox{ were fired from the same gun barrel }\\
+  0 & \mbox{otherwise}
+  \end{cases}$$
+be the response variable in the training dataset, and $X_1,...,X_9$ correspond to the nine features in the training dataset. Let $X'_1,...,X'_9$ be the 
+
 
 \begin{enumerate}
 \item Distributions for each of the features in the training data are obtained.
@@ -193,9 +209,7 @@ For the prediction of interest,
 
 \end{enumerate}
 
-## Applying LIME
-
-```{r echo = FALSE}
+```{r}
 # Apply the lime function if the file does not already exist
 if(!file.exists("../data/hamby224_lime.rds")) {
   
@@ -245,9 +259,30 @@ if(!file.exists("../data/hamby224_explain.rds")) {
 }
 ```
 
-```{r echo = FALSE}
+```{r}
+if (!file.exists("../data/hamby_bins.csv")) {
+  
+  # Create a dataframe of bins cuts
+  hamby_bins <- data.frame(matrix(unlist(hamby224_lime$bin_cuts), 
+                                  nrow = 9, byrow = TRUE)) %>%
+      rename("Q0" = X1, "Q25" = X2, "Q50" = X3, "Q75" = X4, "Q100" = X5) %>%
+      mutate(Feature = rf_features) %>%
+      select(Feature, Q0:Q100)
+  
+  # Save the bin cuts
+  write.csv(hamby_bins, "../data/hamby_bins.csv", row.names = FALSE)
+  
+} else {
+  
+  # Load in the bins csv
+  hamby_bins <- read.csv("../data/hamby_bins.csv")
+  
+}
+```
+
+```{r}
 # Function to use for creating bin labels in the test_explain dataset
-bin_labeller <- function(feature, feature_value){
+bin_labeller <- function(feature, feature_value, bin_cuts = hamby_bins){
 
   if (is.na(feature)) {
     
@@ -256,21 +291,17 @@ bin_labeller <- function(feature, feature_value){
     
   } else {
     
-    # Create a dataframe of bins cuts
-    bin_cuts <- data.frame(matrix(unlist(hamby224_lime$bin_cuts), nrow = 9, byrow = TRUE)) %>%
-      rename("Q0" = X1, "Q25" = X2, "Q50" = X3, "Q75" = X4, "Q100" = X5) %>%
-      mutate(Feature = rf_features) %>%
-      select(Feature, Q0:Q100)
-    
     # Subset the bin cuts table to the selected feature
     feature_bin_cuts <- bin_cuts %>% filter(Feature == feature)
   
     # Determine which bin the case falls in
     if(feature_value <= feature_bin_cuts$Q25){
       feature_bin <- paste(feature, "(lower bin)")
-    } else if (feature_bin_cuts$Q25 < feature_value & feature_value <= feature_bin_cuts$Q50){
+    } else if (feature_bin_cuts$Q25 < feature_value & 
+               feature_value <= feature_bin_cuts$Q50){
       feature_bin <- paste(feature, "(lower middle bin)")
-    } else if (feature_bin_cuts$Q50 < feature_value & feature_value <= feature_bin_cuts$Q75){
+    } else if (feature_bin_cuts$Q50 < feature_value & 
+               feature_value <= feature_bin_cuts$Q75){
       feature_bin <- paste(feature, "(upper middle bin)")
     } else if (feature_bin_cuts$Q75 < feature_value){
       feature_bin <- paste(feature, "(upper bin)")
@@ -295,12 +326,14 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     mutate(case = factor(case),
            feature_desc = factor(feature_desc),
            feature = factor(feature),
-           feature_bin = mapply(bin_labeller, feature = feature, feature_value = feature_value)) %>%
+           feature_bin = mapply(bin_labeller, feature = feature, 
+                                feature_value = feature_value)) %>%
     mutate(feature_number = readr::parse_number(feature_desc),
            strictly_less = FALSE)
   
   # Finish creating the strictly less than variable
-  hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
+  hamby224_test_explain$strictly_less[grep("< ", 
+                                           hamby224_test_explain$feature_desc)] <- TRUE
   
   # Reorder the variables of feature_desc and feature_bin for plotting purposes
   hamby224_test_explain <- hamby224_test_explain %>%
@@ -341,7 +374,7 @@ check <- hamby224_test_explain %>%
   select(-data, -prediction) %>%
   group_by(case) %>%
   slice(1) %>%
-  select(case, set, rfscore, model_prediction) %>%
+  select(case, set, rfscore, model_prediction, model_r2) %>%
   mutate(diff = rfscore - model_prediction,
          mean = (rfscore + model_prediction) / 2)
 
@@ -351,9 +384,11 @@ sum((subset(check$diff, check$set == "Set 11"))^2, na.rm = TRUE)
 
 Below is are plots of the probability of a match computed from the "simple" (ridge regression) model in `lime` versus the probability of a match computed from the `rtrees` random forest model for both the Hamby224 Set 1 and Set 11 test cases. Linear regression lines have been fit through the points. Both plots show that there is a weak negative linear relationship between the two variables. This suggests that as the probability of a match increases in the random forest, the simple model is doing a worse job of computing a probability that agrees with the random forest model. However, the Hamby 224 test sets 1 and 11 do not have many observations with high random forest scores. Each test set should only have 18 matches. The trend may be different if there was more cases with high random forest scores. However, it appears that the cases that are a match have some of the lowest model_prediction scores overall.
 
-```{r fig.width = 6, fig.height = 4}
+THe points are also colored by the $R^2$ value from the simple model. This plot suggests that the simple models with a prediction close to 0.5 have a better fit, but the $R^2$ values are still low. I am not sure what to make of this. However, it does not appear that the $R^2$ is related to the probability from the random forest.
+
+```{r fig.width = 8, fig.height = 4}
 ggplot(check, aes(x = rfscore, y = model_prediction)) + 
-  geom_point() + 
+  geom_point(aes(color = model_r2)) + 
   facet_grid( ~ set) + 
   theme_bw() + 
   stat_smooth(method = "lm")
@@ -361,18 +396,18 @@ ggplot(check, aes(x = rfscore, y = model_prediction)) +
 
 The plots below show the absolute value of the difference between the random forest probability and the simple model probabilty versus the random forest probability. These plots show a clear v-shaped trend that suggests that the simple model is doing the best job of replicating the random forest probabilty around the random forest probability of 0.5. That is, the simple model seems to be doing a worse job of computing accurate predictions in the extremes of the random forest scores.
 
-```{r fig.width = 6, fig.height = 4}
+```{r fig.width = 8, fig.height = 4}
 ggplot(check, aes(x = rfscore, y = abs(diff))) + 
-  geom_point() + 
+  geom_point(aes(color = model_r2)) + 
   facet_grid( ~ set) +
   theme_bw()
 ```
 
 The plot below shows the difference of the two model probabilities versus the random forest score. This shows that when the random forest score is low, the simple model is over estimating the probability, and when the random forest score is high, the simple model is underestimating the probability.
 
-```{r fig.width = 6, fig.height = 4}
+```{r fig.width = 8, fig.height = 4}
 ggplot(check, aes(x = rfscore, y = diff)) + 
-  geom_point() + 
+  geom_point(aes(color = model_r2)) + 
   facet_grid( ~ set) +
   geom_hline(yintercept = 0, color = "blue") +
   theme_bw()
@@ -402,12 +437,8 @@ hamby224_test_explain %>%
       facet_grid(bullet2 ~ bullet1, scales = "free") +
       theme_minimal() +
       scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1),
-            strip.text.x = element_blank(),
-            strip.text.y = element_blank()) +
-      labs(x = "Known 1                            Known 2                            Questioned", 
-           y = "Known 1                            Known 2                            Questioned", 
-           fill = "RF Score")
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+      labs(x = "", y = "", fill = "RF Score")
 ```
 
 # Results
