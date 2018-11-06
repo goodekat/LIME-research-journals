@@ -7,6 +7,7 @@ library(dplyr)
 library(tidyr)
 library(plotly)
 library(cowplot)
+library(gridExtra)
 
 ## ------------------------------------------------------------------------------------
 ## Data Steps
@@ -14,6 +15,36 @@ library(cowplot)
 
 # Input data
 hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+hamby224_bins <- read.csv("../data/hamby_bins.csv")
+
+# Function for creating a table with the bin information relating to specified features
+bin_table <- function(features, bin_cuts = hamby224_bins){
+  
+  # Subset the bin cuts table to the selected feature
+  selected_bin_cuts <- bin_cuts %>% 
+    filter(Feature %in% features) %>% 
+    mutate_if(is.numeric, ~round(., 2))
+  
+  # Create an empty matrix to put the bins in
+  table_matrix <- matrix(numeric(3*4), nrow = 3)
+  
+  # Create the bins and put in the matrix
+  for(i in 1:3){
+    table_matrix[i,] <- c(paste0("(", "-\U221E, ", selected_bin_cuts[i,2], "]"),
+                          paste0("(", selected_bin_cuts[i,2], ", ", selected_bin_cuts[i,3], "]"),
+                          paste0("(", selected_bin_cuts[i,3], ", ", selected_bin_cuts[i,4], "]"), 
+                          paste0("(", selected_bin_cuts[i,4], ", ", "\U221E)"))
+  }
+  
+  # Turn the matrix into a dataframe
+  table <- data.frame(Feature = features, table_matrix) %>%
+    rename("Lower Bin" = "X1", "Lower Middle Bin" = "X2", 
+           "Upper Middle Bin" = "X3", "Upper Bin" = "X4")
+  
+  # Return the bin dataframe
+  return(table)
+  
+}
 
 ## ------------------------------------------------------------------------------------
 ## UI Setup
@@ -26,13 +57,13 @@ ui <- fluidPage(
    titlePanel("LIME Explanations for Bullet Matching"),
    
    # Set selector
-   fluidRow(column(3, selectInput("set", 
+   column(6, selectInput("set", 
                         label = "Select a Hamby 224 dataset", 
-                        choices = c("Set 1", "Set 11")))),
+                        choices = c("Set 1", "Set 11")),
+          plotlyOutput("tileplot")),
 
    # Panel for plots
-   fluidRow(column(6, plotlyOutput("tileplot")),
-            column(6, plotOutput("featureplot")))
+   column(6, fluidRow(plotOutput("featureplot")))
    
 )
 
@@ -95,27 +126,27 @@ server <- function(input, output) {
   })
   
   # Obtain the xlimits
-  xlimit1 <- max(abs(hamby224_test_explain$feature_weight), na.rm = TRUE)
+  xlimit1 <<- max(abs(hamby224_test_explain$feature_weight), na.rm = TRUE)
+  
+  # Create a dataset with the connection between the curveNumbers and the bullet facets
+  bullet_locations <<- data.frame(curveNumber = 0:5,
+                                 bullet1 = c("Known 1", "Known 1", "Known 2", "Known 1", "Known 2", "Questioned"),
+                                 bullet2 = c("Known 1", "Known 2", "Known 2", "Questioned", "Questioned", "Questioned"))
   
   # Create my own feature plot
   output$featureplot <- renderPlot({
     
     # Grab the number of the chosen set
-    chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
+    chosen_set <<- paste("Set", unlist(strsplit(input$set, split = " "))[2])
     
     # Obtain the click data
-    click_data <- event_data("plotly_click", source = "tileplot")
+    click_data <<- event_data("plotly_click", source = "tileplot")
     
     # Create the feature plot if there is click data
     if(length(click_data)){
       
       # Create the feature plot if the rfscore is not NA
       if(!is.na(click_data$z)){
-        
-        # Create a dataset with the connection between the curveNumbers and the bullet facets
-        bullet_locations <- data.frame(curveNumber = 0:5,
-                                       bullet1 = c("Known 1", "Known 1", "Known 2", "Known 1", "Known 2", "Questioned"),
-                                       bullet2 = c("Known 1", "Known 2", "Known 2", "Questioned", "Questioned", "Questioned"))
         
         # Create a dataset with the location of cell that was clicked
         location <- data.frame(land1 = paste("Land", click_data$x), 
@@ -126,7 +157,7 @@ server <- function(input, output) {
         tileplot_mark$location <- location
         
         # Create a dataset with the feature information for the selected comparison
-        selected_comparison <- hamby224_test_explain %>%
+        selected_comparison <<- hamby224_test_explain %>%
           filter(set == chosen_set,
                  land1 == as.character(location$land1),
                  land2 == as.character(location$land2),
@@ -135,6 +166,8 @@ server <- function(input, output) {
           mutate(feature_bin = reorder(feature_bin, abs(as.numeric(feature_weight))),
                  evidence = factor(if_else(feature_weight <= 0, "Supports Same Source", "Supports Different Source"), 
                                    levels = c("Supports Different Source", "Supports Same Source")))
+        
+        selected_comparison$feature
         
         # Create a data frame with the appropriate labels
         labels <- selected_comparison %>% 
@@ -157,7 +190,7 @@ server <- function(input, output) {
           coord_flip() +
           theme_minimal() +
           theme(legend.position = "none") +
-          labs(y = "Feature Magnitude (Absolute Value of Ridge Regression Coefficient)", x = "Feature", fill = "") +
+          labs(y = "Feature Effect Size", x = "Feature", fill = "") +
           scale_fill_manual(values = c("Supports Same Source" = "darkorange", "Supports Different Source" = "darkgrey"),
                             drop = FALSE)
         
@@ -184,8 +217,18 @@ server <- function(input, output) {
         # Create a legend
         legend <- get_legend(feature_plot + theme(legend.position = "bottom"))
         
+        # Grab and order the features for the bin table
+        selected_features <- selected_comparison %>%
+          arrange(desc(abs(feature_weight))) %>%
+          select(feature, feature_weight)
+        
+        # Create a table with the bin cuts
+        table <- tableGrob(bin_table(selected_features$feature), 
+                           theme = ttheme_minimal(),
+                           rows = NULL)
+        
         # Create a grid of plotting components
-        plot_grid(title, subtitle, feature_plot, legend, ncol = 1, rel_heights = c(0.1, 0.6, 1))
+        plot_grid(title, subtitle, feature_plot, legend, table, ncol = 1, rel_heights = c(0.05, 0.5, 0.8, 0.05, 0.4))
         
       } else{
         
@@ -201,7 +244,7 @@ server <- function(input, output) {
       
     }
     
-  }, height = 500, width = 600)
+  }, height = 700, width = 600)
     
 }
 
