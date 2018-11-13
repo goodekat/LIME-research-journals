@@ -212,7 +212,7 @@ server <- function(input, output) {
         # Grab and order the features for the bin table
         selected_features <- selected_comparison %>%
           arrange(desc(abs(feature_weight))) %>%
-          select(feature, feature_weight)
+          select(feature, feature_weight, evidence)
         
         # Create a table with the bin cuts
         table <- tableGrob(bin_table(selected_features$feature), 
@@ -220,7 +220,8 @@ server <- function(input, output) {
                            rows = NULL)
         
         # Create a grid of plotting components
-        plot_grid(title, subtitle, feature_plot, legend, table, ncol = 1, rel_heights = c(0.05, 0.5, 0.8, 0.05, 0.4))
+        plot_grid(title, subtitle, feature_plot, legend, table, ncol = 1, 
+                  rel_heights = c(0.05, 0.5, 0.8, 0.05, 0.4))
         
       } else{
         
