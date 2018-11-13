@@ -1,4 +1,4 @@
-## Helper fFunctions for the Paper
+## Helper Functions for the Paper
 
 ## ---------------------------------------------------------------
 ## Write Bin Dataframe 
