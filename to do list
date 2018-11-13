@@ -18,10 +18,9 @@ Completed:
 - generalize function for creating the bin table
 - generalize function for creating the bin label
 - fix bin names in app
+- compare RF to caret
 
 Current:
-- compare RF to caret
-- compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 - look into what the original paper meant to be plotted
 - try to improve LIME results:
   - try subsampling to deal with the binning issue
@@ -38,6 +37,7 @@ Current:
   - write about the training data
   - make list of features and describe them
   - write definitions of what LIME outputs
+- compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 
 
 Later:
