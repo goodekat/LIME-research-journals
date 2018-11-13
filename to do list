@@ -4,31 +4,21 @@ TO DO LIST
 -------------
 
 Questions:
-- how to name bins?
-- how to handle the issue of creating my own bins?
-- is it okay if I store my functions in the code folder?
 
 Thoughts:
 
 Completed:
-- plot distributions of features colored by samesource with the training data
-- created correlation heatmaps of the features
-- need to fix NA problem with selected cell mark
-- update table print to approriate lower and upper bounds
-- generalize function for creating the bin table
-- generalize function for creating the bin label
-- fix bin names in app
-- compare RF to caret
+- look at "residual" plots
 
 Current:
-- look into what the original paper meant to be plotted
 - try to improve LIME results:
-  - try subsampling to deal with the binning issue
   - try more bins
   - try changing quantile_bins to FALSE
-  - try setting bin_continuous to FALSE and use_density to TRUE
-  - could try making ccf a categorical variable (probably won't work since not in training)
-  - try out logistic regression idea
+  - try setting bin_continuous to FALSE
+  - create a table comparing the MSEs
+  - try subsampling to deal with the binning issue
+  - try out logistic regression idea for bins (write own bin list to put in explain)
+- read through LIME papers again
 - paper
   - ask Ganesh for his explanations of the features
   - need to clean up the section on the description of LIME (better notation and explanation)
@@ -38,7 +28,6 @@ Current:
   - make list of features and describe them
   - write definitions of what LIME outputs
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
-
 
 Later:
 - read new paper on Anchor
