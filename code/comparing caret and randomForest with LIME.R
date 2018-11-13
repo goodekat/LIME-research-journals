@@ -63,7 +63,7 @@ lime_numeric <- caret_numeric %>%
 # Look at the MSEs for the variables
 lime_numeric %>%
   group_by(variable) %>%
-  summarise(MSE = sum((caret_value - rf_value)^2))
+  summarise(MSE = sum((caret_value - rf_value)^2) / dim(lime_numeric)[1])
 
 # Scatterplots of the randomForest versus caret variable values
 ggplot(lime_numeric, aes(x = caret_value, y = rf_value)) + 
