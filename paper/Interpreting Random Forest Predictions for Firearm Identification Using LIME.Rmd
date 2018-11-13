@@ -522,7 +522,11 @@ hamby224_test_explain %>%
 # Discussion
 
 Ideas for improvement of LIME: 
-  - change the binning method
+  - change the binning method:
+    - lime is not good with linear relationships with classifiers due to the 
+    inside-outside binning - it would be better to use a cumulative approach
+  - consider interactions in the ridge regression model
+  - learn lambda in the ridge regression
 
 # References
 
