@@ -18,6 +18,9 @@ library(bulletr)
 library(randomForest)
 library(lime)
 library(cowplot)
+
+# Source functions
+source("../code/helper_functions.R")
 ```
 
 # Introduction
@@ -247,7 +250,6 @@ Let
   \end{cases}$$
 be the response variable in the training dataset, and $X_1,...,X_9$ correspond to the nine features in the training dataset. Let $X'_1,...,X'_9$ be the 
 
-
 \begin{enumerate}
 \item Distributions for each of the features in the training data are obtained.
 
@@ -314,7 +316,7 @@ if(!file.exists("../data/hamby224_lime.rds")) {
   set.seed(84902)
   hamby224_lime <- lime(x = hamby173and252_train %>% select(rf_features),
                         model = as_classifier(rtrees),
-                        n_bins = 6)
+                        n_bins = 4)
   
   # Save the lime object
   saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
@@ -353,36 +355,6 @@ if(!file.exists("../data/hamby224_explain.rds")) {
 ```
 
 ```{r}
-# Function for writing bins given the bin boundaries
-write_bins <- function(bin_data){
-  
-  # Compute the number of bins based the input dataframe
-  nbins = length(bin_data) - 2
-  
-  # Create an empty matrix to store the bins in
-  row <- matrix(NA, nrow = 1, ncol = nbins + 1)
-  
-  # Put the feature name in the first column
-  row[,1] <- as.character(bin_data[[1]])
-  
-  # Put the 1st through 2nd to last bins in the 2nd through 2nd to last columns
-  row[,2:nbins] <- sapply(2:nbins, 
-                          FUN = function(number) sprintf("[%.2f, %.2f)", 
-                                                         as.numeric(bin_data[number]),
-                                                         as.numeric(bin_data[number + 1])))
-  
-  # Fill in the last column with the upper bin (based on whether it should be infinite or not)
-  row[,nbins + 1] <- ifelse(is.na(bin_data[nbins + 2]),
-                            sprintf("(%.2f, %s)", as.numeric(bin_data[nbins + 1]), "\U221E"),
-                            sprintf("(%.2f, %.2f]", as.numeric(bin_data[nbins + 1]),
-                                    as.numeric(bin_data[nbins + 2])))
-
-  return(row)
-
-}
-```
-
-```{r}
 # Create a dataframe with the bins
 if (!file.exists("../data/hamby_bins.csv")) {
   
@@ -400,9 +372,14 @@ if (!file.exists("../data/hamby_bins.csv")) {
   hamby_bins <- data.frame(t(apply(hamby_divisions, 1, write_bins)))
   
   # Assign appropriate names to the bin columns
-  names(hamby_bins) <- c("Feature", "Lower Bin", 
-                         sapply(1:(nbins-2), function(bin) sprintf("Middle Bin %.0f", bin)),
-                         "Upper Bin")
+  if (nbins == 2){
+    names(hamby_bins) <- c("Feature", "Lower Bin", "Upper Bin")
+  } else {
+    names(hamby_bins) <- c("Feature", "Lower Bin", 
+                           sapply(1:(nbins-2), 
+                                  function(bin) sprintf("Middle Bin %.0f", bin)),
+                           "Upper Bin")
+  }
   
   # Save the bin cuts
   write.csv(hamby_bins, "../data/hamby_bins.csv", row.names = FALSE)
@@ -419,64 +396,21 @@ if (!file.exists("../data/hamby_bins.csv")) {
 ```
 
 ```{r}
-# Function to use for creating bin labels in the test_explain dataset
-bin_labeller <- function(feature, feature_value, bin_data = hamby_divisions){
-
-  if (is.na(feature)) {
-    
-    # Set feature_bin to NA if feature is NA
-    feature_bin <- NA
-    
-  } else {
-    
-    # Subset the bin cuts table to the selected feature
-    feature_bin_data <- bin_data %>%
-      filter(Feature == feature) %>%
-      select(-Feature, -Lower, -Upper)
-    
-    # Compute the number of bins based the input dataframe
-    nbins = length(bin_data) - 2
-    
-    # Determine which bin the case falls in
-    if(feature_value <= feature_bin_data[1]){
-      feature_bin <- paste(feature, "(lower bin)")
-    } else if (feature_bin_data[nbins - 1] < feature_value){
-      feature_bin <- paste(feature, "(upper bin)")
-    } else {
-      middle_bin_checks <- data.frame(middle_bin_number = 1:(nbins-2),
-                                      contained = sapply(1:(nbins - 2),
-                                                         FUN = function(number) {
-                                                           feature_bin_data[number] < feature_value &
-                                                           feature_value <= feature_bin_data[number + 1]}))
-      feature_bin <- sprintf("%s (middle bin %.0f)", 
-                             feature,
-                             middle_bin_checks %>% filter(contained == TRUE) %>% pull(middle_bin_number))
-    }
-  
-  }
-    
-  # Return the bin
-  return(feature_bin)
-
-}
-```
-
-
-```{r}
 # Create the test_explain combined data if the file does not already exist
 if(!file.exists("../data/hamby224_test_explain.rds")) {
   
   # Join the data and the explanations and edit and add additional variables
+  # Create the feature bin labels using my function "bin_labeller"
   hamby224_test_explain <- hamby224_test %>%
     mutate(case = as.character(case)) %>%
     full_join(hamby224_explain, by = "case") %>%
     mutate(case = factor(case),
            feature_desc = factor(feature_desc),
-           feature = factor(feature),
            feature_bin = mapply(bin_labeller, feature = feature, 
                                 feature_value = feature_value)) %>%
     mutate(feature_number = readr::parse_number(feature_desc),
-           strictly_less = FALSE)
+           strictly_less = FALSE, 
+           feature = factor(feature))
   
   # Finish creating the strictly less than variable
   hamby224_test_explain$strictly_less[grep("< ", 
@@ -505,12 +439,23 @@ check <- hamby224_test_explain %>%
   select(-data, -prediction) %>%
   group_by(case) %>%
   slice(1) %>%
-  select(case, set, rfscore, model_prediction, model_r2) %>%
+  ungroup() %>%
+  select(case, set, rf_features, rfscore, model_prediction, model_r2) %>%
   mutate(diff = rfscore - model_prediction,
          mean = (rfscore + model_prediction) / 2)
 
 sum((subset(check$diff, check$set == "Set 1"))^2, na.rm = TRUE)
 sum((subset(check$diff, check$set == "Set 11"))^2, na.rm = TRUE)
+
+check %>%
+  filter(set == "Set 1") %>%
+  select(rf_features, diff, -case) %>%
+  gather(key = feature, value = feature_value, rf_features) %>%
+  select(feature, feature_value, diff) %>%
+  ggplot(aes(x = feature_value, y = diff)) + 
+  geom_point() + 
+  facet_wrap( ~ feature, scales = "free") + 
+  geom_hline(yintercept = 0, color = "blue")
 ```
 
 Below is are plots of the probability of a match computed from the "simple" (ridge regression) model in `lime` versus the probability of a match computed from the `rtrees` random forest model for both the Hamby224 Set 1 and Set 11 test cases. Linear regression lines have been fit through the points. Both plots show that there is a weak negative linear relationship between the two variables. This suggests that as the probability of a match increases in the random forest, the simple model is doing a worse job of computing a probability that agrees with the random forest model. However, the Hamby 224 test sets 1 and 11 do not have many observations with high random forest scores. Each test set should only have 18 matches. The trend may be different if there was more cases with high random forest scores. However, it appears that the cases that are a match have some of the lowest model_prediction scores overall.
@@ -575,6 +520,9 @@ hamby224_test_explain %>%
 # Results
 
 # Discussion
+
+Ideas for improvement of LIME: 
+  - change the binning method
 
 # References
 
