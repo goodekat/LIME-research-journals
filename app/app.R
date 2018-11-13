@@ -18,7 +18,7 @@ hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 hamby224_bins <- read.csv("../data/hamby_bins.csv")
 
 # Replace the periods with spaces in the feature names
-names(hamby_bins) <- gsub(".", " ", names(hamby_bins), fixed = TRUE)
+names(hamby224_bins) <- gsub(".", " ", names(hamby224_bins), fixed = TRUE)
 
 ## ------------------------------------------------------------------------------------
 ## Functions
