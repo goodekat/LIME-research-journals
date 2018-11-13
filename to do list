@@ -4,30 +4,41 @@ TO DO LIST
 -------------
 
 Questions:
+- how to name bins?
+- how to handle the issue of creating my own bins?
+- is it okay if I store my functions in the code folder?
 
 Thoughts:
-- I think I have realized that the 0-1 option is used for interpreting the coefficients.
 
 Completed:
-- add marks to heatmap on selected cell
-- moved all data cleaning and reshaping code to paper from app
-- subset the data to only create lime explanations on the necessary observations 
-  - e.g. only kept one of the symmetric comparisons
-- got response from Carson and dead space problem is now fixed
-- figure out why the rf scores do not match the ones from LIME
-- compare the LIME predictions to the RF predictions
-- write paper section on LIME with all of the details of the algorithm
-- add a key for the bins
+- plot distributions of features colored by samesource with the training data
+- created correlation heatmaps of the features
+- need to fix NA problem with selected cell mark
+- update table print to approriate lower and upper bounds
+- generalize function for creating the bin table
+- generalize function for creating the bin label
+- fix bin names in app
 
 Current:
-- need to clean up the section on the description of LIME (better notation and explanation)
-- add the section on the random forest as well to have a starting point for the notation
-- try out different LIME default settings
+- compare RF to caret
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 - look into what the original paper meant to be plotted
-- finish a draft of the introduction to the paper
-- write about the training data and the random forest model from Hare
-- need to fix NA problem with selected cell mark
+- try to improve LIME results:
+  - try subsampling to deal with the binning issue
+  - try more bins
+  - try changing quantile_bins to FALSE
+  - try setting bin_continuous to FALSE and use_density to TRUE
+  - could try making ccf a categorical variable (probably won't work since not in training)
+  - try out logistic regression idea
+- paper
+  - ask Ganesh for his explanations of the features
+  - need to clean up the section on the description of LIME (better notation and explanation)
+  - add the section on the random forest as well to have a starting point for the notation
+  - finish a draft of the introduction to the paper
+  - write about the training data
+  - make list of features and describe them
+  - write definitions of what LIME outputs
+
 
 Later:
 - read new paper on Anchor
