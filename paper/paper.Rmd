@@ -10,13 +10,14 @@ bibliography: references.bib
 
 ```{r setup, include = FALSE}
 # Set knitr options
-knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, fig.pos = "center")
 
 # Load libraries
 library(tidyverse)
 library(bulletr)
-library(lime)
 library(randomForest)
+library(lime)
+library(cowplot)
 ```
 
 # Introduction
@@ -42,6 +43,97 @@ This paper provides an example of the application of LIME to a bullet matching p
 hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 ```
 
+```{r}
+# Obtain features used when fitting the rtrees random forest
+rf_features <- rownames(rtrees$importance)
+```
+
+```{r fig.height = 5, fig.width = 8}
+# Create plots of the feature distributions colored by samesource for the training data
+hamby173and252_train %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Frequency", fill = "Same Source?") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+```{r fig.height = 5, fig.width = 8}
+# Create plots of the feature distributions colored by samesource for the training data
+# using the position = "fill" option
+hamby173and252_train %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(position = "fill", bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Proportion", fill = "Same Source?") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+```{r fig.height = 4, fig.width = 9}
+# Create a correlation heatmap of the match comparisons in the training data
+cor_match <- hamby173and252_train %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == TRUE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Match Comparisons")
+
+# Create a correlation heatmap of the non-match comparisons in the training data
+cor_nonmatch <- hamby173and252_train %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == FALSE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Non-Match Comparisons")
+
+# Create a title for the panel of plots
+cor_title <- ggdraw() +
+  draw_label("Correlation of Feature Variables in the Training Data", 
+             fontface = "bold", 
+             size = 16,
+             x = 0.5,
+             hjust = 0.5)
+
+# Create a joined legend for the panel of plots
+cor_legend <- get_legend(cor_match + theme(legend.position = "right"))
+
+# Create the panel of plots
+plot_grid(cor_title, 
+          plot_grid(cor_match, cor_nonmatch, cor_legend, ncol = 3, rel_widths = c(2, 2, 0.5)),
+          ncol = 1,
+          rel_heights = c(0.25, 3))
+```
+
 ## Testing Data: The Hamby 224 Clone
 
 The Hamby 224 Clone is organized as a test set of a cloned (sub-)set of the Hamby 224 bullets. As with all Hamby sets [@hamby], Hamby set 224, is a collection of 35 bullets, organized as 20 known bullets and 15 questioned bullets. The known bullets are fired in pairs of two through one of ten consecutively manufactures P-85 barrels.
@@ -54,9 +146,6 @@ hamby224_set11 <- readRDS("../data/h224-set11-features.rds")
 ```
 
 ```{r}
-# Obtain features used when fitting the rtrees random forest
-rf_features <- rownames(rtrees$importance)
-
 # If the test data does not exist, clean the data, create the test data, and save it
 # Otherwise, load in the test data
 if(!file.exists("../data/hamby224_test.csv")) {
@@ -70,11 +159,15 @@ if(!file.exists("../data/hamby224_test.csv")) {
            land2 = landB) %>%
     mutate(study = factor("Hamby 224"), 
            set = factor("Set 1"),
-           bullet1 = recode(factor(bullet1), "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
-           bullet2 = recode(factor(bullet2), "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
-           land1 = recode(factor(land1), "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
+           bullet1 = recode(factor(bullet1), 
+                            "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
+           bullet2 = recode(factor(bullet2), 
+                            "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
+           land1 = recode(factor(land1), 
+                          "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
                           "4" = "Land 4", "5" = "Land 5", "6" = "Land 6"),
-           land2 = recode(factor(land2), "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
+           land2 = recode(factor(land2), 
+                          "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
                           "4" = "Land 4", "5" = "Land 5", "6" = "Land 6")) %>%
     select(study, set, bullet1:land2, rf_features, rfscore, samesource)
 
@@ -87,9 +180,11 @@ if(!file.exists("../data/hamby224_test.csv")) {
            land2 = landB) %>%
     mutate(study = factor("Hamby 224"), 
            set = factor("Set 11"),
-           bullet1 = recode(factor(bullet1), "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
+           bullet1 = recode(factor(bullet1), 
+                            "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
                             "Bullet I" = "Questioned"),
-           bullet2 = recode(factor(bullet2), "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
+           bullet2 = recode(factor(bullet2), 
+                            "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
                             "Bullet I" = "Questioned")) %>%
     select(study, set, bullet1:land2, rf_features, rfscore, samesource)
 
@@ -118,7 +213,6 @@ if(!file.exists("../data/hamby224_test.csv")) {
     mutate(case = factor(1:length(study))) %>%
     select(case, study:samesource)
     
-    
   # Save the test data as a .csv file
   write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
 
@@ -134,11 +228,9 @@ if(!file.exists("../data/hamby224_test.csv")) {
 
 ## Random Forest Model
 
-
-
 ## Overview of LIME
 
-Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin developed LIME in response to the interpretabiliby issue of many machine learning techniques. Many models used in machine learning are referred to as black box prediction models since they are complex models that may provide accurate predictions but are not able to be interpreted. That is, it is not possible to understand the relationship between the features and the response variable. Without being able to interpret the models, it becomes difficult to diagnose why a model is producing the predictions that it is. The developers claim that LIME allows users to check which variables are driving the predictions made by the model. This further allows users to determine whether their model is trustworthy.
+Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin developed LIME in response to the interpretation issue of many machine learning techniques. Many models used in machine learning are referred to as black box prediction models since they are complex models that may provide accurate predictions but are not able to be interpreted. That is, it is not possible to understand the relationship between the features and the response variable. Without being able to interpret the models, it becomes difficult to diagnose why a model is producing the predictions that it is. The developers claim that LIME allows users to check which variables are driving the predictions made by the model. This further allows users to determine whether their model is trustworthy.
 
 LIME was designed to be a generalized algorithm that can be applied to any predictive model to return an "explanation" for an individual prediction of interest. This explanation is meant to convey which features from the model are driving the prediction created by the complex model. In the next section, I will provide a detailed description of how the LIME algorithm obtains the explanation when applied to a random forest model with numeric features. For now, general overview of the LIME algorithm will be explained.
 
@@ -221,7 +313,8 @@ if(!file.exists("../data/hamby224_lime.rds")) {
   # from the lime package. (I should check on exactly how this works.)
   set.seed(84902)
   hamby224_lime <- lime(x = hamby173and252_train %>% select(rf_features),
-                        model = as_classifier(rtrees))
+                        model = as_classifier(rtrees),
+                        n_bins = 6)
   
   # Save the lime object
   saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
@@ -245,7 +338,7 @@ if(!file.exists("../data/hamby224_explain.rds")) {
                                       select(rf_features) %>% 
                                       na.omit(), 
                                     hamby224_lime,
-                                    labels = "FALSE",
+                                    labels = "TRUE",
                                     n_features = 3)
   
   # Save the explainer object
@@ -260,14 +353,56 @@ if(!file.exists("../data/hamby224_explain.rds")) {
 ```
 
 ```{r}
+# Function for writing bins given the bin boundaries
+write_bins <- function(bin_data){
+  
+  # Compute the number of bins based the input dataframe
+  nbins = length(bin_data) - 2
+  
+  # Create an empty matrix to store the bins in
+  row <- matrix(NA, nrow = 1, ncol = nbins + 1)
+  
+  # Put the feature name in the first column
+  row[,1] <- as.character(bin_data[[1]])
+  
+  # Put the 1st through 2nd to last bins in the 2nd through 2nd to last columns
+  row[,2:nbins] <- sapply(2:nbins, 
+                          FUN = function(number) sprintf("[%.2f, %.2f)", 
+                                                         as.numeric(bin_data[number]),
+                                                         as.numeric(bin_data[number + 1])))
+  
+  # Fill in the last column with the upper bin (based on whether it should be infinite or not)
+  row[,nbins + 1] <- ifelse(is.na(bin_data[nbins + 2]),
+                            sprintf("(%.2f, %s)", as.numeric(bin_data[nbins + 1]), "\U221E"),
+                            sprintf("(%.2f, %.2f]", as.numeric(bin_data[nbins + 1]),
+                                    as.numeric(bin_data[nbins + 2])))
+
+  return(row)
+
+}
+```
+
+```{r}
+# Create a dataframe with the bins
 if (!file.exists("../data/hamby_bins.csv")) {
   
-  # Create a dataframe of bins cuts
-  hamby_bins <- data.frame(matrix(unlist(hamby224_lime$bin_cuts), 
-                                  nrow = 9, byrow = TRUE)) %>%
-      rename("Q0" = X1, "Q25" = X2, "Q50" = X3, "Q75" = X4, "Q100" = X5) %>%
-      mutate(Feature = rf_features) %>%
-      select(Feature, Q0:Q100)
+  # Determine the nubmer of bins
+  nbins <- length(hamby224_lime$bin_cuts[[1]]) - 1
+  
+  # Create a dataframe of bin boundaries
+  hamby_divisions <- data.frame(Feature = rf_features, 
+                                Lower = c(0, -1, 0, 0, 0, 0, 0, 0, 0),
+                           matrix(unlist(hamby224_lime$bin_cuts), nrow = 9, 
+                                  byrow = TRUE)[,2:nbins],
+                           Upper = c(1, 1, rep(NA, 7)))
+  
+  # Use my function "write_bins" to create a dataframe with the bins
+  hamby_bins <- data.frame(t(apply(hamby_divisions, 1, write_bins)))
+  
+  # Assign appropriate names to the bin columns
+  names(hamby_bins) <- c("Feature", "Lower Bin", 
+                         sapply(1:(nbins-2), function(bin) sprintf("Middle Bin %.0f", bin)),
+                         "Upper Bin")
   
   # Save the bin cuts
   write.csv(hamby_bins, "../data/hamby_bins.csv", row.names = FALSE)
@@ -277,12 +412,15 @@ if (!file.exists("../data/hamby_bins.csv")) {
   # Load in the bins csv
   hamby_bins <- read.csv("../data/hamby_bins.csv")
   
+  # Replace the periods with spaces in the feature names
+  names(hamby_bins) <- gsub(".", " ", names(hamby_bins), fixed = TRUE)
+  
 }
 ```
 
 ```{r}
 # Function to use for creating bin labels in the test_explain dataset
-bin_labeller <- function(feature, feature_value, bin_cuts = hamby_bins){
+bin_labeller <- function(feature, feature_value, bin_data = hamby_divisions){
 
   if (is.na(feature)) {
     
@@ -292,28 +430,37 @@ bin_labeller <- function(feature, feature_value, bin_cuts = hamby_bins){
   } else {
     
     # Subset the bin cuts table to the selected feature
-    feature_bin_cuts <- bin_cuts %>% filter(Feature == feature)
-  
+    feature_bin_data <- bin_data %>%
+      filter(Feature == feature) %>%
+      select(-Feature, -Lower, -Upper)
+    
+    # Compute the number of bins based the input dataframe
+    nbins = length(bin_data) - 2
+    
     # Determine which bin the case falls in
-    if(feature_value <= feature_bin_cuts$Q25){
+    if(feature_value <= feature_bin_data[1]){
       feature_bin <- paste(feature, "(lower bin)")
-    } else if (feature_bin_cuts$Q25 < feature_value & 
-               feature_value <= feature_bin_cuts$Q50){
-      feature_bin <- paste(feature, "(lower middle bin)")
-    } else if (feature_bin_cuts$Q50 < feature_value & 
-               feature_value <= feature_bin_cuts$Q75){
-      feature_bin <- paste(feature, "(upper middle bin)")
-    } else if (feature_bin_cuts$Q75 < feature_value){
+    } else if (feature_bin_data[nbins - 1] < feature_value){
       feature_bin <- paste(feature, "(upper bin)")
+    } else {
+      middle_bin_checks <- data.frame(middle_bin_number = 1:(nbins-2),
+                                      contained = sapply(1:(nbins - 2),
+                                                         FUN = function(number) {
+                                                           feature_bin_data[number] < feature_value &
+                                                           feature_value <= feature_bin_data[number + 1]}))
+      feature_bin <- sprintf("%s (middle bin %.0f)", 
+                             feature,
+                             middle_bin_checks %>% filter(contained == TRUE) %>% pull(middle_bin_number))
     }
-       
+  
   }
-
+    
   # Return the bin
   return(feature_bin)
 
 }
 ```
+
 
 ```{r}
 # Create the test_explain combined data if the file does not already exist
@@ -354,22 +501,6 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
 ```
 
 ```{r}
-# Check to see if model_prediction is the sum of the coefficients from the simple model
-hamby224_test_explain %>% 
-  filter(case == 1) %>%
-  select(model_intercept, feature, feature_weight, model_prediction, rfscore)
-
-simple_model <-  data.frame(term = c("intercept", 
-                    as.character(hamby224_test_explain %>% filter(case == 1) %>% pull(feature))),
-           coefficients = c(subset(hamby224_test_explain, case == 1)$model_intercept[1],
-                            hamby224_test_explain %>% filter(case == 1) %>% pull(feature_weight)))
-
-# It is!
-sum(simple_model$coefficients)
-subset(hamby224_test_explain, case == 1)$model_prediction[1]
-```
-
-```{r}
 check <- hamby224_test_explain %>%
   select(-data, -prediction) %>%
   group_by(case) %>%
@@ -384,7 +515,7 @@ sum((subset(check$diff, check$set == "Set 11"))^2, na.rm = TRUE)
 
 Below is are plots of the probability of a match computed from the "simple" (ridge regression) model in `lime` versus the probability of a match computed from the `rtrees` random forest model for both the Hamby224 Set 1 and Set 11 test cases. Linear regression lines have been fit through the points. Both plots show that there is a weak negative linear relationship between the two variables. This suggests that as the probability of a match increases in the random forest, the simple model is doing a worse job of computing a probability that agrees with the random forest model. However, the Hamby 224 test sets 1 and 11 do not have many observations with high random forest scores. Each test set should only have 18 matches. The trend may be different if there was more cases with high random forest scores. However, it appears that the cases that are a match have some of the lowest model_prediction scores overall.
 
-THe points are also colored by the $R^2$ value from the simple model. This plot suggests that the simple models with a prediction close to 0.5 have a better fit, but the $R^2$ values are still low. I am not sure what to make of this. However, it does not appear that the $R^2$ is related to the probability from the random forest.
+The points are also colored by the $R^2$ value from the simple model. This plot suggests that the simple models with a prediction close to 0.5 have a better fit, but the $R^2$ values are still low. I am not sure what to make of this. However, it does not appear that the $R^2$ is related to the probability from the random forest.
 
 ```{r fig.width = 8, fig.height = 4}
 ggplot(check, aes(x = rfscore, y = model_prediction)) + 
@@ -394,7 +525,7 @@ ggplot(check, aes(x = rfscore, y = model_prediction)) +
   stat_smooth(method = "lm")
 ```
 
-The plots below show the absolute value of the difference between the random forest probability and the simple model probabilty versus the random forest probability. These plots show a clear v-shaped trend that suggests that the simple model is doing the best job of replicating the random forest probabilty around the random forest probability of 0.5. That is, the simple model seems to be doing a worse job of computing accurate predictions in the extremes of the random forest scores.
+The plots below show the absolute value of the difference between the random forest probability and the simple model probability versus the random forest probability. These plots show a clear v-shaped trend that suggests that the simple model is doing the best job of replicating the random forest probability around the random forest probability of 0.5. That is, the simple model seems to be doing a worse job of computing accurate predictions in the extremes of the random forest scores.
 
 ```{r fig.width = 8, fig.height = 4}
 ggplot(check, aes(x = rfscore, y = abs(diff))) + 
@@ -424,21 +555,21 @@ hamby224_test_explain %>%
 
 ```{r}
 hamby224_test_explain %>%
-      filter(set == "Set 1") %>%
-      mutate(rfscore = round(rfscore, 3)) %>%
-      select(case, bullet1, bullet2, land1, land2, rfscore) %>%
-      distinct() %>%
-      ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
-                 text = paste('Bullets Compared: ', bullet1, "-", land1, 
-                              "vs", bullet2, "-", land2,
-                              '\nRandom Forest Score: ', 
-                              ifelse(is.na(rfscore), "Missing due to tank rash", rfscore)))) +
-      geom_tile(aes(fill = rfscore)) +
-      facet_grid(bullet2 ~ bullet1, scales = "free") +
-      theme_minimal() +
-      scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-      labs(x = "", y = "", fill = "RF Score")
+  filter(set == "Set 1") %>%
+  mutate(rfscore = round(rfscore, 3)) %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
+             text = paste('Bullets Compared: ', bullet1, "-", land1, 
+                          "vs", bullet2, "-", land2,
+                          '\nRandom Forest Score: ', 
+                          ifelse(is.na(rfscore), "Missing due to tank rash", rfscore)))) +
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(bullet2 ~ bullet1, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "", y = "", fill = "RF Score")
 ```
 
 # Results

@@ -17,32 +17,24 @@ library(gridExtra)
 hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 hamby224_bins <- read.csv("../data/hamby_bins.csv")
 
+# Replace the periods with spaces in the feature names
+names(hamby_bins) <- gsub(".", " ", names(hamby_bins), fixed = TRUE)
+
+## ------------------------------------------------------------------------------------
+## Functions
+## ------------------------------------------------------------------------------------
+
 # Function for creating a table with the bin information relating to specified features
 bin_table <- function(features, bin_cuts = hamby224_bins){
-  
+
   # Subset the bin cuts table to the selected feature
   selected_bin_cuts <- bin_cuts %>% 
-    filter(Feature %in% features) %>% 
-    mutate_if(is.numeric, ~round(., 2))
-  
-  # Create an empty matrix to put the bins in
-  table_matrix <- matrix(numeric(3*4), nrow = 3)
-  
-  # Create the bins and put in the matrix
-  for(i in 1:3){
-    table_matrix[i,] <- c(paste0("(", "-\U221E, ", selected_bin_cuts[i,2], "]"),
-                          paste0("(", selected_bin_cuts[i,2], ", ", selected_bin_cuts[i,3], "]"),
-                          paste0("(", selected_bin_cuts[i,3], ", ", selected_bin_cuts[i,4], "]"), 
-                          paste0("(", selected_bin_cuts[i,4], ", ", "\U221E)"))
-  }
-  
-  # Turn the matrix into a dataframe
-  table <- data.frame(Feature = features, table_matrix) %>%
-    rename("Lower Bin" = "X1", "Lower Middle Bin" = "X2", 
-           "Upper Middle Bin" = "X3", "Upper Bin" = "X4")
+    filter(Feature %in% features) %>%
+    mutate(Feature = factor(Feature, levels = features)) %>%
+    arrange(Feature)
   
   # Return the bin dataframe
-  return(table)
+  return(selected_bin_cuts)
   
 }
 
@@ -97,24 +89,26 @@ server <- function(input, output) {
       geom_tile(aes(fill = rfscore)) +
       facet_grid(bullet2 ~ bullet1, scales = "free") +
       theme_minimal() +
-      scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
+      scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5, limits = c(0, 1)) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
       labs(x = "", y = "", fill = "RF Score", 
            title = paste0("Hamby 224 Data (", input$set, ")")) 
       
     # If a tile has been clicked, add an 'x' to the tile
     if(length(tileplot_mark$location)){
-      
+    
       # Add the mark to the plot
       plot <- plot + geom_text(data = data.frame(land1 = as.character(tileplot_mark$location$land1), 
-                                                 land2 = as.character(tileplot_mark$location$land2),
-                                                 bullet1 = tileplot_mark$location$bullet1, 
-                                                 bullet2 = tileplot_mark$location$bullet2, 
-                                                 rfscore = NA), 
-                       aes(label = "x"))
+                                                  land2 = as.character(tileplot_mark$location$land2),
+                                                  bullet1 = tileplot_mark$location$bullet1, 
+                                                  bullet2 = tileplot_mark$location$bullet2, 
+                                                  rfscore = NA), 
+                        aes(label = "x"))
       
       # Make the plot interactive
-      ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text")
+      style(ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text"), 
+            hoverinfo = "skip", 
+            traces = 7)
       
     } else {
       
@@ -126,10 +120,10 @@ server <- function(input, output) {
   })
   
   # Obtain the xlimits
-  xlimit1 <<- max(abs(hamby224_test_explain$feature_weight), na.rm = TRUE)
+  xlimit1 <- max(abs(hamby224_test_explain$feature_weight), na.rm = TRUE)
   
   # Create a dataset with the connection between the curveNumbers and the bullet facets
-  bullet_locations <<- data.frame(curveNumber = 0:5,
+  bullet_locations <- data.frame(curveNumber = 0:5,
                                  bullet1 = c("Known 1", "Known 1", "Known 2", "Known 1", "Known 2", "Questioned"),
                                  bullet2 = c("Known 1", "Known 2", "Known 2", "Questioned", "Questioned", "Questioned"))
   
@@ -137,10 +131,10 @@ server <- function(input, output) {
   output$featureplot <- renderPlot({
     
     # Grab the number of the chosen set
-    chosen_set <<- paste("Set", unlist(strsplit(input$set, split = " "))[2])
+    chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
     
     # Obtain the click data
-    click_data <<- event_data("plotly_click", source = "tileplot")
+    click_data <- event_data("plotly_click", source = "tileplot")
     
     # Create the feature plot if there is click data
     if(length(click_data)){
@@ -157,17 +151,15 @@ server <- function(input, output) {
         tileplot_mark$location <- location
         
         # Create a dataset with the feature information for the selected comparison
-        selected_comparison <<- hamby224_test_explain %>%
+        selected_comparison <- hamby224_test_explain %>%
           filter(set == chosen_set,
                  land1 == as.character(location$land1),
                  land2 == as.character(location$land2),
                  bullet1 == location$bullet1,
                  bullet2 == location$bullet2) %>%
           mutate(feature_bin = reorder(feature_bin, abs(as.numeric(feature_weight))),
-                 evidence = factor(if_else(feature_weight <= 0, "Supports Same Source", "Supports Different Source"), 
+                 evidence = factor(if_else(feature_weight >= 0, "Supports Same Source", "Supports Different Source"), 
                                    levels = c("Supports Different Source", "Supports Same Source")))
-        
-        selected_comparison$feature
         
         # Create a data frame with the appropriate labels
         labels <- selected_comparison %>% 
