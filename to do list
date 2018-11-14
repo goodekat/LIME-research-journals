@@ -11,15 +11,16 @@ Completed:
 - look at "residual" plots
 
 Current:
-- color bin text in the table
-- try to improve LIME results:
+- first steps to try to improve LIME:
   - try more bins
   - try changing quantile_bins to FALSE
   - try setting bin_continuous to FALSE
+- color bin text in the table
+- read through LIME papers again
+- next steps to try to improve LIME: 
   - create a table comparing the MSEs
   - try subsampling to deal with the binning issue
   - try out logistic regression idea for bins (write own bin list to put in explain)
-- read through LIME papers again
 - paper
   - ask Ganesh for his explanations of the features
   - need to clean up the section on the description of LIME (better notation and explanation)
