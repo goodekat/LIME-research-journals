@@ -18,6 +18,7 @@ library(bulletr)
 library(randomForest)
 library(lime)
 library(cowplot)
+library(purrr)
 
 # Source functions
 source("../code/helper_functions.R")
@@ -304,51 +305,33 @@ For the prediction of interest,
 \end{enumerate}
 
 ```{r}
-# Apply the lime function if the file does not already exist
+# Apply the run_lime function if the lime results file does not already exist
 if(!file.exists("../data/hamby224_lime.rds")) {
   
-  # Apply the lime function from the lime package (with a seed set)
-  # Note that the as_classifier must be added since rtrees is from the
-  # randomForest package and not fit using caret or one of the other 
-  # available models specified in the lime package. Additionally, the
-  # randomForest package must be loaded in order to run the functions
-  # from the lime package. (I should check on exactly how this works.)
-  set.seed(84902)
-  hamby224_lime <- lime(x = hamby173and252_train %>% select(rf_features),
-                        model = as_classifier(rtrees),
-                        n_bins = 4)
+  # Specify the number of bins to use
+  nbins = 2:10
+
+  # Run the lime functions for the specified number of bins 
+  hamby224_all_results <- map(.x = nbins, 
+             .f = run_lime, # run_lime is one of my helper functions
+             train = hamby173and252_train %>% select(rf_features),
+             test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+             rfmodel = as_classifier(rtrees),
+             label = "TRUE",
+             nfeatures = 3)
   
-  # Save the lime object
+  # Separate the lime and explain function results
+  hamby224_lime <- map(hamby224_all_results, function(list) list$lime)
+  hamby224_explain <- map_df(hamby224_all_results, function(list) list$explain)
+  
+  # Save the lime and explain results objects
   saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
-
-} else {
-  
-  # Load in the lime object
-  hamby224_lime <- readRDS("../data/hamby224_lime.rds")
-  
-}
-```
-
-```{r}
-# Apply explain function if the file does not already exist
-if(!file.exists("../data/hamby224_explain.rds")) {
-  
-  # Apply the explain function from the lime package (with a seed set)
-  set.seed(84902)
-  hamby224_explain <- lime::explain(hamby224_test %>% 
-                                      arrange(case) %>% 
-                                      select(rf_features) %>% 
-                                      na.omit(), 
-                                    hamby224_lime,
-                                    labels = "TRUE",
-                                    n_features = 3)
-  
-  # Save the explainer object
   saveRDS(hamby224_explain, "../data/hamby224_explain.rds")
   
 } else {
   
-  # Load in the explain object
+  # Load in the lime results object
+  hamby224_lime <- readRDS("../data/hamby224_lime.rds")
   hamby224_explain <- readRDS("../data/hamby224_explain.rds")
   
 }
@@ -356,41 +339,25 @@ if(!file.exists("../data/hamby224_explain.rds")) {
 
 ```{r}
 # Create a dataframe with the bins
-if (!file.exists("../data/hamby_bins.csv")) {
+if (!file.exists("../data/hamby224_bins.csv")) {
   
-  # Determine the nubmer of bins
-  nbins <- length(hamby224_lime$bin_cuts[[1]]) - 1
+  # Create a list a dataframes with the bin boundaries and bins 
+  # for the different evaluations of the lime functions
+  hamby224_bin_list <- map(hamby224_lime, create_bin_data)
   
-  # Create a dataframe of bin boundaries
-  hamby_divisions <- data.frame(Feature = rf_features, 
-                                Lower = c(0, -1, 0, 0, 0, 0, 0, 0, 0),
-                           matrix(unlist(hamby224_lime$bin_cuts), nrow = 9, 
-                                  byrow = TRUE)[,2:nbins],
-                           Upper = c(1, 1, rep(NA, 7)))
+  # Save the bin boundaries and the bins as separate dataframes
+  hamby224_bin_boundaries <- map(hamby224_bin_list, function(m) m$boundaries)
+  hamby224_bins <- map(hamby224_bin_list, function(m) m$bins)
   
-  # Use my function "write_bins" to create a dataframe with the bins
-  hamby_bins <- data.frame(t(apply(hamby_divisions, 1, write_bins)))
-  
-  # Assign appropriate names to the bin columns
-  if (nbins == 2){
-    names(hamby_bins) <- c("Feature", "Lower Bin", "Upper Bin")
-  } else {
-    names(hamby_bins) <- c("Feature", "Lower Bin", 
-                           sapply(1:(nbins-2), 
-                                  function(bin) sprintf("Middle Bin %.0f", bin)),
-                           "Upper Bin")
-  }
-  
-  # Save the bin cuts
-  write.csv(hamby_bins, "../data/hamby_bins.csv", row.names = FALSE)
+  # Save the bin boundaries and bins
+  saveRDS(hamby224_bin_boundaries, "../data/hamby224_bin_boundaries.rds")
+  saveRDS(hamby224_bins, "../data/hamby224_bins.rds")
   
 } else {
   
-  # Load in the bins csv
-  hamby_bins <- read.csv("../data/hamby_bins.csv")
-  
-  # Replace the periods with spaces in the feature names
-  names(hamby_bins) <- gsub(".", " ", names(hamby_bins), fixed = TRUE)
+  # Load in the bin boundaries and bins
+  hamby224_bin_boundaries <- readRDS("../data/hamby224_bin_boundaries.rds")
+  hamby224_bins <- readRDS("../data/hamby224_bins.rds")
   
 }
 ```
@@ -403,14 +370,16 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
   # Create the feature bin labels using my function "bin_labeller"
   hamby224_test_explain <- hamby224_test %>%
     mutate(case = as.character(case)) %>%
-    full_join(hamby224_explain, by = "case") %>%
+    full_join(hamby224_explain_results, by = "case") %>%
     mutate(case = factor(case),
-           feature_desc = factor(feature_desc),
-           feature_bin = mapply(bin_labeller, feature = feature, 
-                                feature_value = feature_value)) %>%
+           feature = factor(feature),
+           feature_desc = factor(feature_desc)) %>%
     mutate(feature_number = readr::parse_number(feature_desc),
-           strictly_less = FALSE, 
-           feature = factor(feature))
+           strictly_less = FALSE) %>%
+    arrange(nbins)
+  
+  # mutate(feature_bin = mapply(bin_labeller, feature = feature, 
+  #                               feature_value = feature_value))
   
   # Finish creating the strictly less than variable
   hamby224_test_explain$strictly_less[grep("< ", 

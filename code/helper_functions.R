@@ -1,7 +1,29 @@
 ## Helper Functions for the Paper
 
 ## ---------------------------------------------------------------
-## Write Bin Dataframe 
+## Run the Lime Functions
+## ---------------------------------------------------------------
+
+# Function for running the lime functions which runs the lime and explain 
+# objects in a list
+run_lime <- function(train, test, rfmodel, nbins, label, nfeatures){
+  
+  # Set a seed
+  set.seed(84902)
+  
+  # Run the lime function
+  lime <- lime(x = train, model = rfmodel, n_bins = nbins)
+  
+  # Run the explain function and add a variable for the number of bins
+  explain <- explain(x = test, explainer = lime, labels = label, n_features = nfeatures) %>%
+    mutate(nbins = nbins)
+  
+  return(list(lime = lime, explain = explain))
+  
+}
+
+## ---------------------------------------------------------------
+## Write the Bins
 ## ---------------------------------------------------------------
 
 # Function for writing bins given the bin boundaries
@@ -33,11 +55,44 @@ write_bins <- function(bin_data){
 }
 
 ## ---------------------------------------------------------------
+## Create a Data Frame with the Bins
+## ---------------------------------------------------------------
+
+create_bin_data <- function(lime_object){
+  
+  # Determine the nubmer of bins
+  nbins <- length(lime_object$bin_cuts[[1]]) - 1
+  
+  # Create a dataframe of bin boundaries
+  bin_boundaries <- data.frame(Feature = rf_features,
+                               Lower = c(0, -1, rep(0, 7)),
+                               matrix(unlist(lime_object$bin_cuts), nrow = 9, 
+                                      byrow = TRUE)[,2:nbins],
+                               Upper = c(1, 1, rep(NA, 7)))
+  
+  # Use my function "write_bins" to create a dataframe with the bins
+  bins <- data.frame(t(apply(bin_boundaries, 1, write_bins)))
+  
+  # Assign appropriate names to the bin columns
+  if (nbins == 2){
+    names(bins) <- c("Feature", "Lower Bin", "Upper Bin")
+  } else {
+    names(bins) <- c("Feature", 
+                     "Lower Bin",
+                     sapply(1:(nbins - 2), function(bin) sprintf("Middle Bin %.0f", bin)),
+                     "Upper Bin")
+  }
+  
+  return(list(boundaries = bin_boundaries, bins = bins))
+  
+}
+
+## ---------------------------------------------------------------
 ## Label Feature Bins
 ## ---------------------------------------------------------------
 
 # Function to use for creating bin labels in the test_explain dataset
-bin_labeller <- function(feature, feature_value, bin_data = hamby_divisions){
+bin_labeller <- function(feature, feature_value, nbins, bin_data){
   
   if (is.na(feature)) {
     
