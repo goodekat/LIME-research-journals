@@ -238,7 +238,7 @@ Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin developed LIME in respons
 
 LIME was designed to be a generalized algorithm that can be applied to any predictive model to return an "explanation" for an individual prediction of interest. This explanation is meant to convey which features from the model are driving the prediction created by the complex model. In the next section, I will provide a detailed description of how the LIME algorithm obtains the explanation when applied to a random forest model with numeric features. For now, general overview of the LIME algorithm will be explained.
 
-Suppose that a complex model has been fit on a training dataset with $k$ features and a response variable that may either be numeric or categorical. This trained model will be applied to a testing dataset containing the $k$ features to obtain predictions. It is of interest to understand which variables played an important role in the predictions. LIME will be applied to one of the cases in the testing dataset to obtain an explanation. To create the explanation, LIME starts by approximating the distribution of each of the $k$ features in the training dataset. It then simulates a large dataframe from these distributions. The simulated data are used to perform feature selection to determine the $m$ most important features. Then a weighted ridge regression model is fit to standardized versions of the selected $m$ features from the simulated data. The model assigns higher weights to observations closer to the observed case of interest. A linear model is used since it has a well known form and coefficients that can be interpreted. The coefficients from the model are extracted and used to "explain" the importance of the variables. Features with a larger absolute value of their coefficient are implied to play a larger role in the creation of the prediction.
+Suppose that a complex model has been fit on a training dataset with $k$ features and a response variable that may either be numeric or categorical. This trained model will be applied to a testing dataset containing the $k$ features to obtain predictions. It is of interest to understand which variables played an important role in the predictions. LIME will be applied to one of the cases in the testing dataset to obtain an explanation. To create the explanation, LIME starts by approximating the distribution of each of the $k$ features in the training dataset. It then simulates a large data frame from these distributions. The simulated data are used to perform feature selection to determine the $m$ most important features. Then a weighted ridge regression model is fit to standardized versions of the selected $m$ features from the simulated data. The model assigns higher weights to observations closer to the observed case of interest. A linear model is used since it has a well known form and coefficients that can be interpreted. The coefficients from the model are extracted and used to "explain" the importance of the variables. Features with a larger absolute value of their coefficient are implied to play a larger role in the creation of the prediction.
 
 ## Applying LIME
 
@@ -308,11 +308,16 @@ For the prediction of interest,
 # Apply the run_lime function if the lime results file does not already exist
 if(!file.exists("../data/hamby224_lime.rds")) {
   
-  # Specify the number of bins to use
-  nbins = 2:10
-
-  # Run the lime functions for the specified number of bins 
-  hamby224_all_results <- map(.x = nbins, 
+  # Specify the options to use with lime 
+  hamby224_lime_cases <- data.frame(bin_continuous = rep(TRUE, 18),
+                                    quantile_bins = c(rep(TRUE, 9), rep(FALSE, 9)),
+                                    nbins = rep(2:10, 2),
+                                    use_density = rep(NA, 18)) %>%
+  mutate(case = 1:length(nbins)) %>%
+  select(case, bin_continuous, nbins, quantile_bins, use_density)
+  
+  # Run the lime functions for the specified number of bins
+  hamby224_all_results <- pmap(.l = as.list(hamby224_lime_cases[1,-1]),
              .f = run_lime, # run_lime is one of my helper functions
              train = hamby173and252_train %>% select(rf_features),
              test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
@@ -324,15 +329,25 @@ if(!file.exists("../data/hamby224_lime.rds")) {
   hamby224_lime <- map(hamby224_all_results, function(list) list$lime)
   hamby224_explain <- map_df(hamby224_all_results, function(list) list$explain)
   
-  # Save the lime and explain results objects
+  # Name the items in the lime list
+  names(hamby224_lime) <- map_chr(1:dim(hamby224_lime_cases[1,])[1], function(case) 
+      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s",
+              hamby224_lime_cases$bin_continuous[case],
+              hamby224_lime_cases$quantile_bins[case],
+              hamby224_lime_cases$nbins[case],
+              hamby224_lime_cases$use_density[case]))
+  
+  # Save the lime and explain results objects and the case info
   saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
   saveRDS(hamby224_explain, "../data/hamby224_explain.rds")
+  saveRDS(hamby224_lime_cases, "../data/hamby224_lime_cases.rds")
   
 } else {
   
   # Load in the lime results object
   hamby224_lime <- readRDS("../data/hamby224_lime.rds")
   hamby224_explain <- readRDS("../data/hamby224_explain.rds")
+  hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
   
 }
 ```
@@ -370,16 +385,23 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
   # Create the feature bin labels using my function "bin_labeller"
   hamby224_test_explain <- hamby224_test %>%
     mutate(case = as.character(case)) %>%
-    full_join(hamby224_explain_results, by = "case") %>%
+    full_join(hamby224_explain, by = "case") %>%
     mutate(case = factor(case),
-           feature = factor(feature),
-           feature_desc = factor(feature_desc)) %>%
-    mutate(feature_number = readr::parse_number(feature_desc),
+           feature_desc = factor(feature_desc),
+           feature_bin = pmap_chr(list(feature = feature, 
+                                 feature_value = feature_value,
+                                 b_c = bin_continuous,
+                                 q_b = quantile_bins,
+                                 n_b = nbins,
+                                 u_d = use_density),
+                            .f = bin_labeller, # bin_labeller is one of my helper functions
+                            bin_data = hamby224_bin_boundaries,
+                            case_info = hamby224_lime_cases)) %>%
+    mutate(feature = factor(feature),
+           nbins = factor(nbins),
+           feature_number = readr::parse_number(feature_desc),
            strictly_less = FALSE) %>%
     arrange(nbins)
-  
-  # mutate(feature_bin = mapply(bin_labeller, feature = feature, 
-  #                               feature_value = feature_value))
   
   # Finish creating the strictly less than variable
   hamby224_test_explain$strictly_less[grep("< ", 
@@ -390,7 +412,8 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     mutate(feature_desc = reorder(feature_desc, strictly_less),
            feature_desc = reorder(feature_desc, feature_number),
            feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
-    select(case:feature_desc, feature_bin:strictly_less, data, prediction)
+    select(bin_continuous:use_density, case:feature_desc, feature_bin:strictly_less, 
+           data, prediction)
 
   # Save the combined test and explain data
   saveRDS(hamby224_test_explain, "../data/hamby224_test_explain.rds")
@@ -404,20 +427,22 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
 ```
 
 ```{r}
-check <- hamby224_test_explain %>%
+hamby224_lime_comparisons <- hamby224_test_explain %>%
   select(-data, -prediction) %>%
-  group_by(case) %>%
+  group_by(case, bin_continuous, quantile_bins, nbins, use_density) %>%
   slice(1) %>%
   ungroup() %>%
-  select(case, set, rf_features, rfscore, model_prediction, model_r2) %>%
+  select(bin_continuous, quantile_bins, nbins, use_density, case, set, rf_features, rfscore, model_prediction, model_r2) %>%
   mutate(diff = rfscore - model_prediction,
          mean = (rfscore + model_prediction) / 2)
 
-sum((subset(check$diff, check$set == "Set 1"))^2, na.rm = TRUE)
-sum((subset(check$diff, check$set == "Set 11"))^2, na.rm = TRUE)
+hamby224_lime_comparisons %>%
+  group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
+  summarise(mse = (sum(diff)^2) / length(diff)) %>%
+  arrange(set)
 
-check %>%
-  filter(set == "Set 1") %>%
+hamby224_lime_comparisons %>%
+  filter(nbins == "2", set == "Set 1") %>%
   select(rf_features, diff, -case) %>%
   gather(key = feature, value = feature_value, rf_features) %>%
   select(feature, feature_value, diff) %>%
@@ -431,45 +456,46 @@ Below is are plots of the probability of a match computed from the "simple" (rid
 
 The points are also colored by the $R^2$ value from the simple model. This plot suggests that the simple models with a prediction close to 0.5 have a better fit, but the $R^2$ values are still low. I am not sure what to make of this. However, it does not appear that the $R^2$ is related to the probability from the random forest.
 
-```{r fig.width = 8, fig.height = 4}
-ggplot(check, aes(x = rfscore, y = model_prediction)) + 
+```{r fig.width = 8, fig.height = 4, eval = FALSE}
+ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = model_prediction)) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid( ~ set) + 
+  facet_grid(nbins ~ set) + 
   theme_bw() + 
   stat_smooth(method = "lm")
 ```
 
 The plots below show the absolute value of the difference between the random forest probability and the simple model probability versus the random forest probability. These plots show a clear v-shaped trend that suggests that the simple model is doing the best job of replicating the random forest probability around the random forest probability of 0.5. That is, the simple model seems to be doing a worse job of computing accurate predictions in the extremes of the random forest scores.
 
-```{r fig.width = 8, fig.height = 4}
-ggplot(check, aes(x = rfscore, y = abs(diff))) + 
+```{r fig.width = 8, fig.height = 4, eval = FALSE}
+ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = abs(diff))) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid( ~ set) +
+  facet_grid(nbins ~ set) +
   theme_bw()
 ```
 
 The plot below shows the difference of the two model probabilities versus the random forest score. This shows that when the random forest score is low, the simple model is over estimating the probability, and when the random forest score is high, the simple model is underestimating the probability.
 
-```{r fig.width = 8, fig.height = 4}
-ggplot(check, aes(x = rfscore, y = diff)) + 
+```{r fig.width = 8, fig.height = 4, eval = FALSE}
+ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = diff)) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid( ~ set) +
+  facet_grid(nbins ~ set) +
   geom_hline(yintercept = 0, color = "blue") +
   theme_bw()
 ```
 
 ## Visualizing the LIME Explanations
 
-```{r}
+```{r, eval = FALSE}
 hamby224_test_explain %>%
   ggplot(aes(x = feature_desc)) + 
   geom_bar() +
-  coord_flip()
+  coord_flip() + 
+  facet_grid(set ~ nbins)
 ```
 
-```{r}
+```{r, eval = FALSE}
 hamby224_test_explain %>%
-  filter(set == "Set 1") %>%
+  filter(set == "Set 1", nbins == "3") %>%
   mutate(rfscore = round(rfscore, 3)) %>%
   select(case, bullet1, bullet2, land1, land2, rfscore) %>%
   distinct() %>%

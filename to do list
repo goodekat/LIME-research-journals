@@ -4,6 +4,7 @@ TO DO LIST
 -------------
 
 Questions:
+- ask about CSP
 
 Thoughts:
 
@@ -14,7 +15,7 @@ Current:
 - first steps to try to improve LIME:
   - try more bins
   - try changing quantile_bins to FALSE
-  - try setting bin_continuous to FALSE
+  - try setting bin_continuous to FALSE with use_density as both TRUE and FALSE
 - color bin text in the table
 - read through LIME papers again
 - next steps to try to improve LIME: 

@@ -6,17 +6,22 @@
 
 # Function for running the lime functions which runs the lime and explain 
 # objects in a list
-run_lime <- function(train, test, rfmodel, nbins, label, nfeatures){
+run_lime <- function(bin_continuous, quantile_bins, nbins, use_density,
+                     train, test, rfmodel, label, nfeatures){
   
   # Set a seed
   set.seed(84902)
   
   # Run the lime function
-  lime <- lime(x = train, model = rfmodel, n_bins = nbins)
+  lime <- lime(x = train, model = rfmodel, bin_continuous = bin_continuous, 
+               n_bins = nbins, quantile_bins = quantile_bins, use_density = use_density)
   
   # Run the explain function and add a variable for the number of bins
   explain <- explain(x = test, explainer = lime, labels = label, n_features = nfeatures) %>%
-    mutate(nbins = nbins)
+    mutate(bin_continuous = bin_continuous,
+           quantile_bins = quantile_bins,
+           nbins = nbins,
+           use_density = use_density)
   
   return(list(lime = lime, explain = explain))
   
@@ -92,7 +97,7 @@ create_bin_data <- function(lime_object){
 ## ---------------------------------------------------------------
 
 # Function to use for creating bin labels in the test_explain dataset
-bin_labeller <- function(feature, feature_value, nbins, bin_data){
+bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, case_info){
   
   if (is.na(feature)) {
     
@@ -101,22 +106,28 @@ bin_labeller <- function(feature, feature_value, nbins, bin_data){
     
   } else {
     
-    # Subset the bin cuts table to the selected feature
-    feature_bin_data <- bin_data %>%
-      filter(Feature == feature) %>%
-      select(-Feature, -Lower, -Upper)
+    # Determine which item in the list of bin divisions to grab 
+    # based on the case info
+    selected_list_item <- case_info %>%
+      filter(bin_continuous == b_c, 
+             quantile_bins == q_b,
+             nbins == n_b, 
+             is.na(use_density)) %>%
+      pull(case)
     
-    # Compute the number of bins based the input dataframe
-    nbins = length(bin_data) - 2
+    # Subset the bin cuts table to the selected feature
+    feature_bin_data <- bin_data[[selected_list_item]] %>%
+      filter(Feature == as.character(feature)) %>%
+      select(-Feature, -Lower, -Upper)
     
     # Determine which bin the case falls in
     if(feature_value <= feature_bin_data[1]){
       feature_bin <- paste(feature, "(lower bin)")
-    } else if (feature_bin_data[nbins - 1] < feature_value){
+    } else if (feature_bin_data[n_b - 1] < feature_value){
       feature_bin <- paste(feature, "(upper bin)")
     } else {
-      middle_bin_checks <- data.frame(middle_bin_number = 1:(nbins-2),
-                                      contained = sapply(1:(nbins - 2),
+      middle_bin_checks <- data.frame(middle_bin_number = 1:(n_b - 2),
+                                      contained = sapply(1:(n_b - 2),
                                                          FUN = function(number) {
                                                            feature_bin_data[number] < feature_value &
                                                              feature_value <= feature_bin_data[number + 1]}))
