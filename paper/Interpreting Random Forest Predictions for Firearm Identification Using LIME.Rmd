@@ -261,7 +261,13 @@ The method that `lime` uses to obtain the distribution differs based on the feat
 \item $n$ samples from each of the feature distributions are drawn.
 
 \begin{quote}
-To do this, `lime` draws a sample from a Uniform(0,1) distribution and uses the bin information to compute a sample drawn from the feature distribution.
+To do this, `lime` has several options (mostly quoted from `lime` package for now):
+\begin{itemize}
+\item bin\_continuous = TRUE should continuous variables be binned?
+\item quantile\_bins = TRUE should the ins for n\_bins be based on quantiles or spread evenly
+\item n\_bins = 4 number of bins if bin\_continuous is TRUE
+\item use\_density = TRUE if bin\_continuous is FALSE, should continuous data be sampled using kernel density estimation (if not, then will assume normal for continuous variable)
+\end{itemize}
 \end{quote}
 
 \item Predictions for the testing data using the random forest model are computed.
@@ -309,15 +315,15 @@ For the prediction of interest,
 if(!file.exists("../data/hamby224_lime.rds")) {
   
   # Specify the options to use with lime 
-  hamby224_lime_cases <- data.frame(bin_continuous = rep(TRUE, 18),
-                                    quantile_bins = c(rep(TRUE, 9), rep(FALSE, 9)),
-                                    nbins = rep(2:10, 2),
-                                    use_density = rep(NA, 18)) %>%
+  hamby224_lime_cases <- data.frame(bin_continuous = c(rep(TRUE, 18), rep(FALSE, 2)),
+                                    quantile_bins = c(rep(TRUE, 9), rep(FALSE, 9), rep(NA, 2)),
+                                    nbins = c(rep(2:10, 2), rep(NA, 2)),
+                                    use_density = c(rep(NA, 18), TRUE, FALSE)) %>%
   mutate(case = 1:length(nbins)) %>%
   select(case, bin_continuous, nbins, quantile_bins, use_density)
   
   # Run the lime functions for the specified number of bins
-  hamby224_all_results <- pmap(.l = as.list(hamby224_lime_cases[1,-1]),
+  hamby224_all_results <- pmap(.l = as.list(hamby224_lime_cases[,-1]),
              .f = run_lime, # run_lime is one of my helper functions
              train = hamby173and252_train %>% select(rf_features),
              test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
@@ -330,7 +336,7 @@ if(!file.exists("../data/hamby224_lime.rds")) {
   hamby224_explain <- map_df(hamby224_all_results, function(list) list$explain)
   
   # Name the items in the lime list
-  names(hamby224_lime) <- map_chr(1:dim(hamby224_lime_cases[1,])[1], function(case) 
+  names(hamby224_lime) <- map_chr(1:dim(hamby224_lime_cases)[1], function(case) 
       sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s",
               hamby224_lime_cases$bin_continuous[case],
               hamby224_lime_cases$quantile_bins[case],
@@ -427,20 +433,41 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
 ```
 
 ```{r}
-hamby224_lime_comparisons <- hamby224_test_explain %>%
-  select(-data, -prediction) %>%
-  group_by(case, bin_continuous, quantile_bins, nbins, use_density) %>%
-  slice(1) %>%
-  ungroup() %>%
-  select(bin_continuous, quantile_bins, nbins, use_density, case, set, rf_features, rfscore, model_prediction, model_r2) %>%
-  mutate(diff = rfscore - model_prediction,
-         mean = (rfscore + model_prediction) / 2)
+# Create the lime comparison data if the file does not already exist
+if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
+  
+  # Create a data frame with the interesting information relating to the differe
+  # evaluations of lime and compute the difference and mean between the rf and rr
+  # model predictions
+  hamby224_lime_comparisons <- hamby224_test_explain %>%
+    select(-data, -prediction) %>%
+    group_by(case, bin_continuous, quantile_bins, nbins, use_density) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(bin_continuous, quantile_bins, nbins, use_density, 
+           set, case, rf_features, rfscore, model_prediction, model_r2) %>%
+    mutate(diff = rfscore - model_prediction,
+           mean = (rfscore + model_prediction) / 2)
+  
+  # Save the lime comparison data frame
+  saveRDS(hamby224_lime_comparisons, "../data/hamby224_lime_comparisons.rds")
+  
+} else {
+  
+  # Load in the lime comparison data frame
+  hamby224_lime_comparisons <- readRDS("../data/hamby224_lime_comparisons.rds")
+  
+}
+```
 
+```{r}
 hamby224_lime_comparisons %>%
   group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
   summarise(mse = (sum(diff)^2) / length(diff)) %>%
   arrange(set)
+```
 
+```{r}
 hamby224_lime_comparisons %>%
   filter(nbins == "2", set == "Set 1") %>%
   select(rf_features, diff, -case) %>%
@@ -456,7 +483,7 @@ Below is are plots of the probability of a match computed from the "simple" (rid
 
 The points are also colored by the $R^2$ value from the simple model. This plot suggests that the simple models with a prediction close to 0.5 have a better fit, but the $R^2$ values are still low. I am not sure what to make of this. However, it does not appear that the $R^2$ is related to the probability from the random forest.
 
-```{r fig.width = 8, fig.height = 4, eval = FALSE}
+```{r fig.width = 8, fig.height = 4}
 ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = model_prediction)) + 
   geom_point(aes(color = model_r2)) + 
   facet_grid(nbins ~ set) + 
@@ -466,7 +493,7 @@ ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = model_prediction)) +
 
 The plots below show the absolute value of the difference between the random forest probability and the simple model probability versus the random forest probability. These plots show a clear v-shaped trend that suggests that the simple model is doing the best job of replicating the random forest probability around the random forest probability of 0.5. That is, the simple model seems to be doing a worse job of computing accurate predictions in the extremes of the random forest scores.
 
-```{r fig.width = 8, fig.height = 4, eval = FALSE}
+```{r fig.width = 8, fig.height = 4}
 ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = abs(diff))) + 
   geom_point(aes(color = model_r2)) + 
   facet_grid(nbins ~ set) +
@@ -475,7 +502,7 @@ ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = abs(diff))) +
 
 The plot below shows the difference of the two model probabilities versus the random forest score. This shows that when the random forest score is low, the simple model is over estimating the probability, and when the random forest score is high, the simple model is underestimating the probability.
 
-```{r fig.width = 8, fig.height = 4, eval = FALSE}
+```{r fig.width = 8, fig.height = 4}
 ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = diff)) + 
   geom_point(aes(color = model_r2)) + 
   facet_grid(nbins ~ set) +
@@ -485,7 +512,7 @@ ggplot(hamby224_lime_comparisons, aes(x = rfscore, y = diff)) +
 
 ## Visualizing the LIME Explanations
 
-```{r, eval = FALSE}
+```{r}
 hamby224_test_explain %>%
   ggplot(aes(x = feature_desc)) + 
   geom_bar() +
@@ -493,9 +520,9 @@ hamby224_test_explain %>%
   facet_grid(set ~ nbins)
 ```
 
-```{r, eval = FALSE}
+```{r}
 hamby224_test_explain %>%
-  filter(set == "Set 1", nbins == "3") %>%
+  filter(set == "Set 1", nbins == "2") %>%
   mutate(rfscore = round(rfscore, 3)) %>%
   select(case, bullet1, bullet2, land1, land2, rfscore) %>%
   distinct() %>%

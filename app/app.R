@@ -14,8 +14,10 @@ library(gridExtra)
 ## ------------------------------------------------------------------------------------
 
 # Input data
-hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
-hamby224_bins <- readRDS("../data/hamby224_bins.rds")
+hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds") %>%
+  filter(bin_continuous == TRUE, quantile_bins == TRUE, nbins == 2, is.na(use_density))
+  
+hamby224_bins <- readRDS("../data/hamby224_bins.rds")[[1]]
 
 # Replace the periods with spaces in the feature names
 names(hamby224_bins) <- gsub(".", " ", names(hamby224_bins), fixed = TRUE)
