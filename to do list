@@ -16,6 +16,9 @@ Current:
   - try more bins
   - try changing quantile_bins to FALSE
   - try setting bin_continuous to FALSE with use_density as both TRUE and FALSE
+- run lime implementations
+- compute summary statistics and plot the results from the lime implementations
+- switch app to the best option
 - color bin text in the table
 - read through LIME papers again
 - next steps to try to improve LIME: 
