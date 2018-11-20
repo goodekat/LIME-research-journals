@@ -14,23 +14,22 @@ library(gridExtra)
 ## ------------------------------------------------------------------------------------
 
 # Input data
-hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds") %>%
-  filter(bin_continuous == TRUE, quantile_bins == TRUE, nbins == 2, is.na(use_density))
-  
-hamby224_bins <- readRDS("../data/hamby224_bins.rds")[[1]]
+hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+hamby224_bins <- readRDS("../data/hamby224_bins.rds")
+hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
 
 # Replace the periods with spaces in the feature names
-names(hamby224_bins) <- gsub(".", " ", names(hamby224_bins), fixed = TRUE)
+#names(hamby224_bins) <- gsub(".", " ", names(hamby224_bins), fixed = TRUE)
 
 ## ------------------------------------------------------------------------------------
 ## Functions
 ## ------------------------------------------------------------------------------------
 
 # Function for creating a table with the bin information relating to specified features
-bin_table <- function(features, bin_cuts = hamby224_bins){
+bin_table <- function(features, bin_cuts = hamby224_bins, case){
 
   # Subset the bin cuts table to the selected feature
-  selected_bin_cuts <- bin_cuts %>% 
+  selected_bin_cuts <- bin_cuts[[case]] %>% 
     filter(Feature %in% features) %>%
     mutate(Feature = factor(Feature, levels = features)) %>%
     arrange(Feature)
@@ -77,9 +76,12 @@ server <- function(input, output) {
     # Grab the number of the chosen set
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
     
+    # Specify nbins based on the chosen_set
+    bins = ifelse(chosen_set == "Set 1", 8, 3)
+    
     # Create a tile plot of the random forest predictions
     plot <- hamby224_test_explain %>%
-      filter(set == chosen_set) %>%
+      filter(set == chosen_set, quantile_bins == TRUE, nbins == bins) %>%
       mutate(rfscore = round(rfscore, 3)) %>%
       select(case, bullet1, bullet2, land1, land2, rfscore) %>%
       distinct() %>%
@@ -152,9 +154,14 @@ server <- function(input, output) {
         # Save the locations to use for the reactive mark on the tileplot
         tileplot_mark$location <- location
         
+        # Specify nbins based on the chosen_set
+        bins = ifelse(chosen_set == "Set 1", 8, 3)
+        
         # Create a dataset with the feature information for the selected comparison
         selected_comparison <- hamby224_test_explain %>%
-          filter(set == chosen_set,
+          filter(quantile_bins == TRUE, 
+                 nbins == bins,
+                 set == chosen_set,
                  land1 == as.character(location$land1),
                  land2 == as.character(location$land2),
                  bullet1 == location$bullet1,
@@ -216,8 +223,13 @@ server <- function(input, output) {
           arrange(desc(abs(feature_weight))) %>%
           select(feature, feature_weight, evidence)
         
+        # Determine the case based on the number of bins
+        case <- hamby224_lime_cases %>%
+          filter(quantile_bins == TRUE, nbins == bins) %>%
+          pull(case)
+        
         # Create a table with the bin cuts
-        table <- tableGrob(bin_table(selected_features$feature), 
+        table <- tableGrob(bin_table(features = selected_features$feature, case = case), 
                            theme = ttheme_minimal(),
                            rows = NULL)
         
