@@ -81,6 +81,8 @@ create_bin_data <- function(lime_object){
   # Assign appropriate names to the bin columns
   if (nbins == 2){
     names(bins) <- c("Feature", "Lower Bin", "Upper Bin")
+  } else if (nbins == 3) {
+    names(bins) <- c("Feature", "Lower Bin", "Middle Bin", "Upper Bin")
   } else {
     names(bins) <- c("Feature", 
                      "Lower Bin",
@@ -131,9 +133,15 @@ bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, c
                                                          FUN = function(number) {
                                                            feature_bin_data[number] < feature_value &
                                                              feature_value <= feature_bin_data[number + 1]}))
-      feature_bin <- sprintf("%s (middle bin %.0f)", 
-                             feature,
-                             middle_bin_checks %>% filter(contained == TRUE) %>% pull(middle_bin_number))
+      
+      if (n_b == 3){
+        feature_bin = sprintf("%s (middle bin)", feature)
+      } else {
+        feature_bin <- sprintf("%s (middle bin %.0f)", 
+                               feature,
+                               middle_bin_checks %>% filter(contained == TRUE) %>% pull(middle_bin_number))
+      }
+      
     }
     
   }

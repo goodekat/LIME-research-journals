@@ -18,9 +18,6 @@ hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 hamby224_bins <- readRDS("../data/hamby224_bins.rds")
 hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
 
-# Replace the periods with spaces in the feature names
-#names(hamby224_bins) <- gsub(".", " ", names(hamby224_bins), fixed = TRUE)
-
 ## ------------------------------------------------------------------------------------
 ## Functions
 ## ------------------------------------------------------------------------------------
@@ -48,15 +45,25 @@ ui <- fluidPage(
    
    # Application title
    titlePanel("LIME Explanations for Bullet Matching"),
-   
-   # Set selector
-   column(6, selectInput("set", 
-                        label = "Select a Hamby 224 dataset", 
-                        choices = c("Set 1", "Set 11")),
+  
+   # Panel for selections and tileplot
+   column(width = 6,
+          fluidRow(column(width = 6,
+                          selectInput("set", 
+                                      label = "Select a Hamby 224 dataset", 
+                                      choices = c("Set 1", "Set 11")),
+                          selectInput("bintype", 
+                                      label = "Select the bin type for LIME", 
+                                      choices = c("Quantile Bins", "Equally Spaced Bins"))),
+                   column(width = 6,
+                          selectInput("nbins", 
+                                      label = "Select the number of bins to use for LIME", 
+                                      choices = c(2:10)))),
           plotlyOutput("tileplot")),
 
-   # Panel for plots
-   column(6, fluidRow(plotOutput("featureplot")))
+   # Panel for feature plot
+   column(width = 6, 
+          fluidRow(plotOutput("featureplot")))
    
 )
 
@@ -73,18 +80,20 @@ server <- function(input, output) {
   # Create the tile plot
   output$tileplot <- renderPlotly({
     
-    # Grab the number of the chosen set
+    # Grab the chosen input options
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
-    
-    # Specify nbins based on the chosen_set
-    bins = ifelse(chosen_set == "Set 1", 8, 3)
+    chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
+    chosen_nbins <- input$nbins
     
     # Create a tile plot of the random forest predictions
     plot <- hamby224_test_explain %>%
-      filter(set == chosen_set, quantile_bins == TRUE, nbins == bins) %>%
+      filter(set == chosen_set, quantile_bins == chosen_bintype, nbins == chosen_nbins) %>%
       mutate(rfscore = round(rfscore, 3)) %>%
       select(case, bullet1, bullet2, land1, land2, rfscore) %>%
       distinct() %>%
+      bind_rows(hamby224_test_explain %>%
+                  filter(is.na(rfscore), set == chosen_set) %>%
+                  select(case, bullet1, bullet2, land1, land2, rfscore)) %>%
       ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
                  text = paste('Bullets Compared: ', bullet1, "-", land1, 
                               "vs", bullet2, "-", land2,
@@ -96,7 +105,7 @@ server <- function(input, output) {
       scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5, limits = c(0, 1)) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
       labs(x = "", y = "", fill = "RF Score", 
-           title = paste0("Hamby 224 Data (", input$set, ")")) 
+           title = paste0("Hamby 224 Data (", input$set, ")"))
       
     # If a tile has been clicked, add an 'x' to the tile
     if(length(tileplot_mark$location)){
@@ -134,8 +143,10 @@ server <- function(input, output) {
   # Create my own feature plot
   output$featureplot <- renderPlot({
     
-    # Grab the number of the chosen set
+    # Grab the chosen input options
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
+    chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
+    chosen_nbins <- input$nbins
     
     # Obtain the click data
     click_data <- event_data("plotly_click", source = "tileplot")
@@ -154,13 +165,10 @@ server <- function(input, output) {
         # Save the locations to use for the reactive mark on the tileplot
         tileplot_mark$location <- location
         
-        # Specify nbins based on the chosen_set
-        bins = ifelse(chosen_set == "Set 1", 8, 3)
-        
         # Create a dataset with the feature information for the selected comparison
         selected_comparison <- hamby224_test_explain %>%
-          filter(quantile_bins == TRUE, 
-                 nbins == bins,
+          filter(quantile_bins == chosen_bintype, 
+                 nbins == chosen_nbins,
                  set == chosen_set,
                  land1 == as.character(location$land1),
                  land2 == as.character(location$land2),
@@ -225,7 +233,7 @@ server <- function(input, output) {
         
         # Determine the case based on the number of bins
         case <- hamby224_lime_cases %>%
-          filter(quantile_bins == TRUE, nbins == bins) %>%
+          filter(quantile_bins == chosen_bintype, nbins == chosen_nbins) %>%
           pull(case)
         
         # Create a table with the bin cuts

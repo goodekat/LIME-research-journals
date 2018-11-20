@@ -5,27 +5,30 @@ TO DO LIST
 
 Questions:
 - CSP?
-- is it okay to spend the summer focuing on research?
+- Is it okay to spend the summer focuing on research?
+- Is one implementation of each input okay, or should I run more and average the results? 
 
 Thoughts:
 
 Completed:
 - look at "residual" plots
 - fixed the code to handle a dataset with different input values
-- run lime implementations
-- compute summary statistics and plot the results from the lime implementations
-- switch app to the best option
-
-Current:
 - first steps to try to improve LIME:
   - try more bins
   - try changing quantile_bins to FALSE
-  - try setting bin_continuous to FALSE with use_density as both TRUE and FALSE
+- run lime implementations
+- create a table comparing the MSEs
+- plot the MSEs from the lime implementations
+- switch app to the best option
 - need to fix heat map in app - something is wrong
+- added LIME input options in the app
+
+Current:
+- figure out how LIME is using bins when bin_continuous is set to TRUE (it still creates the bins)
 - color bin text in the table
 - read through LIME papers again
 - next steps to try to improve LIME: 
-  - create a table comparing the MSEs
+  - try setting bin_continuous to FALSE with use_density as both TRUE and FALSE
   - try subsampling to deal with the binning issue
   - try out logistic regression idea for bins (write own bin list to put in explain)
 - paper

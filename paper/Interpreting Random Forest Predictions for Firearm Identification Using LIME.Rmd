@@ -359,6 +359,29 @@ if(!file.exists("../data/hamby224_lime.rds")) {
 ```
 
 ```{r}
+# Specify the options to use with lime 
+hamby224_lime_no_bins_cases <- data.frame(bin_continuous = rep(FALSE, 2),
+                                      quantile_bins = rep(TRUE, 2),
+                                      nbins = rep(4, 2),
+                                      use_density = c(TRUE, FALSE)) %>%
+  mutate(case = 1:length(nbins)) %>%
+  select(case, bin_continuous, nbins, quantile_bins, use_density)
+  
+# Run the lime functions for the specified number of bins
+hamby224_no_bins_results <- pmap(.l = as.list(hamby224_lime_no_bins_cases[,-1]),
+           .f = run_lime, # run_lime is one of my helper functions
+           train = hamby173and252_train %>% select(rf_features),
+           test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+           rfmodel = as_classifier(rtrees),
+           label = "TRUE",
+           nfeatures = 3)
+
+# Separate the lime and explain function results
+hamby224_lime_no_bins <- map(hamby224_no_bins_results, function(list) list$lime)
+hamby224_explain_no_bins <- map_df(hamby224_no_bins_results, function(list) list$explain)
+```
+
+```{r}
 # Create a dataframe with the bins
 if (!file.exists("../data/hamby224_bins.csv")) {
   
@@ -461,23 +484,40 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
 ```
 
 ```{r}
-hamby224_lime_mse <- hamby224_lime_comparisons %>%
+hamby224_lime_results <- hamby224_lime_comparisons %>%
   filter(!is.na(rfscore)) %>%
   group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
-  summarise(mse = (sum(diff)^2) / length(diff)) %>%
+  summarise(mse = (sum(diff)^2) / length(diff),
+            ave_r2 = mean(model_r2)) %>%
   arrange(set)
 ```
 
 ```{r}
-hamby224_lime_mse %>%
+hamby224_lime_results %>%
   group_by(set) %>%
   arrange(mse) %>%
   slice(1:2)
 ```
 
 ```{r}
-hamby224_lime_mse %>%
+hamby224_lime_results %>%
   ggplot(aes(x = nbins, y = mse, color = quantile_bins, group = quantile_bins)) +
+  geom_point() + 
+  geom_line() + 
+  facet_grid( ~ set) + 
+  theme_bw()
+```
+
+```{r}
+hamby224_lime_results %>%
+  group_by(set) %>%
+  arrange(ave_r2) %>%
+  slice(1:2)
+```
+
+```{r}
+hamby224_lime_results %>%
+  ggplot(aes(x = nbins, y = ave_r2, color = quantile_bins, group = quantile_bins)) +
   geom_point() + 
   geom_line() + 
   facet_grid( ~ set) + 
@@ -533,7 +573,7 @@ hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 1") %>%
   ggplot(aes(x = rfscore, y = abs(diff))) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid(nbins ~ set) +
+  facet_wrap( ~ nbins) +
   theme_bw()
 ```
 
@@ -542,7 +582,7 @@ hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 11") %>%
   ggplot(aes(x = rfscore, y = abs(diff))) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid(nbins ~ set) +
+  facet_wrap( ~ nbins) +
   theme_bw()
 ```
 
@@ -551,7 +591,7 @@ hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 1") %>%
   ggplot(aes(x = rfscore, y = diff)) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid(nbins ~ set) +
+  facet_wrap( ~ nbins) +
   geom_hline(yintercept = 0, color = "blue") +
   theme_bw()
 ```
@@ -561,7 +601,7 @@ hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 11") %>%
   ggplot(aes(x = rfscore, y = diff)) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid(nbins ~ set) +
+  facet_wrap( ~ nbins) +
   geom_hline(yintercept = 0, color = "blue") +
   theme_bw()
 ```
@@ -582,6 +622,9 @@ hamby224_test_explain %>%
   mutate(rfscore = round(rfscore, 3)) %>%
   select(case, bullet1, bullet2, land1, land2, rfscore) %>%
   distinct() %>%
+  bind_rows(hamby224_test_explain %>%
+                  filter(is.na(rfscore), set == "Set 1") %>%
+                  select(case, bullet1, bullet2, land1, land2, rfscore)) %>%
   ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
              text = paste('Bullets Compared: ', bullet1, "-", land1, 
                           "vs", bullet2, "-", land2,
