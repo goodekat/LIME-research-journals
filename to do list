@@ -14,12 +14,13 @@ Completed:
 - read paper on rfviz
 - included setting bin_continuous to FALSE with use_density as both TRUE and FALSE
 - updated app to include option for bin_continuous
+- rerun code with only 2 to 6 bins
+- try subsampling to deal with the binning issue
 
 Current:
-- fix problem with code
-- rerun code with only 2 to 6 bins
+- add subsampling to app
+- fix problem with app
 - check on sampling variability (run each lime implementation several times)
-- try subsampling to deal with the binning issue
 - color bin text in the table
 - read through LIME papers again
 - try out logistic regression idea for bins (write own bin list to put in explain)

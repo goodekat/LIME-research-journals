@@ -48,6 +48,13 @@ hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 ```
 
 ```{r}
+hamby173and252_train_sub <- hamby173and252_train %>%
+  filter(samesource == FALSE) %>%
+  slice(sample(1:length(hamby173and252_train$barrel1), 4500, replace = FALSE)) %>%
+  bind_rows(hamby173and252_train %>% filter(samesource == TRUE))
+```
+
+```{r}
 # Obtain features used when fitting the rtrees random forest
 rf_features <- rownames(rtrees$importance)
 ```
@@ -64,12 +71,36 @@ hamby173and252_train %>%
   labs(x = "Variable Value", y = "Frequency", fill = "Same Source?") +
   theme_bw() +
   theme(legend.position = "bottom")
+
+# Same plot but with the subsampled training data
+hamby173and252_train_sub %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Frequency", fill = "Same Source?") +
+  theme_bw() +
+  theme(legend.position = "bottom")
 ```
 
 ```{r fig.height = 5, fig.width = 8}
 # Create plots of the feature distributions colored by samesource for the training data
 # using the position = "fill" option
 hamby173and252_train %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(position = "fill", bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Proportion", fill = "Same Source?") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+# Same plot but with the subsampled training data
+hamby173and252_train_sub %>% 
   select(rf_features, samesource) %>%
   gather(key = feature, value = value, 1:9) %>%
   select(feature, value, samesource) %>%
@@ -312,18 +343,22 @@ For the prediction of interest,
 
 Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
 
-
 ```{r}
-# Apply the run_lime function if the lime results file does not already exist
-if(!file.exists("../data/hamby224_lime.rds")) {
-  
-  # Specify the options to use with lime 
-  hamby224_lime_cases <- data.frame(bin_continuous = c(rep(TRUE, 10), rep(FALSE, 2)),
+# Specify the options to use with lime 
+hamby224_lime_cases <- data.frame(bin_continuous = c(rep(TRUE, 10), rep(FALSE, 2)),
                                     quantile_bins = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 2)),
                                     nbins = c(rep(2:6, 2), rep(4, 2)),
                                     use_density = c(rep(TRUE, 10), TRUE, FALSE)) %>%
   mutate(case = 1:length(nbins)) %>%
   select(case, bin_continuous, nbins, quantile_bins, use_density)
+
+# Save the cases
+saveRDS(hamby224_lime_cases, "../data/hamby224_lime_cases.rds")
+```
+
+```{r}
+# Apply the run_lime function if the lime results file does not already exist
+if(!file.exists("../data/hamby224_lime.rds")) {
   
   # Run the lime functions for the specified number of bins
   hamby224_all_results <- pmap(.l = as.list(hamby224_lime_cases[,-1]),
@@ -346,42 +381,53 @@ if(!file.exists("../data/hamby224_lime.rds")) {
               hamby224_lime_cases$nbins[case],
               hamby224_lime_cases$use_density[case]))
 
-  # Specify the options to use with lime with no bins
-  # hamby224_lime_no_bins_cases <- data.frame(bin_continuous = rep(FALSE, 2),
-  #                                           quantile_bins = rep(TRUE, 2),
-  #                                           nbins = rep(4, 2),
-  #                                           use_density = c(TRUE, FALSE)) %>%
-  #   mutate(case = 1:length(nbins)) %>%
-  #   select(case, bin_continuous, nbins, quantile_bins, use_density)
-  # 
-  # # Run the lime functions for the specified number of bins
-  # hamby224_no_bins_results <- pmap(.l = as.list(hamby224_lime_no_bins_cases[,-1]),
-  #          .f = run_lime, # run_lime is one of my helper functions
-  #          train = hamby173and252_train %>% select(rf_features),
-  #          test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
-  #          rfmodel = as_classifier(rtrees),
-  #          label = "TRUE",
-  #          nfeatures = 3)
-  
-  # # Separate the lime and explain function results
-  # hamby224_lime_no_bins <- map(hamby224_no_bins_results, function(list) list$lime)
-  # hamby224_explain_no_bins <- map_df(hamby224_no_bins_results, function(list) list$explain)
-  # 
-  # # Bind the lime dataframes with bin_continuous TRUE and FALSE
-  # hamby224_lime <- c(hamby224_lime, hamby224_lime_no_bins)
-  # hamby224_explain <- bind_rows(hamby224_explain, hamby224_explain_no_bins)
-
   # Save the lime and explain results objects and the case info
   saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
   saveRDS(hamby224_explain, "../data/hamby224_explain.rds")
-  saveRDS(hamby224_lime_cases, "../data/hamby224_lime_cases.rds")
   
 } else {
   
   # Load in the lime results object
   hamby224_lime <- readRDS("../data/hamby224_lime.rds")
   hamby224_explain <- readRDS("../data/hamby224_explain.rds")
-  hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
+  
+}
+```
+
+```{r}
+# Apply the run_lime function if the lime results file does not already exist
+if(!file.exists("../data/hamby224_sub_lime.rds")) {
+  
+  # Run the lime functions for the specified number of bins
+  hamby224_sub_all_results <- pmap(.l = as.list(hamby224_lime_cases[,-1]),
+             .f = run_lime, # run_lime is one of my helper functions
+             train = hamby173and252_train_sub %>% select(rf_features),
+             test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+             rfmodel = as_classifier(rtrees),
+             label = "TRUE",
+             nfeatures = 3)
+  
+  # Separate the lime and explain function results
+  hamby224_sub_lime <- map(hamby224_sub_all_results, function(list) list$lime)
+  hamby224_sub_explain <- map_df(hamby224_sub_all_results, function(list) list$explain)
+  
+  # Name the items in the lime list
+  names(hamby224_sub_lime) <- map_chr(1:dim(hamby224_lime_cases)[1], function(case) 
+      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s",
+              hamby224_lime_cases$bin_continuous[case],
+              hamby224_lime_cases$quantile_bins[case],
+              hamby224_lime_cases$nbins[case],
+              hamby224_lime_cases$use_density[case]))
+
+  # Save the lime and explain results objects and the case info
+  saveRDS(hamby224_sub_lime, "../data/hamby224_sub_lime.rds")
+  saveRDS(hamby224_sub_explain, "../data/hamby224_sub_explain.rds")
+  
+} else {
+  
+  # Load in the lime results object
+  hamby224_sub_lime <- readRDS("../data/hamby224_sub_lime.rds")
+  hamby224_sub_explain <- readRDS("../data/hamby224_sub_explain.rds")
   
 }
 ```
@@ -407,6 +453,32 @@ if (!file.exists("../data/hamby224_bins.csv")) {
   # Load in the bin boundaries and bins
   hamby224_bin_boundaries <- readRDS("../data/hamby224_bin_boundaries.rds")
   hamby224_bins <- readRDS("../data/hamby224_bins.rds")
+  
+}
+```
+
+
+```{r}
+# Create a dataframe with the bins
+if (!file.exists("../data/hamby224_sub_bins.csv")) {
+  
+  # Create a list a dataframes with the bin boundaries and bins 
+  # for the different evaluations of the lime functions
+  hamby224_sub_bin_list <- map(hamby224_sub_lime, create_bin_data)
+  
+  # Save the bin boundaries and the bins as separate dataframes
+  hamby224_sub_bin_boundaries <- map(hamby224_sub_bin_list, function(m) m$boundaries)
+  hamby224_sub_bins <- map(hamby224_sub_bin_list, function(m) m$bins)
+  
+  # Save the bin boundaries and bins
+  saveRDS(hamby224_sub_bin_boundaries, "../data/hamby224_sub_bin_boundaries.rds")
+  saveRDS(hamby224_sub_bins, "../data/hamby224_sub_bins.rds")
+  
+} else {
+  
+  # Load in the bin boundaries and bins
+  hamby224_sub_bin_boundaries <- readRDS("../data/hamby224_sub_bin_boundaries.rds")
+  hamby224_sub_bins <- readRDS("../data/hamby224_sub_bins.rds")
   
 }
 ```
@@ -460,6 +532,54 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
 ```
 
 ```{r}
+# Create the test_explain combined data if the file does not already exist
+if(!file.exists("../data/hamby224_sub_test_explain.rds")) {
+  
+  # Join the data and the explanations and edit and add additional variables
+  # Create the feature bin labels using my function "bin_labeller"
+  hamby224_sub_test_explain <- hamby224_test %>%
+    mutate(case = as.character(case)) %>%
+    full_join(hamby224_sub_explain, by = "case") %>%
+    mutate(case = factor(case),
+           feature_desc = factor(feature_desc),
+           feature_bin = pmap_chr(list(feature = feature, 
+                                 feature_value = feature_value,
+                                 b_c = bin_continuous,
+                                 q_b = quantile_bins,
+                                 n_b = nbins,
+                                 u_d = use_density),
+                            .f = bin_labeller, # bin_labeller is one of my helper functions
+                            bin_data = hamby224_sub_bin_boundaries,
+                            case_info = hamby224_lime_cases)) %>%
+    mutate(feature = factor(feature),
+           nbins = factor(nbins),
+           feature_number = readr::parse_number(feature_desc),
+           strictly_less = FALSE) %>%
+    arrange(nbins)
+  
+  # Finish creating the strictly less than variable
+  hamby224_sub_test_explain$strictly_less[grep("< ", hamby224_sub_test_explain$feature_desc)] <- TRUE
+  
+  # Reorder the variables of feature_desc and feature_bin for plotting purposes
+  hamby224_sub_test_explain <- hamby224_sub_test_explain %>%
+    mutate(feature_desc = reorder(feature_desc, strictly_less),
+           feature_desc = reorder(feature_desc, feature_number),
+           feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
+    select(bin_continuous:use_density, case:feature_desc, feature_bin:strictly_less, 
+           data, prediction)
+
+  # Save the combined test and explain data
+  saveRDS(hamby224_sub_test_explain, "../data/hamby224_sub_test_explain.rds")
+   
+} else {
+  
+  # Load in the data
+  hamby224_sub_test_explain <- readRDS("../data/hamby224_sub_test_explain.rds")
+  
+}
+```
+
+```{r}
 # Create the lime comparison data if the file does not already exist
 if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
   
@@ -488,7 +608,42 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
 ```
 
 ```{r}
+# Create the lime comparison data if the file does not already exist
+if(!file.exists("../data/hamby224_sub_lime_comparisons.rds")) {
+  
+  # Create a data frame with the interesting information relating to the differe
+  # evaluations of lime and compute the difference and mean between the rf and rr
+  # model predictions
+  hamby224_sub_lime_comparisons <- hamby224_sub_test_explain %>%
+    select(-data, -prediction) %>%
+    group_by(case, bin_continuous, quantile_bins, nbins, use_density) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(bin_continuous, quantile_bins, nbins, use_density, 
+           set, case, rf_features, rfscore, model_prediction, model_r2) %>%
+    mutate(diff = rfscore - model_prediction,
+           mean = (rfscore + model_prediction) / 2)
+  
+  # Save the lime comparison data frame
+  saveRDS(hamby224_sub_lime_comparisons, "../data/hamby224_sub_lime_comparisons.rds")
+  
+} else {
+  
+  # Load in the lime comparison data frame
+  hamby224_sub_lime_comparisons <- readRDS("../data/hamby224_sub_lime_comparisons.rds")
+  
+}
+```
+
+```{r}
 hamby224_lime_results <- hamby224_lime_comparisons %>%
+  filter(!is.na(rfscore)) %>%
+  group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
+  summarise(mse = (sum(diff)^2) / length(diff),
+            ave_r2 = mean(model_r2)) %>%
+  arrange(set)
+
+hamby224_sub_lime_results <- hamby224_sub_lime_comparisons %>%
   filter(!is.na(rfscore)) %>%
   group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
   summarise(mse = (sum(diff)^2) / length(diff),
@@ -501,28 +656,29 @@ hamby224_lime_results %>%
   group_by(set) %>%
   arrange(mse) %>%
   slice(1:2)
-```
 
-```{r}
-hamby224_lime_results %>%
-  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
-         nbins_update = factor(ifelse(bin_continuous == FALSE, "0", nbins))) %>%
-  ggplot(aes(x = nbins_update, y = mse, color = bc_qb)) +
-  geom_point() + 
-  facet_grid( ~ set) + 
-  theme_bw()
-```
-
-```{r}
-hamby224_lime_results %>%
+hamby224_sub_lime_results %>%
   group_by(set) %>%
-  arrange(ave_r2) %>%
+  arrange(mse) %>%
   slice(1:2)
 ```
 
 ```{r}
 hamby224_lime_results %>%
-  ggplot(aes(x = nbins, y = ave_r2, color = quantile_bins, group = quantile_bins)) +
+  ungroup() %>%
+  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
+         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
+  ggplot(aes(x = nbins, y = mse, color = bc_qb, group = bc_qb)) +
+  geom_point() + 
+  geom_line() + 
+  facet_grid( ~ set) + 
+  theme_bw()
+
+hamby224_sub_lime_results %>%
+  ungroup() %>%
+  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
+         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
+  ggplot(aes(x = nbins, y = mse, color = bc_qb, group = bc_qb)) +
   geom_point() + 
   geom_line() + 
   facet_grid( ~ set) + 
@@ -530,6 +686,40 @@ hamby224_lime_results %>%
 ```
 
 ```{r}
+hamby224_lime_results %>%
+  group_by(set) %>%
+  arrange(desc(ave_r2)) %>%
+  slice(1:2)
+
+hamby224_sub_lime_results %>%
+  group_by(set) %>%
+  arrange(desc(ave_r2)) %>%
+  slice(1:2)
+```
+
+```{r}
+hamby224_lime_results %>%
+  ungroup() %>%
+  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
+         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
+  ggplot(aes(x = nbins, y = ave_r2, color = bc_qb, group = bc_qb)) +
+  geom_point() + 
+  geom_line() + 
+  facet_grid( ~ set) + 
+  theme_bw()
+
+hamby224_sub_lime_results %>%
+  ungroup() %>%
+  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
+         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
+  ggplot(aes(x = nbins, y = ave_r2, color = bc_qb, group = bc_qb)) +
+  geom_point() + 
+  geom_line() + 
+  facet_grid( ~ set) + 
+  theme_bw()
+```
+
+```{r eval = FALSE}
 hamby224_lime_comparisons %>%
   filter(quantile_bins == TRUE, nbins == "8", set == "Set 1") %>%
   select(rf_features, diff, -case) %>%
@@ -539,9 +729,7 @@ hamby224_lime_comparisons %>%
   geom_point() + 
   facet_wrap(~ feature, scales = "free") + 
   geom_hline(yintercept = 0, color = "blue")
-```
 
-```{r}
 hamby224_lime_comparisons %>%
   filter(quantile_bins == TRUE, nbins == "3", set == "Set 11") %>%
   select(rf_features, diff, -case) %>%
@@ -551,9 +739,7 @@ hamby224_lime_comparisons %>%
   geom_point() + 
   facet_wrap(~ feature, scales = "free") + 
   geom_hline(yintercept = 0, color = "blue")
-```
 
-```{r fig.width = 8, fig.height = 4}
 hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 1") %>%
   ggplot(aes(x = rfscore, y = model_prediction)) + 
@@ -561,9 +747,7 @@ hamby224_lime_comparisons %>%
   facet_wrap( ~ nbins) + 
   theme_bw() + 
   stat_smooth(method = "lm")
-```
 
-```{r fig.width = 8, fig.height = 4}
 hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 11") %>%
   ggplot(aes(x = rfscore, y = model_prediction)) + 
@@ -571,27 +755,21 @@ hamby224_lime_comparisons %>%
   facet_wrap( ~ nbins) + 
   theme_bw() + 
   stat_smooth(method = "lm")
-```
 
-```{r fig.width = 8, fig.height = 4}
 hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 1") %>%
   ggplot(aes(x = rfscore, y = abs(diff))) + 
   geom_point(aes(color = model_r2)) + 
   facet_wrap( ~ nbins) +
   theme_bw()
-```
 
-```{r fig.width = 8, fig.height = 4}
 hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 11") %>%
   ggplot(aes(x = rfscore, y = abs(diff))) + 
   geom_point(aes(color = model_r2)) + 
   facet_wrap( ~ nbins) +
   theme_bw()
-```
 
-```{r fig.width = 8, fig.height = 4}
 hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 1") %>%
   ggplot(aes(x = rfscore, y = diff)) + 
@@ -599,9 +777,7 @@ hamby224_lime_comparisons %>%
   facet_wrap( ~ nbins) +
   geom_hline(yintercept = 0, color = "blue") +
   theme_bw()
-```
 
-```{r fig.width = 8, fig.height = 4}
 hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 11") %>%
   ggplot(aes(x = rfscore, y = diff)) + 
@@ -623,7 +799,7 @@ hamby224_test_explain %>%
 
 ```{r}
 hamby224_test_explain %>%
-  filter(set == "Set 1", nbins == "8") %>%
+  filter(set == "Set 1", nbins == "2") %>%
   mutate(rfscore = round(rfscore, 3)) %>%
   select(case, bullet1, bullet2, land1, land2, rfscore) %>%
   distinct() %>%
@@ -639,7 +815,9 @@ hamby224_test_explain %>%
   facet_grid(bullet2 ~ bullet1, scales = "free") +
   theme_minimal() +
   scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
   labs(x = "", y = "", fill = "RF Score")
 ```
 

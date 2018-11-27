@@ -14,9 +14,10 @@ library(gridExtra)
 ## ------------------------------------------------------------------------------------
 
 # Input data
-hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
-hamby224_test_explain["use_density"][is.na(hamby224_test_explain[c("use_density")])] <- TRUE
-hamby224_bins <- readRDS("../data/hamby224_bins.rds")
+hamby224_full_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+hamby224_sub_test_explain <- readRDS("../data/hamby224_sub_test_explain.rds")
+hamby224_full_bins <- readRDS("../data/hamby224_bins.rds")
+hamby224_sub_bins <- readRDS("../data/hamby224_sub_bins.rds")
 hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
 
 ## ------------------------------------------------------------------------------------
@@ -24,7 +25,7 @@ hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
 ## ------------------------------------------------------------------------------------
 
 # Function for creating a table with the bin information relating to specified features
-bin_table <- function(features, bin_cuts = hamby224_bins, case){
+bin_table <- function(features, case, bin_cuts){
 
   # Subset the bin cuts table to the selected feature
   selected_bin_cuts <- bin_cuts[[case]] %>% 
@@ -53,12 +54,15 @@ ui <- fluidPage(
                           selectInput("set", 
                                       label = "Select a Hamby 224 dataset", 
                                       choices = c("Set 1", "Set 11")),
-                         uiOutput('bintype')),
-                   column(width = 6,
                           selectInput("density", 
                                       label = "Select density estimation method for LIME", 
                                       choices = c("Bins", "Kernel Density", "Normal Approximation")),
-                          uiOutput('nbins'))),
+                          uiOutput('nbins')),
+                   column(width = 6,
+                          selectInput("data",
+                                      label = "Select version of training data",
+                                      choices = c("Full", "Subsampled")),
+                          uiOutput('bintype'))),
           plotlyOutput("tileplot")),
 
    # Panel for feature plot
@@ -108,7 +112,7 @@ server <- function(input, output) {
     
     # Create the selection object
     selectInput("nbins", 
-                label = "Select the number of bins to use for LIME", 
+                label = "Select the number of bins for LIME", 
                 choices = options)
     
   })
@@ -120,6 +124,11 @@ server <- function(input, output) {
   output$tileplot <- renderPlotly({
     
     # Grab the chosen input options
+    if (input$data == "Full"){
+      hamby224_test_explain <- hamby224_full_test_explain
+    } else {
+      hamby224_test_explain <- hamby224_sub_test_explain
+    }
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
     if (input$density == "Kernel Density") {
       chosen_bins <- FALSE
@@ -188,7 +197,7 @@ server <- function(input, output) {
   })
   
   # Obtain the xlimits
-  xlimit1 <- max(abs(hamby224_test_explain$feature_weight), na.rm = TRUE)
+  xlimit1 <- max(abs(hamby224_full_test_explain$feature_weight), na.rm = TRUE)
   
   # Create a dataset with the connection between the curveNumbers and the bullet facets
   bullet_locations <- data.frame(curveNumber = 0:5,
@@ -199,6 +208,13 @@ server <- function(input, output) {
   output$featureplot <- renderPlot({
     
     # Grab the chosen input options
+    if (input$data == "Full"){
+      hamby224_test_explain <- hamby224_full_test_explain
+      hamby224_bins <- hamby224_full_bins
+    } else {
+      hamby224_test_explain <- hamby224_sub_test_explain
+      hamby224_bins <- hamby224_sub_bins
+    }
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
     if (input$density == "Kernel Density") {
       chosen_bins <- FALSE
@@ -308,7 +324,9 @@ server <- function(input, output) {
           pull(case)
         
         # Create a table with the bin cuts
-        table <- tableGrob(bin_table(features = selected_features$feature, case = case), 
+        table <- tableGrob(bin_table(features = selected_features$feature, 
+                                     case = case,
+                                     bin_cuts = hamby224_bins),
                            theme = ttheme_minimal(),
                            rows = NULL)
         

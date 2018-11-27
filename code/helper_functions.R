@@ -125,7 +125,7 @@ bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, c
       filter(bin_continuous == b_c, 
              quantile_bins == q_b,
              nbins == n_b, 
-             is.na(use_density)) %>%
+             use_density == u_d) %>%
       pull(case)
     
     # Subset the bin cuts table to the selected feature
