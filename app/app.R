@@ -15,6 +15,7 @@ library(gridExtra)
 
 # Input data
 hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+hamby224_test_explain["use_density"][is.na(hamby224_test_explain[c("use_density")])] <- TRUE
 hamby224_bins <- readRDS("../data/hamby224_bins.rds")
 hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
 
@@ -52,13 +53,12 @@ ui <- fluidPage(
                           selectInput("set", 
                                       label = "Select a Hamby 224 dataset", 
                                       choices = c("Set 1", "Set 11")),
-                          selectInput("bintype", 
-                                      label = "Select the bin type for LIME", 
-                                      choices = c("Quantile Bins", "Equally Spaced Bins"))),
+                         uiOutput('bintype')),
                    column(width = 6,
-                          selectInput("nbins", 
-                                      label = "Select the number of bins to use for LIME", 
-                                      choices = c(2:10)))),
+                          selectInput("density", 
+                                      label = "Select density estimation method for LIME", 
+                                      choices = c("Bins", "Kernel Density", "Normal Approximation")),
+                          uiOutput('nbins'))),
           plotlyOutput("tileplot")),
 
    # Panel for feature plot
@@ -74,6 +74,45 @@ ui <- fluidPage(
 # Create the plots to include in the app
 server <- function(input, output) {
   
+  # Specify bin type options based on density estimation type
+  output$bintype = renderUI({
+    
+    # Determine the specified density estimation method
+    type = input$density
+
+    # Specify the bin type options based on the density estimation
+    if (type == "Bins"){
+      options <- c("Quantile Bins", "Equally Spaced Bins")
+    } else {
+      options <- NA
+    }
+    
+    # Create the selection object
+    selectInput('bintype',
+                label = "Select the bin type for LIME", 
+                choices = options)
+  })
+  
+  # Specify options for number of bins based on density estimation type
+  output$nbins = renderUI({
+    
+    # Determine the specified density estimation method
+    type = input$density
+    
+    # Specify the options for number of bins
+    if (type == "Bins"){
+      options <- 2:6
+    } else {
+      options <- NA
+    }
+    
+    # Create the selection object
+    selectInput("nbins", 
+                label = "Select the number of bins to use for LIME", 
+                choices = options)
+    
+  })
+  
   # Set a reactive value for putting a mark on the heatmap after a click
   tileplot_mark <- reactiveValues(location = NULL)
   
@@ -82,12 +121,28 @@ server <- function(input, output) {
     
     # Grab the chosen input options
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
-    chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
-    chosen_nbins <- input$nbins
+    if (input$density == "Kernel Density") {
+      chosen_bins <- FALSE
+      chosen_estimator <- TRUE
+      chosen_bintype <- TRUE
+      chosen_nbins <- 4
+    } else if (input$density == "Normal Approximation") {
+      chosen_bins <- FALSE
+      chosen_estimator <- FALSE
+      chosen_bintype <- TRUE
+      chosen_nbins <- 4
+    } else {
+      chosen_bins <- TRUE
+      chosen_estimator <- TRUE
+      chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
+      chosen_nbins <- input$nbins
+    }
     
     # Create a tile plot of the random forest predictions
     plot <- hamby224_test_explain %>%
-      filter(set == chosen_set, quantile_bins == chosen_bintype, nbins == chosen_nbins) %>%
+      filter(set == chosen_set, bin_continuous == chosen_bins,
+             quantile_bins == chosen_bintype, nbins == chosen_nbins,
+             use_density == chosen_estimator) %>%
       mutate(rfscore = round(rfscore, 3)) %>%
       select(case, bullet1, bullet2, land1, land2, rfscore) %>%
       distinct() %>%
@@ -128,7 +183,7 @@ server <- function(input, output) {
       # Make the plot interactive
       ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text")
     
-      }
+    }
     
   })
   
@@ -145,8 +200,22 @@ server <- function(input, output) {
     
     # Grab the chosen input options
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
-    chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
-    chosen_nbins <- input$nbins
+    if (input$density == "Kernel Density") {
+      chosen_bins <- FALSE
+      chosen_estimator <- TRUE
+      chosen_bintype <- TRUE
+      chosen_nbins <- 4
+    } else if (input$density == "Normal Approximation") {
+      chosen_bins <- FALSE
+      chosen_estimator <- FALSE
+      chosen_bintype <- TRUE
+      chosen_nbins <- 4
+    } else {
+      chosen_bins <- TRUE
+      chosen_estimator <- TRUE
+      chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
+      chosen_nbins <- input$nbins
+    }
     
     # Obtain the click data
     click_data <- event_data("plotly_click", source = "tileplot")
@@ -167,9 +236,11 @@ server <- function(input, output) {
         
         # Create a dataset with the feature information for the selected comparison
         selected_comparison <- hamby224_test_explain %>%
-          filter(quantile_bins == chosen_bintype, 
+          filter(set == chosen_set,
+                 bin_continuous == chosen_bins,
+                 quantile_bins == chosen_bintype, 
                  nbins == chosen_nbins,
-                 set == chosen_set,
+                 use_density == chosen_estimator,
                  land1 == as.character(location$land1),
                  land2 == as.character(location$land2),
                  bullet1 == location$bullet1,

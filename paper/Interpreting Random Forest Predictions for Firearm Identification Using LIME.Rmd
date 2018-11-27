@@ -310,15 +310,18 @@ For the prediction of interest,
 
 \end{enumerate}
 
+Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
+
+
 ```{r}
 # Apply the run_lime function if the lime results file does not already exist
 if(!file.exists("../data/hamby224_lime.rds")) {
   
   # Specify the options to use with lime 
-  hamby224_lime_cases <- data.frame(bin_continuous = rep(TRUE, 18),
-                                    quantile_bins = c(rep(TRUE, 9), rep(FALSE, 9)),
-                                    nbins = rep(2:10, 2),
-                                    use_density = rep(NA, 18)) %>%
+  hamby224_lime_cases <- data.frame(bin_continuous = c(rep(TRUE, 10), rep(FALSE, 2)),
+                                    quantile_bins = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 2)),
+                                    nbins = c(rep(2:6, 2), rep(4, 2)),
+                                    use_density = c(rep(TRUE, 10), TRUE, FALSE)) %>%
   mutate(case = 1:length(nbins)) %>%
   select(case, bin_continuous, nbins, quantile_bins, use_density)
   
@@ -342,7 +345,32 @@ if(!file.exists("../data/hamby224_lime.rds")) {
               hamby224_lime_cases$quantile_bins[case],
               hamby224_lime_cases$nbins[case],
               hamby224_lime_cases$use_density[case]))
+
+  # Specify the options to use with lime with no bins
+  # hamby224_lime_no_bins_cases <- data.frame(bin_continuous = rep(FALSE, 2),
+  #                                           quantile_bins = rep(TRUE, 2),
+  #                                           nbins = rep(4, 2),
+  #                                           use_density = c(TRUE, FALSE)) %>%
+  #   mutate(case = 1:length(nbins)) %>%
+  #   select(case, bin_continuous, nbins, quantile_bins, use_density)
+  # 
+  # # Run the lime functions for the specified number of bins
+  # hamby224_no_bins_results <- pmap(.l = as.list(hamby224_lime_no_bins_cases[,-1]),
+  #          .f = run_lime, # run_lime is one of my helper functions
+  #          train = hamby173and252_train %>% select(rf_features),
+  #          test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+  #          rfmodel = as_classifier(rtrees),
+  #          label = "TRUE",
+  #          nfeatures = 3)
   
+  # # Separate the lime and explain function results
+  # hamby224_lime_no_bins <- map(hamby224_no_bins_results, function(list) list$lime)
+  # hamby224_explain_no_bins <- map_df(hamby224_no_bins_results, function(list) list$explain)
+  # 
+  # # Bind the lime dataframes with bin_continuous TRUE and FALSE
+  # hamby224_lime <- c(hamby224_lime, hamby224_lime_no_bins)
+  # hamby224_explain <- bind_rows(hamby224_explain, hamby224_explain_no_bins)
+
   # Save the lime and explain results objects and the case info
   saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
   saveRDS(hamby224_explain, "../data/hamby224_explain.rds")
@@ -356,29 +384,6 @@ if(!file.exists("../data/hamby224_lime.rds")) {
   hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
   
 }
-```
-
-```{r}
-# Specify the options to use with lime 
-hamby224_lime_no_bins_cases <- data.frame(bin_continuous = rep(FALSE, 2),
-                                      quantile_bins = rep(TRUE, 2),
-                                      nbins = rep(4, 2),
-                                      use_density = c(TRUE, FALSE)) %>%
-  mutate(case = 1:length(nbins)) %>%
-  select(case, bin_continuous, nbins, quantile_bins, use_density)
-  
-# Run the lime functions for the specified number of bins
-hamby224_no_bins_results <- pmap(.l = as.list(hamby224_lime_no_bins_cases[,-1]),
-           .f = run_lime, # run_lime is one of my helper functions
-           train = hamby173and252_train %>% select(rf_features),
-           test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
-           rfmodel = as_classifier(rtrees),
-           label = "TRUE",
-           nfeatures = 3)
-
-# Separate the lime and explain function results
-hamby224_lime_no_bins <- map(hamby224_no_bins_results, function(list) list$lime)
-hamby224_explain_no_bins <- map_df(hamby224_no_bins_results, function(list) list$explain)
 ```
 
 ```{r}
@@ -433,8 +438,7 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     arrange(nbins)
   
   # Finish creating the strictly less than variable
-  hamby224_test_explain$strictly_less[grep("< ", 
-                                           hamby224_test_explain$feature_desc)] <- TRUE
+  hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
   
   # Reorder the variables of feature_desc and feature_bin for plotting purposes
   hamby224_test_explain <- hamby224_test_explain %>%
@@ -501,9 +505,10 @@ hamby224_lime_results %>%
 
 ```{r}
 hamby224_lime_results %>%
-  ggplot(aes(x = nbins, y = mse, color = quantile_bins, group = quantile_bins)) +
+  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
+         nbins_update = factor(ifelse(bin_continuous == FALSE, "0", nbins))) %>%
+  ggplot(aes(x = nbins_update, y = mse, color = bc_qb)) +
   geom_point() + 
-  geom_line() + 
   facet_grid( ~ set) + 
   theme_bw()
 ```
@@ -648,6 +653,10 @@ Ideas for improvement of LIME:
     inside-outside binning - it would be better to use a cumulative approach
   - consider interactions in the ridge regression model
   - learn lambda in the ridge regression
+  - could add a penalty for the number of parameters in the model (or the number of bins)
+  - could start with a fine grid of bins and then go backwards and fit the models on this sampled data
+  - could try a type of ANOVA test if we can have nested models or if we can assume nesting
+  - could compute something like an R^2_adj
 
 # References
 

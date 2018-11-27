@@ -65,32 +65,43 @@ write_bins <- function(bin_data){
 
 create_bin_data <- function(lime_object){
   
-  # Determine the nubmer of bins
-  nbins <- length(lime_object$bin_cuts[[1]]) - 1
+  # If bin_continuous = TRUE, create a list with data frames on bin information
+  if (lime_object$bin_continuous == TRUE){
+    
+    # Determine the nubmer of bins
+    nbins <- length(lime_object$bin_cuts[[1]]) - 1
+    
+    # Create a dataframe of bin boundaries
+    bin_boundaries <- data.frame(Feature = rf_features,
+                                 Lower = c(0, -1, rep(0, 7)),
+                                 matrix(unlist(lime_object$bin_cuts), nrow = 9, 
+                                        byrow = TRUE)[,2:nbins],
+                                 Upper = c(1, 1, rep(NA, 7)))
+    
+    # Use my function "write_bins" to create a dataframe with the bins
+    bins <- data.frame(t(apply(bin_boundaries, 1, write_bins)))
+    
+    # Assign appropriate names to the bin columns
+    if (nbins == 2){
+      names(bins) <- c("Feature", "Lower Bin", "Upper Bin")
+    } else if (nbins == 3) {
+      names(bins) <- c("Feature", "Lower Bin", "Middle Bin", "Upper Bin")
+    } else {
+      names(bins) <- c("Feature", 
+                       "Lower Bin",
+                       sapply(1:(nbins - 2), function(bin) sprintf("Middle Bin %.0f", bin)),
+                       "Upper Bin")
+    }
+    
+    return(list(boundaries = bin_boundaries, bins = bins))
   
-  # Create a dataframe of bin boundaries
-  bin_boundaries <- data.frame(Feature = rf_features,
-                               Lower = c(0, -1, rep(0, 7)),
-                               matrix(unlist(lime_object$bin_cuts), nrow = 9, 
-                                      byrow = TRUE)[,2:nbins],
-                               Upper = c(1, 1, rep(NA, 7)))
-  
-  # Use my function "write_bins" to create a dataframe with the bins
-  bins <- data.frame(t(apply(bin_boundaries, 1, write_bins)))
-  
-  # Assign appropriate names to the bin columns
-  if (nbins == 2){
-    names(bins) <- c("Feature", "Lower Bin", "Upper Bin")
-  } else if (nbins == 3) {
-    names(bins) <- c("Feature", "Lower Bin", "Middle Bin", "Upper Bin")
   } else {
-    names(bins) <- c("Feature", 
-                     "Lower Bin",
-                     sapply(1:(nbins - 2), function(bin) sprintf("Middle Bin %.0f", bin)),
-                     "Upper Bin")
+    
+    # If bin_continuous = FALSE, return the following message
+    return(list(boundaries = paste("No bins available since bin_continuous = FALSE was selected."),
+                bins = paste("No bins available since bin_continuous = FALSE was selected.")))
+    
   }
-  
-  return(list(boundaries = bin_boundaries, bins = bins))
   
 }
 
@@ -101,7 +112,7 @@ create_bin_data <- function(lime_object){
 # Function to use for creating bin labels in the test_explain dataset
 bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, case_info){
   
-  if (is.na(feature)) {
+  if (is.na(feature) | b_c == FALSE) {
     
     # Set feature_bin to NA if feature is NA
     feature_bin <- NA

@@ -4,33 +4,25 @@ TO DO LIST
 -------------
 
 Questions:
-- CSP?
 - Is it okay to spend the summer focuing on research?
-- Is one implementation of each input okay, or should I run more and average the results? 
+- Is it possible for me to get access to the csafe server?
+- How to handle the warnings that appear in between the switches?
 
 Thoughts:
 
 Completed:
-- look at "residual" plots
-- fixed the code to handle a dataset with different input values
-- first steps to try to improve LIME:
-  - try more bins
-  - try changing quantile_bins to FALSE
-- run lime implementations
-- create a table comparing the MSEs
-- plot the MSEs from the lime implementations
-- switch app to the best option
-- need to fix heat map in app - something is wrong
-- added LIME input options in the app
+- read paper on rfviz
+- included setting bin_continuous to FALSE with use_density as both TRUE and FALSE
+- updated app to include option for bin_continuous
 
 Current:
-- figure out how LIME is using bins when bin_continuous is set to TRUE (it still creates the bins)
+- fix problem with code
+- rerun code with only 2 to 6 bins
+- check on sampling variability (run each lime implementation several times)
+- try subsampling to deal with the binning issue
 - color bin text in the table
 - read through LIME papers again
-- next steps to try to improve LIME: 
-  - try setting bin_continuous to FALSE with use_density as both TRUE and FALSE
-  - try subsampling to deal with the binning issue
-  - try out logistic regression idea for bins (write own bin list to put in explain)
+- try out logistic regression idea for bins (write own bin list to put in explain)
 - paper
   - ask Ganesh for his explanations of the features
   - need to clean up the section on the description of LIME (better notation and explanation)
