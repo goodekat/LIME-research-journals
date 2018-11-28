@@ -11,7 +11,7 @@ run_lime <- function(bin_continuous, quantile_bins, nbins, use_density,
                      seed = TRUE){
   
   # Set a seed if requested
-  if (seed == TRUE) set.seed(84902)
+  if (seed == TRUE) set.seed(20181128)
   
   # Run the lime function
   lime <- lime(x = train, model = rfmodel, bin_continuous = bin_continuous, 

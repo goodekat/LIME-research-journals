@@ -52,7 +52,7 @@ hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 if (!file.exists("../data/hamby173and252_train_sub.csv")) {
   
   # Create the data (with a set seed)
-  set.seed(1837592)
+  set.seed(20181128)
   hamby173and252_train_sub <- hamby173and252_train %>%
     filter(samesource == FALSE) %>%
     slice(sample(1:length(hamby173and252_train$barrel1), 4500, replace = FALSE)) %>%
