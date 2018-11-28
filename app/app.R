@@ -14,11 +14,10 @@ library(gridExtra)
 ## ------------------------------------------------------------------------------------
 
 # Input data
-hamby224_full_test_explain <- readRDS("../data/hamby224_test_explain.rds")
-hamby224_sub_test_explain <- readRDS("../data/hamby224_sub_test_explain.rds")
-hamby224_full_bins <- readRDS("../data/hamby224_bins.rds")
-hamby224_sub_bins <- readRDS("../data/hamby224_sub_bins.rds")
-hamby224_lime_cases <- readRDS("../data/hamby224_lime_cases.rds")
+hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
+hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+hamby224_bins <- readRDS("../data/hamby224_bins.rds")
+hamby224_lime_inputs <- readRDS("../data/hamby224_lime_inputs.rds")
 
 ## ------------------------------------------------------------------------------------
 ## Functions
@@ -48,26 +47,33 @@ ui <- fluidPage(
    # Application title
    titlePanel("LIME Explanations for Bullet Matching"),
   
-   # Panel for selections and tileplot
-   column(width = 6,
-          fluidRow(column(width = 6,
-                          selectInput("set", 
-                                      label = "Select a Hamby 224 dataset", 
-                                      choices = c("Set 1", "Set 11")),
-                          selectInput("density", 
-                                      label = "Select density estimation method for LIME", 
-                                      choices = c("Bins", "Kernel Density", "Normal Approximation")),
-                          uiOutput('nbins')),
-                   column(width = 6,
-                          selectInput("data",
-                                      label = "Select version of training data",
-                                      choices = c("Full", "Subsampled")),
-                          uiOutput('bintype'))),
-          plotlyOutput("tileplot")),
-
-   # Panel for feature plot
-   column(width = 6, 
-          fluidRow(plotOutput("featureplot")))
+   # Row for input options
+   fluidRow(title = "LIME Input Options",
+            column(width = 3,
+                   selectInput("set", 
+                               label = "Select a Hamby 224 dataset", 
+                               choices = c("Set 1", "Set 11"))),
+            column(width = 3, 
+                   selectInput("data",
+                               label = "Select version of training data",
+                               choices = c("Full", "Subsampled"))),
+            column(width = 3,
+                   selectInput("density", 
+                               label = "Select density estimation method for LIME", 
+                               choices = c("Bins", "Kernel Density", "Normal Approximation"))),
+            column(width = 3,
+                   uiOutput('bintype'),
+                   uiOutput('nbins'))),
+   
+   # Row for heatmap and lime feature plot
+   fluidRow(column(width = 6,
+                   plotlyOutput("tileplot")),
+            column(width = 6, 
+                   plotOutput("featureplot")))
+   
+   # Row for information about the LIME bins
+   # fluidRow(column(width = 6,
+   #                 plotOutput("distributionplot")))
    
 )
 
@@ -124,11 +130,7 @@ server <- function(input, output) {
   output$tileplot <- renderPlotly({
     
     # Grab the chosen input options
-    if (input$data == "Full"){
-      hamby224_test_explain <- hamby224_full_test_explain
-    } else {
-      hamby224_test_explain <- hamby224_sub_test_explain
-    }
+    chosen_data <- input$data
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
     if (input$density == "Kernel Density") {
       chosen_bins <- FALSE
@@ -149,8 +151,8 @@ server <- function(input, output) {
     
     # Create a tile plot of the random forest predictions
     plot <- hamby224_test_explain %>%
-      filter(set == chosen_set, bin_continuous == chosen_bins,
-             quantile_bins == chosen_bintype, nbins == chosen_nbins,
+      filter(training_data == chosen_data, set == chosen_set, bin_continuous == chosen_bins,
+             quantile_bins == chosen_bintype, nbins == chosen_nbins, 
              use_density == chosen_estimator) %>%
       mutate(rfscore = round(rfscore, 3)) %>%
       select(case, bullet1, bullet2, land1, land2, rfscore) %>%
@@ -196,25 +198,18 @@ server <- function(input, output) {
     
   })
   
-  # Obtain the xlimits
-  xlimit1 <- max(abs(hamby224_full_test_explain$feature_weight), na.rm = TRUE)
-  
   # Create a dataset with the connection between the curveNumbers and the bullet facets
   bullet_locations <- data.frame(curveNumber = 0:5,
                                  bullet1 = c("Known 1", "Known 1", "Known 2", "Known 1", "Known 2", "Questioned"),
                                  bullet2 = c("Known 1", "Known 2", "Known 2", "Questioned", "Questioned", "Questioned"))
   
+  xlimit1 <- max(abs(hamby224_test_explain$feature_weight), na.rm = TRUE)
+  
   # Create my own feature plot
   output$featureplot <- renderPlot({
     
     # Grab the chosen input options
-    if (input$data == "Full"){
-      hamby224_test_explain <- hamby224_full_test_explain
-      hamby224_bins <- hamby224_full_bins
-    } else {
-      hamby224_test_explain <- hamby224_sub_test_explain
-      hamby224_bins <- hamby224_sub_bins
-    }
+    chosen_data <- input$data
     chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
     if (input$density == "Kernel Density") {
       chosen_bins <- FALSE
@@ -232,6 +227,12 @@ server <- function(input, output) {
       chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
       chosen_nbins <- input$nbins
     }
+    
+    # Obtain the xlimits based on the chosen data
+    # xlimit1 <- hamby224_test_explain %>%
+    #   filter(training_data == chosen_data) %>%
+    #   summarize(xlimit = max(abs(feature_weight), na.rm = TRUE)) %>%
+    #   pull(xlimit)
     
     # Obtain the click data
     click_data <- event_data("plotly_click", source = "tileplot")
@@ -252,9 +253,10 @@ server <- function(input, output) {
         
         # Create a dataset with the feature information for the selected comparison
         selected_comparison <- hamby224_test_explain %>%
-          filter(set == chosen_set,
+          filter(training_data == chosen_data,
+                 set == chosen_set,
                  bin_continuous == chosen_bins,
-                 quantile_bins == chosen_bintype, 
+                 quantile_bins == chosen_bintype,
                  nbins == chosen_nbins,
                  use_density == chosen_estimator,
                  land1 == as.character(location$land1),
@@ -319,8 +321,9 @@ server <- function(input, output) {
           select(feature, feature_weight, evidence)
         
         # Determine the case based on the number of bins
-        case <- hamby224_lime_cases %>%
-          filter(quantile_bins == chosen_bintype, nbins == chosen_nbins) %>%
+        case <- hamby224_lime_inputs %>%
+          filter(data_name == chosen_data, quantile_bins == chosen_bintype, 
+                 nbins == chosen_nbins) %>%
           pull(case)
         
         # Create a table with the bin cuts
@@ -349,6 +352,23 @@ server <- function(input, output) {
     }
     
   }, height = 700, width = 600)
+  
+  # Create a plot of the feature distributions from the training data
+  # output$distributionplot <- renderPlot({
+  #   
+  #   # Create the plot
+  #   hamby173and252_train %>% 
+  #     select(rf_features, samesource) %>%
+  #     gather(key = feature, value = value, 1:9) %>%
+  #     select(feature, value, samesource) %>%
+  #     ggplot(aes(x = value, fill = samesource)) + 
+  #     geom_histogram(position = "fill", bins = 30) + 
+  #     facet_wrap( ~ feature, scales = "free") +
+  #     labs(x = "Variable Value", y = "Proportion", fill = "Same Source?") +
+  #     theme_bw() +
+  #     theme(legend.position = "bottom")
+  #   
+  # })
     
 }
 

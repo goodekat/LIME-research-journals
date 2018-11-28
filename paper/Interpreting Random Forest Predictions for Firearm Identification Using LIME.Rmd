@@ -48,10 +48,25 @@ hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 ```
 
 ```{r}
-hamby173and252_train_sub <- hamby173and252_train %>%
-  filter(samesource == FALSE) %>%
-  slice(sample(1:length(hamby173and252_train$barrel1), 4500, replace = FALSE)) %>%
-  bind_rows(hamby173and252_train %>% filter(samesource == TRUE))
+# Create a subsampled version of the training data
+if (!file.exists("../data/hamby173and252_train_sub.csv")) {
+  
+  # Create the data (with a set seed)
+  set.seed(1837592)
+  hamby173and252_train_sub <- hamby173and252_train %>%
+    filter(samesource == FALSE) %>%
+    slice(sample(1:length(hamby173and252_train$barrel1), 4500, replace = FALSE)) %>%
+    bind_rows(hamby173and252_train %>% filter(samesource == TRUE))
+  
+  # Save the subsampled data
+  write.csv(hamby173and252_train_sub, "../data/hamby173and252_train_sub.csv", row.names = FALSE)
+  
+} else {
+
+  # Load in the subsampled training data
+  hamby173and252_train_sub <- read.csv("../data/hamby173and252_train_sub.csv")
+    
+}
 ```
 
 ```{r}
@@ -344,90 +359,76 @@ For the prediction of interest,
 Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
 
 ```{r}
-# Specify the options to use with lime 
-hamby224_lime_cases <- data.frame(bin_continuous = c(rep(TRUE, 10), rep(FALSE, 2)),
-                                    quantile_bins = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 2)),
-                                    nbins = c(rep(2:6, 2), rep(4, 2)),
-                                    use_density = c(rep(TRUE, 10), TRUE, FALSE)) %>%
-  mutate(case = 1:length(nbins)) %>%
-  select(case, bin_continuous, nbins, quantile_bins, use_density)
-
-# Save the cases
-saveRDS(hamby224_lime_cases, "../data/hamby224_lime_cases.rds")
-```
-
-```{r}
 # Apply the run_lime function if the lime results file does not already exist
-if(!file.exists("../data/hamby224_lime.rds")) {
+if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   
-  # Run the lime functions for the specified number of bins
-  hamby224_all_results <- pmap(.l = as.list(hamby224_lime_cases[,-1]),
+  # Specify the options to use with lime
+  hamby224_lime_inputs <- data.frame(data_name = c(rep("Full", 12), rep("Subsampled", 12)),
+                                     bin_continuous = rep(c(rep(TRUE, 10), rep(FALSE, 2)), 2),
+                                     quantile_bins = rep(c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 2)), 2),
+                                     nbins = rep(c(rep(2:6, 2), rep(4, 2)), 2),
+                                     use_density = rep(c(rep(TRUE, 10), TRUE, FALSE)), 2) %>%
+    mutate(case = 1:length(data_name)) %>%
+    select(case, data_name, bin_continuous, nbins, quantile_bins, use_density)
+
+  # Apply lime to the full training data with the specified input options
+  hamby224_lime_explain_full <- pmap(.l = as.list(hamby224_lime_inputs %>% 
+                                                    filter(data_name == "Full") %>%
+                                                    select(-case, -data_name)),
              .f = run_lime, # run_lime is one of my helper functions
+             data_name = "Full",
              train = hamby173and252_train %>% select(rf_features),
              test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
              rfmodel = as_classifier(rtrees),
              label = "TRUE",
-             nfeatures = 3)
+             nfeatures = 3,
+             seed = TRUE)
   
-  # Separate the lime and explain function results
-  hamby224_lime <- map(hamby224_all_results, function(list) list$lime)
-  hamby224_explain <- map_df(hamby224_all_results, function(list) list$explain)
+  # Separate the lime and explain function results from the full data
+  hamby224_lime_full <- map(hamby224_lime_explain_full, function(list) list$lime)
+  hamby224_explain_full <- map_df(hamby224_lime_explain_full, function(list) list$explain)
+
+  # Apply lime to the subsampled training data with the specified input options
+  hamby224_lime_explain_sub <- pmap(.l = as.list(hamby224_lime_inputs %>% 
+                                               filter(data_name == "Subsampled") %>%
+                                               select(-case, -data_name)),
+             .f = run_lime, # run_lime is one of my helper functions
+             data_name = "Subsampled",
+             train = hamby173and252_train_sub %>% select(rf_features),
+             test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+             rfmodel = as_classifier(rtrees),
+             label = "TRUE",
+             nfeatures = 3,
+             seed = TRUE)
+  
+  # Separate the lime and explain function results from the subsampled data
+  hamby224_lime_sub <- map(hamby224_lime_explain_sub, function(list) list$lime)
+  hamby224_explain_sub <- map_df(hamby224_lime_explain_sub, function(list) list$explain)
+  
+  # Join the lime results from the full and subsampled training data
+  hamby224_lime <- c(hamby224_lime_full, hamby224_lime_sub)
+  hamby224_explain <- bind_rows(hamby224_explain_full, hamby224_explain_sub)
   
   # Name the items in the lime list
-  names(hamby224_lime) <- map_chr(1:dim(hamby224_lime_cases)[1], function(case) 
-      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s",
-              hamby224_lime_cases$bin_continuous[case],
-              hamby224_lime_cases$quantile_bins[case],
-              hamby224_lime_cases$nbins[case],
-              hamby224_lime_cases$use_density[case]))
+  names(hamby224_lime) <- map_chr(1:dim(hamby224_lime_inputs)[1], function(case) 
+      sprintf("case: data = %s, bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s",
+              hamby224_lime_inputs$data_name[case],
+              hamby224_lime_inputs$bin_continuous[case],
+              hamby224_lime_inputs$quantile_bins[case],
+              hamby224_lime_inputs$nbins[case],
+              hamby224_lime_inputs$use_density[case]))
 
-  # Save the lime and explain results objects and the case info
+  # Save the lime objects
+  saveRDS(hamby224_lime_inputs, "../data/hamby224_lime_inputs.rds")
   saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
   saveRDS(hamby224_explain, "../data/hamby224_explain.rds")
   
 } else {
   
-  # Load in the lime results object
+  # Load in the lime objects
+  hamby224_lime_inputs <- readRDS("../data/hamby224_lime_inputs.rds")
   hamby224_lime <- readRDS("../data/hamby224_lime.rds")
   hamby224_explain <- readRDS("../data/hamby224_explain.rds")
-  
-}
-```
-
-```{r}
-# Apply the run_lime function if the lime results file does not already exist
-if(!file.exists("../data/hamby224_sub_lime.rds")) {
-  
-  # Run the lime functions for the specified number of bins
-  hamby224_sub_all_results <- pmap(.l = as.list(hamby224_lime_cases[,-1]),
-             .f = run_lime, # run_lime is one of my helper functions
-             train = hamby173and252_train_sub %>% select(rf_features),
-             test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
-             rfmodel = as_classifier(rtrees),
-             label = "TRUE",
-             nfeatures = 3)
-  
-  # Separate the lime and explain function results
-  hamby224_sub_lime <- map(hamby224_sub_all_results, function(list) list$lime)
-  hamby224_sub_explain <- map_df(hamby224_sub_all_results, function(list) list$explain)
-  
-  # Name the items in the lime list
-  names(hamby224_sub_lime) <- map_chr(1:dim(hamby224_lime_cases)[1], function(case) 
-      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s",
-              hamby224_lime_cases$bin_continuous[case],
-              hamby224_lime_cases$quantile_bins[case],
-              hamby224_lime_cases$nbins[case],
-              hamby224_lime_cases$use_density[case]))
-
-  # Save the lime and explain results objects and the case info
-  saveRDS(hamby224_sub_lime, "../data/hamby224_sub_lime.rds")
-  saveRDS(hamby224_sub_explain, "../data/hamby224_sub_explain.rds")
-  
-} else {
-  
-  # Load in the lime results object
-  hamby224_sub_lime <- readRDS("../data/hamby224_sub_lime.rds")
-  hamby224_sub_explain <- readRDS("../data/hamby224_sub_explain.rds")
   
 }
 ```
@@ -457,32 +458,6 @@ if (!file.exists("../data/hamby224_bins.csv")) {
 }
 ```
 
-
-```{r}
-# Create a dataframe with the bins
-if (!file.exists("../data/hamby224_sub_bins.csv")) {
-  
-  # Create a list a dataframes with the bin boundaries and bins 
-  # for the different evaluations of the lime functions
-  hamby224_sub_bin_list <- map(hamby224_sub_lime, create_bin_data)
-  
-  # Save the bin boundaries and the bins as separate dataframes
-  hamby224_sub_bin_boundaries <- map(hamby224_sub_bin_list, function(m) m$boundaries)
-  hamby224_sub_bins <- map(hamby224_sub_bin_list, function(m) m$bins)
-  
-  # Save the bin boundaries and bins
-  saveRDS(hamby224_sub_bin_boundaries, "../data/hamby224_sub_bin_boundaries.rds")
-  saveRDS(hamby224_sub_bins, "../data/hamby224_sub_bins.rds")
-  
-} else {
-  
-  # Load in the bin boundaries and bins
-  hamby224_sub_bin_boundaries <- readRDS("../data/hamby224_sub_bin_boundaries.rds")
-  hamby224_sub_bins <- readRDS("../data/hamby224_sub_bins.rds")
-  
-}
-```
-
 ```{r}
 # Create the test_explain combined data if the file does not already exist
 if(!file.exists("../data/hamby224_test_explain.rds")) {
@@ -495,14 +470,15 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     mutate(case = factor(case),
            feature_desc = factor(feature_desc),
            feature_bin = pmap_chr(list(feature = feature, 
-                                 feature_value = feature_value,
-                                 b_c = bin_continuous,
-                                 q_b = quantile_bins,
-                                 n_b = nbins,
-                                 u_d = use_density),
+                                  feature_value = feature_value,
+                                  d_n = training_data, 
+                                  b_c = bin_continuous,
+                                  q_b = quantile_bins,
+                                  n_b = nbins,
+                                  u_d = use_density),
                             .f = bin_labeller, # bin_labeller is one of my helper functions
                             bin_data = hamby224_bin_boundaries,
-                            case_info = hamby224_lime_cases)) %>%
+                            case_info = hamby224_lime_inputs)) %>%
     mutate(feature = factor(feature),
            nbins = factor(nbins),
            feature_number = readr::parse_number(feature_desc),
@@ -517,7 +493,7 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     mutate(feature_desc = reorder(feature_desc, strictly_less),
            feature_desc = reorder(feature_desc, feature_number),
            feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
-    select(bin_continuous:use_density, case:feature_desc, feature_bin:strictly_less, 
+    select(training_data:use_density, case:feature_desc, feature_bin:strictly_less, 
            data, prediction)
 
   # Save the combined test and explain data
@@ -532,54 +508,6 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
 ```
 
 ```{r}
-# Create the test_explain combined data if the file does not already exist
-if(!file.exists("../data/hamby224_sub_test_explain.rds")) {
-  
-  # Join the data and the explanations and edit and add additional variables
-  # Create the feature bin labels using my function "bin_labeller"
-  hamby224_sub_test_explain <- hamby224_test %>%
-    mutate(case = as.character(case)) %>%
-    full_join(hamby224_sub_explain, by = "case") %>%
-    mutate(case = factor(case),
-           feature_desc = factor(feature_desc),
-           feature_bin = pmap_chr(list(feature = feature, 
-                                 feature_value = feature_value,
-                                 b_c = bin_continuous,
-                                 q_b = quantile_bins,
-                                 n_b = nbins,
-                                 u_d = use_density),
-                            .f = bin_labeller, # bin_labeller is one of my helper functions
-                            bin_data = hamby224_sub_bin_boundaries,
-                            case_info = hamby224_lime_cases)) %>%
-    mutate(feature = factor(feature),
-           nbins = factor(nbins),
-           feature_number = readr::parse_number(feature_desc),
-           strictly_less = FALSE) %>%
-    arrange(nbins)
-  
-  # Finish creating the strictly less than variable
-  hamby224_sub_test_explain$strictly_less[grep("< ", hamby224_sub_test_explain$feature_desc)] <- TRUE
-  
-  # Reorder the variables of feature_desc and feature_bin for plotting purposes
-  hamby224_sub_test_explain <- hamby224_sub_test_explain %>%
-    mutate(feature_desc = reorder(feature_desc, strictly_less),
-           feature_desc = reorder(feature_desc, feature_number),
-           feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
-    select(bin_continuous:use_density, case:feature_desc, feature_bin:strictly_less, 
-           data, prediction)
-
-  # Save the combined test and explain data
-  saveRDS(hamby224_sub_test_explain, "../data/hamby224_sub_test_explain.rds")
-   
-} else {
-  
-  # Load in the data
-  hamby224_sub_test_explain <- readRDS("../data/hamby224_sub_test_explain.rds")
-  
-}
-```
-
-```{r}
 # Create the lime comparison data if the file does not already exist
 if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
   
@@ -588,10 +516,10 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
   # model predictions
   hamby224_lime_comparisons <- hamby224_test_explain %>%
     select(-data, -prediction) %>%
-    group_by(case, bin_continuous, quantile_bins, nbins, use_density) %>%
+    group_by(training_data, case, bin_continuous, quantile_bins, nbins, use_density) %>%
     slice(1) %>%
     ungroup() %>%
-    select(bin_continuous, quantile_bins, nbins, use_density, 
+    select(training_data, bin_continuous, quantile_bins, nbins, use_density, 
            set, case, rf_features, rfscore, model_prediction, model_r2) %>%
     mutate(diff = rfscore - model_prediction,
            mean = (rfscore + model_prediction) / 2)
@@ -608,57 +536,17 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
 ```
 
 ```{r}
-# Create the lime comparison data if the file does not already exist
-if(!file.exists("../data/hamby224_sub_lime_comparisons.rds")) {
-  
-  # Create a data frame with the interesting information relating to the differe
-  # evaluations of lime and compute the difference and mean between the rf and rr
-  # model predictions
-  hamby224_sub_lime_comparisons <- hamby224_sub_test_explain %>%
-    select(-data, -prediction) %>%
-    group_by(case, bin_continuous, quantile_bins, nbins, use_density) %>%
-    slice(1) %>%
-    ungroup() %>%
-    select(bin_continuous, quantile_bins, nbins, use_density, 
-           set, case, rf_features, rfscore, model_prediction, model_r2) %>%
-    mutate(diff = rfscore - model_prediction,
-           mean = (rfscore + model_prediction) / 2)
-  
-  # Save the lime comparison data frame
-  saveRDS(hamby224_sub_lime_comparisons, "../data/hamby224_sub_lime_comparisons.rds")
-  
-} else {
-  
-  # Load in the lime comparison data frame
-  hamby224_sub_lime_comparisons <- readRDS("../data/hamby224_sub_lime_comparisons.rds")
-  
-}
-```
-
-```{r}
 hamby224_lime_results <- hamby224_lime_comparisons %>%
   filter(!is.na(rfscore)) %>%
-  group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
+  group_by(training_data, bin_continuous, quantile_bins, nbins, use_density, set) %>%
   summarise(mse = (sum(diff)^2) / length(diff),
             ave_r2 = mean(model_r2)) %>%
-  arrange(set)
-
-hamby224_sub_lime_results <- hamby224_sub_lime_comparisons %>%
-  filter(!is.na(rfscore)) %>%
-  group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
-  summarise(mse = (sum(diff)^2) / length(diff),
-            ave_r2 = mean(model_r2)) %>%
-  arrange(set)
+  arrange(training_data, set)
 ```
 
 ```{r}
 hamby224_lime_results %>%
-  group_by(set) %>%
-  arrange(mse) %>%
-  slice(1:2)
-
-hamby224_sub_lime_results %>%
-  group_by(set) %>%
+  group_by(training_data, set) %>%
   arrange(mse) %>%
   slice(1:2)
 ```
@@ -671,28 +559,13 @@ hamby224_lime_results %>%
   ggplot(aes(x = nbins, y = mse, color = bc_qb, group = bc_qb)) +
   geom_point() + 
   geom_line() + 
-  facet_grid( ~ set) + 
-  theme_bw()
-
-hamby224_sub_lime_results %>%
-  ungroup() %>%
-  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
-         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
-  ggplot(aes(x = nbins, y = mse, color = bc_qb, group = bc_qb)) +
-  geom_point() + 
-  geom_line() + 
-  facet_grid( ~ set) + 
+  facet_grid(training_data ~ set) + 
   theme_bw()
 ```
 
 ```{r}
 hamby224_lime_results %>%
-  group_by(set) %>%
-  arrange(desc(ave_r2)) %>%
-  slice(1:2)
-
-hamby224_sub_lime_results %>%
-  group_by(set) %>%
+  group_by(training_data, set) %>%
   arrange(desc(ave_r2)) %>%
   slice(1:2)
 ```
@@ -705,17 +578,7 @@ hamby224_lime_results %>%
   ggplot(aes(x = nbins, y = ave_r2, color = bc_qb, group = bc_qb)) +
   geom_point() + 
   geom_line() + 
-  facet_grid( ~ set) + 
-  theme_bw()
-
-hamby224_sub_lime_results %>%
-  ungroup() %>%
-  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
-         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
-  ggplot(aes(x = nbins, y = ave_r2, color = bc_qb, group = bc_qb)) +
-  geom_point() + 
-  geom_line() + 
-  facet_grid( ~ set) + 
+  facet_grid(training_data ~ set) + 
   theme_bw()
 ```
 
@@ -791,15 +654,16 @@ hamby224_lime_comparisons %>%
 
 ```{r}
 hamby224_test_explain %>%
+  filter(training_data == "Full", set == "Set 1", nbins == "2") %>%
   ggplot(aes(x = feature_desc)) + 
   geom_bar() +
   coord_flip() + 
-  facet_grid(set ~ nbins)
+  facet_grid(set ~ .)
 ```
 
 ```{r}
 hamby224_test_explain %>%
-  filter(set == "Set 1", nbins == "2") %>%
+  filter(training_data == "Full", set == "Set 1", nbins == "2") %>%
   mutate(rfscore = round(rfscore, 3)) %>%
   select(case, bullet1, bullet2, land1, land2, rfscore) %>%
   distinct() %>%

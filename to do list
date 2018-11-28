@@ -7,6 +7,8 @@ Questions:
 - Is it okay to spend the summer focuing on research?
 - Is it possible for me to get access to the csafe server?
 - How to handle the warnings that appear in between the switches?
+- Is subsampling okay (since the model was not trained on the subsampled data)?
+- Do you know why my R markdown viewing is not working?
 
 Thoughts:
 
@@ -16,11 +18,14 @@ Completed:
 - updated app to include option for bin_continuous
 - rerun code with only 2 to 6 bins
 - try subsampling to deal with the binning issue
+- add subsampling to app
+- join the full and subsampled results
 
 Current:
-- add subsampling to app
-- fix problem with app
+- adjust app to use both full and subsampled
+- fix problem with app due to bins with the non-bin cases
 - check on sampling variability (run each lime implementation several times)
+- add distribution visualizations to the app with the chosen bins
 - color bin text in the table
 - read through LIME papers again
 - try out logistic regression idea for bins (write own bin list to put in explain)
