@@ -4,22 +4,11 @@ TO DO LIST
 -------------
 
 Questions:
-- Is it okay to spend the summer focuing on research?
-- Is it possible for me to get access to the csafe server?
 - How to handle the warnings that appear in between the switches?
-- Is subsampling okay (since the model was not trained on the subsampled data)?
-- Do you know why my R markdown viewing is not working?
 
 Thoughts:
 
 Completed:
-- read paper on rfviz
-- included setting bin_continuous to FALSE with use_density as both TRUE and FALSE
-- updated app to include option for bin_continuous
-- rerun code with only 2 to 6 bins
-- try subsampling to deal with the binning issue
-- add subsampling to app
-- join the full and subsampled results
 
 Current:
 - adjust app to use both full and subsampled
