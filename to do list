@@ -4,13 +4,18 @@ TO DO LIST
 -------------
 
 Questions:
-- How to handle the warnings that appear in between the switches?
 
 Thoughts:
 
 Completed:
 
 Current:
+- think about the fact that we want to choose an option that leads to consistent results
+- choose a model that is good - not necessarily the best
+- look into "future" and "furrr" packages that are good for improving computation speed
+- deal with the warnings that appear in between the switches in app
+  - put in a check for a dataset then proceed or do nothing
+- look into a conditional panel in Shiny for simple vs complicated app
 - adjust app to use both full and subsampled
 - fix problem with app due to bins with the non-bin cases
 - check on sampling variability (run each lime implementation several times)
