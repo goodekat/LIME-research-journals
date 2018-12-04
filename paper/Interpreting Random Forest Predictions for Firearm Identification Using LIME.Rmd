@@ -586,7 +586,7 @@ hamby224_lime_comparisons %>%
 
 ## Assessing the Variability of the LIME Results
 
-```{r eval = FALSE}
+```{r}
 # Perform the sensitivity analysis if not already saved
 if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
   
@@ -595,7 +595,7 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
   noptions = 12
   
   # Specify the inputs for the sensitivity analysis
-  sensitivity_inputs <- data.frame(bin_continuous = c(rep(TRUE, nreps * 10), 
+  hamby224_sensitivity_inputs <- data.frame(bin_continuous = c(rep(TRUE, nreps * 10), 
                                                       rep(FALSE, nreps * 2)),
                                    quantile_bins = c(rep(c(TRUE, FALSE), each = nreps * 5), 
                                                      rep(TRUE, nreps * 2)),
@@ -610,7 +610,8 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
   plan(multiprocess)
 
   # Run lime for the sensitivity analysis
-  sensitivity_outputs <- future_pmap(.l = as.list(sensitivity_inputs %>% select(-case)),
+  hamby224_sensitivity_outputs <- future_pmap(.l = as.list(hamby224_sensitivity_inputs %>%
+                                                             select(-case)),
              .f = run_lime, # run_lime is one of my helper functions
              train = hamby173and252_train %>% select(rf_features),
              test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
@@ -627,33 +628,92 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
     select(case, model_r2:feature_weight, bin_continuous:rep, set:land2, rfscore, samesource)
   
   # Save the sensitivity inputs and outputs
-  saveRDS(sensitivity_inputs, "../data/hamby224_sensitivity_inputs.rds")
-  saveRDS(sensitivity_outputs, "../data/hamby224_sensitivity_outputs.rds")
+  saveRDS(hamby224_sensitivity_inputs, "../data/hamby224_sensitivity_inputs.rds")
+  saveRDS(hamby224_sensitivity_outputs, "../data/hamby224_sensitivity_outputs.rds")
   
 } else {
   
   # Load in the sensitivity inputs and outputs
-  sensitivity_inputs <- readRDS("../data/hamby224_sensitivity_inputs.rds")
-  sensitivity_outputs <- readRDS("../data/hamby224_sensitivity_outputs.rds")
+  hamby224_sensitivity_inputs <- readRDS("../data/hamby224_sensitivity_inputs.rds")
+  hamby224_sensitivity_outputs <- readRDS("../data/hamby224_sensitivity_outputs.rds")
 
 }
-
-sensitivity_results <- sensitivity_outputs %>%
-  mutate(diff = rfscore - model_prediction) %>%
-  group_by(rep, bin_continuous, nbins, quantile_bins, use_density) %>%
-  summarise(mse = sum((diff)^2) / length(diff))
-
-sensitivity_results %>%
-  group_by(bin_continuous, nbins, quantile_bins, use_density) %>%
-  summarise(mean = mean(mse),
-            sd = sd(mse))
-
-sensitivity_results %>%
-  ggplot(aes(x = factor(nbins), y = mse)) + 
-  geom_boxplot() + 
-  geom_point()
 ```
 
+```{r}
+hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
+  mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
+                            sprintf("%.0f quantile bins", nbins),
+                            ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
+                                   sprintf("%.0f equally space bins", nbins),
+                                   ifelse(bin_continuous == FALSE & use_density == TRUE, 
+                                          "kernel density", "normal approximation"))),
+         diff = rfscore - model_prediction) %>%
+  mutate(situation = fct_relevel(situation, 
+                                 "2 quantile bins", 
+                                 "3 quantile bins",
+                                 "4 quantile bins",
+                                 "5 quantile bins",
+                                 "6 quantile bins"))
+
+hamby224_sensitivity_mses <- hamby224_sensitivity_results %>%
+  group_by(set, rep, situation) %>%
+  summarise(mse = sum((diff)^2) / length(diff))
+```
+
+```{r}
+hamby224_sensitivity_results %>%
+  group_by(set, case, rep, situation) %>%
+  slice(1) %>%
+  ungroup() %>%
+  group_by(set, case, situation) %>%
+  summarise(nlevels = length(levels(factor(feature))),
+            count = n()) %>%
+  ungroup() %>%
+  group_by(set, situation) %>%
+  summarise(mean_nlevels = mean(nlevels),
+            sd_nlevels = sd(nlevels),
+            upper = mean(nlevels) + sd(nlevels),
+            lower = mean(nlevels) - sd(nlevels)) %>%
+  ggplot(aes(x = situation, y = mean_nlevels)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  facet_grid(. ~ set) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+dat <- data.frame()
+
+hamby224_sensitivity_results %>%
+  filter(set == "Set 1") %>%
+  group_by(case, situation, rep) %>%
+  slice(1) %>%
+  ggplot(aes(x = case, fill = feature)) + 
+  geom_bar(position = "stack") + 
+  coord_flip() + 
+  facet_wrap(situation ~ ., ncol = 5) + 
+  theme(legend.position = "bottom")
+```
+
+```{r}
+hamby224_sensitivity_mses %>%
+  group_by(set, situation) %>%
+  summarise(mean = mean(mse),
+            sd = sd(mse))
+```
+
+```{r}
+hamby224_sensitivity_mses %>%
+  ggplot(aes(x = situation, y = mse)) + 
+  geom_boxplot() + 
+  geom_point() + 
+  facet_grid( ~ set) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(x = "", y = "MSE")
+```
 
 ## Visualizing the LIME Explanations
 
@@ -698,6 +758,8 @@ Ideas for improvement of LIME:
   - could start with a fine grid of bins and then go backwards and fit the models on this sampled data
   - could try a type of ANOVA test if we can have nested models or if we can assume nesting
   - could compute something like an R^2_adj
+  - could force the intercept to be 0.5
+  - try out the subsampling
 
 # References
 
