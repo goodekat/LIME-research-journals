@@ -7,7 +7,7 @@
 # Function for running the lime functions which runs the lime and explain 
 # objects in a list
 run_lime <- function(bin_continuous, quantile_bins, nbins, use_density,
-                     data_name, train, test, rfmodel, label, nfeatures, 
+                     train, test, rfmodel, label, nfeatures, 
                      seed = TRUE){
   
   # Set a seed if requested
@@ -19,8 +19,7 @@ run_lime <- function(bin_continuous, quantile_bins, nbins, use_density,
   
   # Run the explain function and add a variable for the number of bins
   explain <- explain(x = test, explainer = lime, labels = label, n_features = nfeatures) %>%
-    mutate(training_data = data_name,
-           bin_continuous = bin_continuous,
+    mutate(bin_continuous = bin_continuous,
            quantile_bins = quantile_bins,
            nbins = nbins,
            use_density = use_density)
@@ -112,7 +111,7 @@ create_bin_data <- function(lime_object){
 ## ---------------------------------------------------------------
 
 # Function to use for creating bin labels in the test_explain dataset
-bin_labeller <- function(feature, feature_value, d_n, b_c, q_b, n_b, u_d, bin_data, case_info){
+bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, case_info){
   
   if (is.na(feature) | b_c == FALSE) {
     
@@ -124,8 +123,7 @@ bin_labeller <- function(feature, feature_value, d_n, b_c, q_b, n_b, u_d, bin_da
     # Determine which item in the list of bin divisions to grab 
     # based on the case info
     selected_list_item <- case_info %>%
-      filter(data_name == d_n,
-             bin_continuous == b_c, 
+      filter(bin_continuous == b_c, 
              quantile_bins == q_b,
              nbins == n_b, 
              use_density == u_d) %>%

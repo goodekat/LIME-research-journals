@@ -4,36 +4,52 @@ TO DO LIST
 -------------
 
 Questions:
+- What other measures should be used to assess the consistency of the results?
+- I switched to using renderTable for the bin table, but I can't figure out how to color 
+  the table. Do you know how to do this? (without getting into DT)
+- I've been starting to think about how to make the app look more "professional". For 
+  example, I'd like to include some text paragraphs explaning how to use the app. Do you 
+  have any thoughts on this matter?
 
 Thoughts:
+- I would like to use the full training dataset for the firearm examiners' paper. Then for the
+  statistical paper, we can get into trying out other ways to choose the bins.
+- I think we should use equally spaced bins for both set 1 and set 11, but we should use 
+  3 bins for set 1 and 2 bins for set 11. These are the options with the lowest MSEs that
+  use bins. (This thought was made before seeing the full variation in MSEs)
 
 Completed:
-
-Current:
-- think about the fact that we want to choose an option that leads to consistent results
-- choose a model that is good - not necessarily the best
+- changed lime results back to not including subsampling
 - look into "future" and "furrr" packages that are good for improving computation speed
+- clean up app code
+- fix problem with app due to bins with the non-bin cases
+- fix issue with 4 quantile bins
+- choose a model that is good - not necessarily the best (see thoughts above)
+- look into a conditional panel in Shiny and made reactive panels conditional panels
 - deal with the warnings that appear in between the switches in app
   - put in a check for a dataset then proceed or do nothing
-- look into a conditional panel in Shiny for simple vs complicated app
-- adjust app to use both full and subsampled
-- fix problem with app due to bins with the non-bin cases
+  - by switching to the conditional selectors, it changed this option
+- tried to color bin text in the table
+- played around with a theme
+
+Current:
 - check on sampling variability (run each lime implementation several times)
-- add distribution visualizations to the app with the chosen bins
-- color bin text in the table
+- think about the fact that we want to choose an option that leads to consistent results
+- clean up the section on the description of LIME (better notation and explanation)
+- make simple vs complicated app
 - read through LIME papers again
-- try out logistic regression idea for bins (write own bin list to put in explain)
 - paper
   - ask Ganesh for his explanations of the features
-  - need to clean up the section on the description of LIME (better notation and explanation)
+  - make list of features and describe them
   - add the section on the random forest as well to have a starting point for the notation
   - finish a draft of the introduction to the paper
   - write about the training data
-  - make list of features and describe them
-  - write definitions of what LIME outputs
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 
 Later:
+- add distribution visualizations to the app with the chosen bins
+- try out logistic regression idea for bins (write own bin list to put in explain)
+- try out subsampling idea
 - read new paper on Anchor
 - read book Dr. Dixon lent me
 - try visualizing the features from the test data using dimension reduction and

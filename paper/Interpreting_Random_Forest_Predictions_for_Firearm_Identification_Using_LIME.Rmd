@@ -480,9 +480,7 @@ hamby224_lime_results <- hamby224_lime_comparisons %>%
 
 ```{r}
 hamby224_lime_results %>%
-  group_by(set) %>%
-  arrange(mse) %>%
-  slice(1:2)
+  arrange(mse)
 ```
 
 ```{r}
@@ -586,26 +584,18 @@ hamby224_lime_comparisons %>%
 
 ## Assessing the Variability of the LIME Results
 
-```{r eval = FALSE}
+```{r}
 # Perform the sensitivity analysis if not already saved
 if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
   
-  # Specify the number of reps and input cases
-  nreps = 10
-  noptions = 12
-  
-  # Specify the inputs for the sensitivity analysis
-  sensitivity_inputs <- data.frame(bin_continuous = c(rep(TRUE, nreps * 10), 
-                                                      rep(FALSE, nreps * 2)),
-                                   quantile_bins = c(rep(c(TRUE, FALSE), each = nreps * 5), 
-                                                     rep(TRUE, nreps * 2)),
-                                   nbins = c(rep(rep(2:6, each = nreps), 2), 
-                                             rep(4, nreps * 2)),
-                                   use_density = c(rep(TRUE, nreps * 11), 
-                                                   rep(FALSE, nreps))) %>%
-    mutate(case = 1:(nreps * noptions)) %>%
+  # Specify the inputs for the sensitivity analysis 
+  sensitivity_inputs <- data.frame(bin_continuous = rep(TRUE, 100),
+                                   quantile_bins = rep(c(TRUE, FALSE), each = 50),
+                                   nbins = rep(2:6, each = 10),
+                                   use_density = rep(TRUE, 100)) %>%
+    mutate(case = 1:length(bin_continuous)) %>%
     select(case, bin_continuous, nbins, quantile_bins, use_density)
-  
+
   # Tell R to run the upcoming code in parallel
   plan(multiprocess)
 
@@ -619,8 +609,7 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
              nfeatures = 3,
              seed = FALSE) %>%
     map_df(function(list) list$explain) %>%
-    mutate(rep = factor(rep(rep(1:nreps, each = dim(hamby224_test %>% na.omit())[1] * 3),
-                            noptions))) %>%
+    mutate(rep = factor(rep(rep(1:10, each = dim(hamby224_test %>% na.omit())[1] * 3), 10))) %>%
     full_join(hamby224_test %>% na.omit() %>% 
                 mutate(case = as.character(case)), by = "case") %>%
     mutate(case = factor(case)) %>%
