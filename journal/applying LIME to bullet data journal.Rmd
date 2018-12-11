@@ -86,7 +86,7 @@ hamby224_test %>%
   gather(key = feature, value = value, 1:9) %>%
   select(feature, value, samesource) %>%
   ggplot(aes(x = value, fill = samesource)) + 
-  geom_histogram(bins = 30) + 
+  geom_histogram(bins = 15) + 
   facet_wrap( ~ feature, scales = "free") +
   labs(x = "Variable Value", y = "Frequency", fill = "Same Source?",
        title = "Hamby 224 Testing Data") +
@@ -100,7 +100,7 @@ hamby224_test %>%
   gather(key = feature, value = value, 1:9) %>%
   select(feature, value, samesource) %>%
   ggplot(aes(x = value, fill = samesource)) + 
-  geom_histogram(position = "fill", bins = 30) + 
+  geom_histogram(position = "fill", bins = 15) + 
   facet_wrap( ~ feature, scales = "free") +
   labs(x = "Variable Value", y = "Proportion", fill = "Same Source?",
        title = "Hamby 224 Testing Data") +
@@ -229,16 +229,20 @@ plot_grid(cor_title_test,
           rel_heights = c(0.25, 3))
 ```
 
-### Visualizing the LIME Explanations
+### Visualizations of the LIME Explanations
+
+Heike made a plot with the structure of the one below when we began with the default settings of `lime`. This one has been created from the lime explanations with 2 quantile bins. It includes all three of the chosen features for each case in the testing dataset. For both sets, the cutoff of 0.275 < ccf occurs the most frequently.
 
 ```{r}
 hamby224_test_explain %>%
-  filter(set == "Set 1", nbins == "2") %>%
+  filter(nbins == "2", quantile_bins == TRUE) %>%
   ggplot(aes(x = feature_desc)) +
   geom_bar() +
-  coord_flip() +
+  coord_flip() + 
   facet_grid(set ~ .)
 ```
+
+The plot below is the model for the one that will be used in the app for exploring the `lime` explanations from the bullet matching data. This is the data from set 1 of the testing dataset.
 
 ```{r}
 hamby224_test %>%
@@ -308,11 +312,64 @@ Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all
 
 ## Work on Determining Input Values for LIME
 
-### Assessing the Accuracy of LIME
+When we began looking at the explanations from `lime` with the default settings, we did not think that they made sense. This led me to try applying LIME with a handful of input values. However, since LIME is based on random permutations, I was curious to know how consistent the results were. This led me to try running each implementation for specific starting values a handful of times. The next two sections consider the results from these studies.
+
+### Assessing the Accuracy of the LIME Results
+
+The figures in this section are created from the implementations of LIME on the set 1 from the training data for the input options of 2 to 6 quantile bins, 2 to 6 equally spaced bins, kernel density estimation, and normal distribtion approximation. Each set of input values was only run once.
 
 ```{r}
+# Read in the lime comparison data (the comparisons are run in the firearm examiner
+# paper since they will be discussed in the paper)
 hamby224_lime_comparisons <- readRDS("../data/hamby224_lime_comparisons.rds")
 ```
+
+#### Complex versus Simple Model Predictions
+
+The plot below compares the predictions from the "simple model" (the ridge regression model) and the "complex model" (the random forest `rtrees`) on the x-axis from the lime implementations with bin estimation (`bin_continuous == TRUE`). The simple model predictions are on the y-axis, and the complex model predictions are on the x-axis. The plot is faceted by number of bins and whether or not the bins are equally spaced or based on quantiles. The points are colored by the $R^2$ value from the fit of the simple model. The lines are linear regression lines fit to the data points within a facet. We would hope that there is a linear relationship between these two variables. None of the cases show strong linear trends, but some are more linear than others. The quantile bins show that the simple model never makes a prediction over 0.6, whereas the random forest model can have predictions of up to 1. The equally spaced bins do have probabilities that exceed 0.6, but only with 3 and 6 bins. I noticed that within the facets, the points are in mostly horiztonal strips, and the number of strips is about the number of bins from the lime implementation.
+
+```{r}
+hamby224_lime_comparisons %>%
+  mutate(quantile_bins = fct_recode(factor(quantile_bins), "equal bins" = "FALSE",
+                                    "quantile bins" = "TRUE")) %>%
+  filter(!is.na(rfscore), set == "Set 1", bin_continuous == TRUE) %>%
+  ggplot(aes(x = rfscore, y = model_prediction)) + 
+  geom_point(aes(color = model_r2)) + 
+  facet_grid(quantile_bins ~ nbins) + 
+  theme_bw() + 
+  stat_smooth(method = "lm", se = FALSE, size = 0.5) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+The plot below shows the absolute value of the difference between the complex model prediction and the simple model prediction versus the complex model prediction. The points are faceted by number of bins and whether the bins are equally spaced or based on quantiles. Again, the points are colored by the $R^2$ values from the simple model. All cases show a v-shaped trend. The low part of the v occurs around a random forest score of about 0.25. That is, the simple model is most accurately portraying the complex model predictions around the random forest score of 0.25. It gets worse near the extremes. However, it is interesting to note that with the equally spaced bins, the absolute difference decreases near 1 for 3 to 6 bins. This si not the case with the quantile bins. It appears that the equally spaced bins are able to make slightly better predictions than the quantile bins when there is a high probability of a match.
+
+```{r}
+hamby224_lime_comparisons %>%
+  mutate(quantile_bins = fct_recode(factor(quantile_bins), "equal bins" = "FALSE",
+                                    "quantile bins" = "TRUE")) %>%
+  filter(!is.na(rfscore), set == "Set 1", bin_continuous == TRUE) %>%
+  ggplot(aes(x = rfscore, y = abs(diff))) + 
+  geom_point(aes(color = model_r2)) + 
+  facet_grid(quantile_bins ~ nbins) + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+At somepoint, I got the idea in my head that it woudl be interesting to look at the "residuals" (difference in complex and simple model predictions) by feature. The plot below shows one example with the data from 3 equally spaced bins. There are clear trends in the plots, but I am not quite sure what to make of this or how to use it. This may be something to return to.
+
+```{r}
+hamby224_lime_comparisons %>%
+  filter(quantile_bins == FALSE, nbins == "3", set == "Set 1") %>%
+  select(rf_features, diff, -case) %>%
+  gather(key = feature, value = feature_value, rf_features) %>%
+  select(feature, feature_value, diff) %>%
+  ggplot(aes(x = feature_value, y = diff)) + 
+  geom_point() + 
+  facet_wrap(~ feature, scales = "free") + 
+  geom_hline(yintercept = 0, color = "blue")
+```
+
+#### Comparing Input Values by MSE and $R^2$
 
 ```{r}
 hamby224_lime_results <- hamby224_lime_comparisons %>%
@@ -344,41 +401,6 @@ hamby224_lime_results %>%
   geom_point() + 
   geom_line() + 
   facet_grid(~ set) + 
-  theme_bw()
-```
-
-```{r eval = FALSE}
-hamby224_lime_comparisons %>%
-  filter(quantile_bins == TRUE, nbins == "3", set == "Set 1") %>%
-  select(rf_features, diff, -case) %>%
-  gather(key = feature, value = feature_value, rf_features) %>%
-  select(feature, feature_value, diff) %>%
-  ggplot(aes(x = feature_value, y = diff)) + 
-  geom_point() + 
-  facet_wrap(~ feature, scales = "free") + 
-  geom_hline(yintercept = 0, color = "blue")
-
-hamby224_lime_comparisons %>%
-  filter(!is.na(rfscore), set == "Set 1") %>%
-  ggplot(aes(x = rfscore, y = model_prediction)) + 
-  geom_point(aes(color = model_r2)) + 
-  facet_wrap( ~ nbins) + 
-  theme_bw() + 
-  stat_smooth(method = "lm")
-
-hamby224_lime_comparisons %>%
-  filter(!is.na(rfscore), set == "Set 1") %>%
-  ggplot(aes(x = rfscore, y = abs(diff))) + 
-  geom_point(aes(color = model_r2)) + 
-  facet_wrap( ~ nbins) +
-  theme_bw()
-
-hamby224_lime_comparisons %>%
-  filter(!is.na(rfscore), set == "Set 1") %>%
-  ggplot(aes(x = rfscore, y = diff)) + 
-  geom_point(aes(color = model_r2)) + 
-  facet_wrap( ~ nbins) +
-  geom_hline(yintercept = 0, color = "blue") +
   theme_bw()
 ```
 

@@ -4,7 +4,7 @@ TO DO LIST
 -------------
 
 Questions:
-- paper ->  
+- paper
   - how much detail should I spend describing the datasets? how familiar are the examiners 
     with the data? should I include plots of the feature distributions?
   - is it okay if I mention that the input bin options were chosen using a mse, or is that
