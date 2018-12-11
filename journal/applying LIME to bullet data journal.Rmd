@@ -371,40 +371,58 @@ hamby224_lime_comparisons %>%
 
 #### Comparing Input Values by MSE and $R^2$
 
+In order to assess which lime implementation is doing the best job of capturing the predictions from the random forest model, I decided to calculate the mean squared error for each of the input situations. I defined the mean squared error as 
+  $$\frac{\sum_{i=1}^n (\hat{p}_{\mbox{simple}}-\hat{p}_{\mbox{complex}})^2}{n}$$
+where $n$ is the number of observations in the testing dataset (within a set). Additionally, I was curious to compare the fits of the ridge regression models across input values, so I calculated the average $R^2$ for each input situation.
+
 ```{r}
 hamby224_lime_results <- hamby224_lime_comparisons %>%
   filter(!is.na(rfscore)) %>%
   group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
-  summarise(mse = (sum(diff)^2) / length(diff),
+  summarise(mse = (sum(diff^2)) / length(diff),
             ave_r2 = mean(model_r2)) %>%
-  arrange(set)
+  arrange(set) %>%
+  ungroup() %>%
+  mutate(nbins = as.numeric(as.character(nbins))) %>%
+  mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
+                            sprintf("%.0f quantile bins", nbins),
+                            ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
+                                   sprintf("%.0f equally spaced bins", nbins),
+                                   ifelse(bin_continuous == FALSE & use_density == TRUE, 
+                                          "kernel density", "normal approximation")))) %>%
+  mutate(situation = fct_relevel(situation, 
+                                 "2 quantile bins", 
+                                 "3 quantile bins",
+                                 "4 quantile bins",
+                                 "5 quantile bins",
+                                 "6 quantile bins"))
 ```
+
+The plot below shows the mean squared errors for each of the input situations faceted by set. In both cases, the lowest mean squared error occurs with 3 equally spaced bins. This seems to suggest that using 3 equally spaced bins should provide better explanations.
 
 ```{r}
 hamby224_lime_results %>%
-  ungroup() %>%
-  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
-         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
-  ggplot(aes(x = nbins, y = mse, color = bc_qb, group = bc_qb)) +
+  ggplot(aes(x = situation, y = mse)) +
   geom_point() + 
-  geom_line() + 
   facet_grid( ~ set) + 
-  theme_bw()
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
+The plot below shows the average $R^2$ value for each of the input situations faceted by set. The results are very similar for each set, and the highest $R^2$ values occur for 2 quantile bins. The $R^2$ values for 3 equally spaced bins are in the middle.
 
 ```{r}
 hamby224_lime_results %>%
-  ungroup() %>%
-  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
-         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
-  ggplot(aes(x = nbins, y = ave_r2, color = bc_qb, group = bc_qb)) +
+  ggplot(aes(x = situation, y = ave_r2)) +
   geom_point() + 
-  geom_line() + 
-  facet_grid(~ set) + 
-  theme_bw()
+  facet_grid( ~ set) + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ### Assessing the Variability of the LIME Results
+
+In order to assess how variable the LIME results are, I ran each of the 12 input situations 10 times. I wanted to look at the variability of the mse for each situation, and I wanted to see how consistent the choice of selected features is by LIME.
 
 ```{r}
 # Perform the sensitivity analysis if not already saved
@@ -465,7 +483,7 @@ hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
   mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
                             sprintf("%.0f quantile bins", nbins),
                             ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
-                                   sprintf("%.0f equally space bins", nbins),
+                                   sprintf("%.0f equally spaced bins", nbins),
                                    ifelse(bin_continuous == FALSE & use_density == TRUE, 
                                           "kernel density", "normal approximation"))),
          diff = rfscore - model_prediction) %>%
@@ -475,10 +493,25 @@ hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
                                  "4 quantile bins",
                                  "5 quantile bins",
                                  "6 quantile bins"))
+```
 
+```{r}
 hamby224_sensitivity_mses <- hamby224_sensitivity_results %>%
   group_by(set, rep, situation) %>%
   summarise(mse = sum((diff)^2) / length(diff))
+```
+
+The plot below shows boxplots of the 10 mean squared errors computed for each of the input situations for each set. There does not appear to be much variation for most of the cases. The largest amount of variation occurs with 4 and 5 equally spaced bins. There is moderate variability for 3 equally spaced bins, but all of the 10 runs resulted in much lower mses than any of the other situations. This still seems to support the choice of using 3 equally spaced quantile bins for both sets.
+
+```{r}
+hamby224_sensitivity_mses %>%
+  ggplot(aes(x = situation, y = mse)) + 
+  geom_boxplot() + 
+  geom_point() + 
+  facet_grid( ~ set) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(x = "", y = "MSE")
 ```
 
 ```{r}
@@ -502,6 +535,10 @@ hamby224_consistency <- hamby224_sensitivity_results %>%
             min = min(nlevels))
 ```
 
+To assess the consistency of the results, I determined the number of different features chosen by LIME as the top feature within a test case across the 10 replicates. I then computed the average number of different top features chosen by LIME within a input situations for each set. The plot below contains these values shown as the dots. The error bars represent one standard deviation above and below the mean. Note that the number of levels cannot go below 1, but the error bars go below 1. I have decided to ignore this for now, but I would need to come up with a better representation if I used this for something.
+
+There are a handful of situations with a mean near one and very little variation. However, the largest mean is around 2, which is not very high. This seems to suggest that LIME is relatively consistent across runs.
+
 ```{r}
 hamby224_consistency %>%
   ggplot(aes(x = situation, y = mean_nlevels)) + 
@@ -511,6 +548,8 @@ hamby224_consistency %>%
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
+The bar chart below shows the proportion of different number of top features chosen across all test cases within a set for each input situation. This shows that the most different features chosen was four. However, many of the caes only have one or two different features chosen, and usually, a larger proportion of the cases have only one top feature chosen across the 10 reps.
 
 ```{r}
 hamby224_sensitivity_results %>%
@@ -531,7 +570,7 @@ hamby224_sensitivity_results %>%
 
 The plot below needs some work, but it does contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases. 
 
-```{r}
+```{r fig.height = 8, fig.width = 10}
 hamby224_sensitivity_results %>%
   filter(set == "Set 1") %>%
   droplevels() %>%
@@ -554,21 +593,13 @@ hamby224_sensitivity_results %>%
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
-  scale_fill_brewer(palette = "Blues")
-```
-
-```{r}
-hamby224_sensitivity_mses %>%
-  ggplot(aes(x = situation, y = mse)) + 
-  geom_boxplot() + 
-  geom_point() + 
-  facet_grid( ~ set) + 
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  labs(x = "", y = "MSE")
+  scale_fill_brewer(palette = "Blues") + 
+  labs(x = "cases")
 ```
 
 ### Deciding on LIME Input Settings
+
+In order to decide on which LIME settings to use for the firearm examiners' paper, I decided to create a table that ranks each of the 12 input settings by MSE from the single implementation, the average MSE across the 10 implementations, the average number of top features chosen across the 10 implementations, and the average $R^2$ value from the single implementation. The first table below is for set 1, and the second table below is for set 11.
 
 ```{r}
 joined_results <- hamby224_lime_results %>%
@@ -577,7 +608,7 @@ joined_results <- hamby224_lime_results %>%
   mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
                             sprintf("%.0f quantile bins", nbins),
                             ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
-                                   sprintf("%.0f equally space bins", nbins),
+                                   sprintf("%.0f equally spaced bins", nbins),
                                    ifelse(bin_continuous == FALSE & use_density == TRUE, 
                                           "kernel density", "normal approximation")))) %>%
   mutate(situation = fct_relevel(situation, 
