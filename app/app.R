@@ -44,8 +44,6 @@ bin_table <- function(features, case, bin_cuts){
 # Layout of the app
 ui <- fluidPage(
   
-  theme = shinythemes::shinytheme("lumen"),
-  
   # Application title
   titlePanel("LIME Explanations for Bullet Matching"),
   

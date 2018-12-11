@@ -4,6 +4,13 @@ TO DO LIST
 -------------
 
 Questions:
+- paper ->  
+  - how much detail should I spend describing the datasets? how familiar are the examiners 
+    with the data? should I include plots of the feature distributions?
+  - is it okay if I mention that the input bin options were chosen using a mse, or is that
+    too much for the forensic examiners' paper?
+  - how much of a literature review should I do? what papers should I include in the lit 
+    review (other interpretation methods)? how indepth should I get with this paper?
 
 Thoughts:
 - I think we should use equally spaced bins for both set 1 and set 11, but we should use 
@@ -11,13 +18,15 @@ Thoughts:
   use bins. (This thought was made before seeing the full variation in MSEs)
 
 Completed:
+- visualize and summarize the variation results
+- choose an option that leads to both consistent and accurate results
+  - I think that for this paper, it may be better to just use the results that 
+    provides the most "accurate" results
 
 Current:
-- make simple vs complicated app
-- visualize and summarize the variation results
 - look into computing a diversity measure for the sensitivity analysis
-- choose an option that leads to both consistent and accurate results
-- work on writing the examiners paper
+- make simple vs complicated app
+- write a draft of the examiners paper
 - read through LIME papers again
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 

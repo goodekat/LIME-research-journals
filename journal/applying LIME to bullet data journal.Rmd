@@ -1,0 +1,597 @@
+---
+title: "Applying LIME to Bullet Data Journal"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, fig.pos = "center")
+
+# Load libraries
+library(tidyverse)
+library(bulletr)
+library(randomForest)
+library(lime)
+library(cowplot)
+library(purrr)
+library(future)
+library(furrr)
+
+# Source functions
+source("../code/helper_functions.R")
+
+# Load in the training data (Hamby Data 173 and 252) and testing data (Hamby Data 224 Sets 1 and 11)
+hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
+hamby224_test <- read.csv("../data/hamby224_test.csv") # created in the paper
+
+# Read in the test_explain data
+hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+
+# Obtain features used when fitting the rtrees random forest
+rf_features <- rownames(rtrees$importance)
+```
+
+# December 5, 2018 to December 11, 2018
+
+I decided to start a journal this week to keep track of the work I am doing in regards to applying LIME to the Hamby bullet data. I have been trying to decide which input values to use for LIME in the forensic examiners' paper, and I have decided that I would like to simplify matters even more by only focusing on a few input options. I have considered a handful of ways of answering this question (accuracy within one implementation of lime, accuracy across 10 implementations of lime, etc.), but I would like to reserve some of these ways for a future more technical paper. However, I would like a place to store my work to use for future purposes, and it would be nice to have a place to work where I do not feel the need to optimize code. I am hoping that this will be a place where I can write drafts of code and create first versions of graphics. Then I can clean up and organize the code when I write the paper.
+
+Prior to this journal, I had been working on all of my ideas in the R markdown document for the paper, but now I am going to transfer a lot of that code to this journal. Many of the sections below include work that I did earlier this semester. I am just transferring them here now. Later I will move the necessary parts to the paper.
+
+## Previous Work
+
+### Feature Plots of Training and Testing Data Filled by `samesource`
+
+I created the following two plots of the training data as suggested by Heike. The histograms below show the distributions of the features used in the random forest `rtrees`. The histograms are filled by the `samesource` variable, which is the truth of whether or not the comparison is from the same barrel and land. The default histograms make it hard to compare the distributions of the matches and non-matches since there are many more comparisons that have `samesource == FALSE`.
+
+```{r}
+# Create plots of the feature distributions colored by samesource for the training data
+hamby173and252_train %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Frequency", fill = "Same Source?",
+       title = "Hamby 173 and 252 Training Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+By setting `position = "fill"` in the `geom_histogram` function, it is easier to compare the matches and non-matches. <span style="color:teal"> These plots could be used in the future to hand select the bins for lime. Additionally, fitting a logistic regression to this data could also be used to determine the LC50, LC10, ad LC90, which could be used as the bins for lime. </span>
+
+```{r}
+# Create plots of the feature distributions colored by samesource for the training data
+# using the position = "fill" option
+hamby173and252_train %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(position = "fill", bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Proportion", fill = "Same Source?",
+       title = "Hamby 173 and 252 Training Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+The plots below have the same structure, but they are created with the Hamby 224 testing data. I chose to not separate the testing data by sets, but this is something that could be done later if necessary.
+
+```{r}
+# Create plots of the feature distributions colored by samesource for the testing data
+hamby224_test %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Frequency", fill = "Same Source?",
+       title = "Hamby 224 Testing Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+# Create plots of the feature distributions colored by samesource for the testing 
+# data using the position = "fill" option
+hamby224_test %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(position = "fill", bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Proportion", fill = "Same Source?",
+       title = "Hamby 224 Testing Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+### Correlation Plots of Training and Testing Data
+
+I made these plots to look at the correlation between features in the training data within the TRUE and FALSE cases of samesource. The features are highly correlated for the match comparisons. It is clear that the variables are more correlated with the match comparisons than the non-match comparisons. However, there are still some variables that are relatively highly correlation with the non-match comparisons.
+
+```{r fig.height = 4, fig.width = 9}
+# Create a correlation heatmap of the match comparisons in the training data
+cor_match <- hamby173and252_train %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == TRUE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Match Comparisons")
+
+# Create a correlation heatmap of the non-match comparisons in the training data
+cor_nonmatch <- hamby173and252_train %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == FALSE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Non-Match Comparisons")
+
+# Create a title for the panel of plots
+cor_title <- ggdraw() +
+  draw_label("Correlation of Feature Variables in the Training Data", 
+             fontface = "bold", 
+             size = 16,
+             x = 0.5,
+             hjust = 0.5)
+
+# Create a joined legend for the panel of plots
+cor_legend <- get_legend(cor_match + theme(legend.position = "right"))
+
+# Create the panel of plots
+plot_grid(cor_title, 
+          plot_grid(cor_match, cor_nonmatch, cor_legend, ncol = 3, rel_widths = c(2, 2, 0.5)),
+          ncol = 1,
+          rel_heights = c(0.25, 3))
+```
+
+The plots below show the correlations for the testing data. The patterns in the plots look really similar to ones of the training data.
+
+```{r fig.height = 4, fig.width = 9}
+# Create a correlation heatmap of the match comparisons in the training data
+cor_match_test <- hamby224_test %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == TRUE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Match Comparisons")
+
+# Create a correlation heatmap of the non-match comparisons in the training data
+cor_nonmatch_test <- hamby224_test %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == FALSE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Non-Match Comparisons")
+
+# Create a title for the panel of plots
+cor_title_test <- ggdraw() +
+  draw_label("Correlation of Feature Variables in the Testing Data", 
+             fontface = "bold", 
+             size = 16,
+             x = 0.5,
+             hjust = 0.5)
+
+# Create a joined legend for the panel of plots
+cor_legend_test <- get_legend(cor_match_test + theme(legend.position = "right"))
+
+# Create the panel of plots
+plot_grid(cor_title_test, 
+          plot_grid(cor_match_test, cor_nonmatch_test, cor_legend_test, 
+                    ncol = 3, rel_widths = c(2, 2, 0.5)),
+          ncol = 1,
+          rel_heights = c(0.25, 3))
+```
+
+### Visualizing the LIME Explanations
+
+```{r}
+hamby224_test_explain %>%
+  filter(set == "Set 1", nbins == "2") %>%
+  ggplot(aes(x = feature_desc)) +
+  geom_bar() +
+  coord_flip() +
+  facet_grid(set ~ .)
+```
+
+```{r}
+hamby224_test %>%
+  filter(set == "Set 1") %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
+             text = paste('Bullets Compared: ', bullet1, "-", land1, 
+                          "vs", bullet2, "-", land2,
+                          '\nRandom Forest Score: ', 
+                          ifelse(is.na(rfscore), "Missing due to tank rash", rfscore)))) +
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(bullet2 ~ bullet1, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  labs(x = "", y = "", fill = "RF Score")
+```
+
+### Draft of LIME Procedure from the `lime` R Package
+
+I wrote this up to start thinking about how to describe the procedure that the `lime` R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner's paper will be much simpler...
+
+The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.
+
+Let
+  $$Y_{jk} = \begin{cases} 
+  1 & \mbox{ if bullets } j \mbox{ and } k \mbox{ were fired from the same gun barrel }\\
+  0 & \mbox{otherwise}
+  \end{cases}$$
+be the response variable in the training dataset, and $X_1,...,X_9$ correspond to the nine features in the training dataset. Let $X'_1,...,X'_9$ be the 
+
+1. Distributions for each of the features in the training data are obtained. 
+    + The method that `lime` uses to obtain the distribution differs based on the feature type. All of the features in the Hamby datasets are numeric. For numeric features, the default option in `lime` (`quantile_bins = TRUE`) computes the quantiles of each feature based on the number of bins selected. The default number of bins is 4 (`n_bins = 4`).
+
+2. Many ($n$) samples from each of the feature distributions are drawn.
+     + To do this, `lime` has several options (mostly quoted from `lime` package for now):
+      * bin\_continuous = TRUE should continuous variables be binned?
+      * quantile\_bins = TRUE should the ins for n\_bins be based on quantiles or spread evenly
+      * n\_bins = 4 number of bins if bin\_continuous is TRUE
+      * use\_density = TRUE if bin\_continuous is FALSE, should continuous data be sampled using kernel density estimation (if not, then will assume normal for continuous variable)
+
+3. Predictions for the testing data using the random forest model are computed.
+     + The random forest model `rtrees` is used to make a prediction for the observation from the test dataset and each of the $n=5000$ samples as to whether or not the comparison of the two bullets in the test case are a match. Since the random forest is a classification model, `lime` is set to return the prediction probabilities.
+
+4. Similarity score between the observation in the testing data and each of the $n=5000$ sampled values are obtained.
+    + The way that the similarity score is computed depends on the type of feature. Since all of the features in the Hamby 224 test dataset are continuous, the simulated values are first converted into 0-1 features where a 1 indicates that the feature from the simulated value falls in the same bin as the observed data point and a 0 indicates that the feature is not in the same bin as the observed data point. Then, by default, the Gower distance is used to compute the similarity score. (using the `gower` package in R)
+
+5. Feature selection is performed by fitting some type of regression model weighted by the similarity scores is to the simulated data and the observed value. The 0-1 versions of the features are used.
+    + The user can specify the number of features, $m$, they would like to select to explain the prediction. `lime` supports the following options for feature selection
+      * forward selection with ridge regression
+      * highest weight with ridge regression
+      * LASSO model
+      * tree model
+      * default: forward selection if $m\le6$ with a ridge regression model, highest weight with ridge regression otherwise
+
+6. A ridge regression model is fit as the simple model by regressing the prediction probabilities on the $m$ selected predictor variables and weighted by the similarity scores. If the response is categorical, the user can select how many categories and which categories they want to explain.
+  $$P(Match = TRUE) = \beta_0 + 
+  \beta_1 \cdot I\left[X_1 \in \mbox{obs bin}\right] + 
+  \beta_2 \cdot I\left[X_2 \in \mbox{obs bin}\right] + 
+  \beta_3 \cdot I\left[X_3 \in \mbox{obs bin}\right]$$
+For the prediction of interest, 
+  $$P(Match = TRUE) = \beta_0 + \beta_1 + \beta_2 + \beta_3.$$
+7. The feature weights are extracted and used as the explanations.
+
+Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
+
+## Work on Determining Input Values for LIME
+
+### Assessing the Accuracy of LIME
+
+```{r}
+hamby224_lime_comparisons <- readRDS("../data/hamby224_lime_comparisons.rds")
+```
+
+```{r}
+hamby224_lime_results <- hamby224_lime_comparisons %>%
+  filter(!is.na(rfscore)) %>%
+  group_by(bin_continuous, quantile_bins, nbins, use_density, set) %>%
+  summarise(mse = (sum(diff)^2) / length(diff),
+            ave_r2 = mean(model_r2)) %>%
+  arrange(set)
+```
+
+```{r}
+hamby224_lime_results %>%
+  ungroup() %>%
+  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
+         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
+  ggplot(aes(x = nbins, y = mse, color = bc_qb, group = bc_qb)) +
+  geom_point() + 
+  geom_line() + 
+  facet_grid( ~ set) + 
+  theme_bw()
+```
+
+```{r}
+hamby224_lime_results %>%
+  ungroup() %>%
+  mutate(bc_qb = as.character(factor(bin_continuous):factor(quantile_bins)),
+         nbins = factor(ifelse(bin_continuous == FALSE, NA, as.character(nbins)))) %>%
+  ggplot(aes(x = nbins, y = ave_r2, color = bc_qb, group = bc_qb)) +
+  geom_point() + 
+  geom_line() + 
+  facet_grid(~ set) + 
+  theme_bw()
+```
+
+```{r eval = FALSE}
+hamby224_lime_comparisons %>%
+  filter(quantile_bins == TRUE, nbins == "3", set == "Set 1") %>%
+  select(rf_features, diff, -case) %>%
+  gather(key = feature, value = feature_value, rf_features) %>%
+  select(feature, feature_value, diff) %>%
+  ggplot(aes(x = feature_value, y = diff)) + 
+  geom_point() + 
+  facet_wrap(~ feature, scales = "free") + 
+  geom_hline(yintercept = 0, color = "blue")
+
+hamby224_lime_comparisons %>%
+  filter(!is.na(rfscore), set == "Set 1") %>%
+  ggplot(aes(x = rfscore, y = model_prediction)) + 
+  geom_point(aes(color = model_r2)) + 
+  facet_wrap( ~ nbins) + 
+  theme_bw() + 
+  stat_smooth(method = "lm")
+
+hamby224_lime_comparisons %>%
+  filter(!is.na(rfscore), set == "Set 1") %>%
+  ggplot(aes(x = rfscore, y = abs(diff))) + 
+  geom_point(aes(color = model_r2)) + 
+  facet_wrap( ~ nbins) +
+  theme_bw()
+
+hamby224_lime_comparisons %>%
+  filter(!is.na(rfscore), set == "Set 1") %>%
+  ggplot(aes(x = rfscore, y = diff)) + 
+  geom_point(aes(color = model_r2)) + 
+  facet_wrap( ~ nbins) +
+  geom_hline(yintercept = 0, color = "blue") +
+  theme_bw()
+```
+
+### Assessing the Variability of the LIME Results
+
+```{r}
+# Perform the sensitivity analysis if not already saved
+if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
+  
+  # Specify the number of reps and input cases
+  nreps = 10
+  noptions = 12
+  
+  # Specify the inputs for the sensitivity analysis
+  hamby224_sensitivity_inputs <- data.frame(bin_continuous = c(rep(TRUE, nreps * 10), 
+                                                      rep(FALSE, nreps * 2)),
+                                   quantile_bins = c(rep(c(TRUE, FALSE), each = nreps * 5), 
+                                                     rep(TRUE, nreps * 2)),
+                                   nbins = c(rep(rep(2:6, each = nreps), 2), 
+                                             rep(4, nreps * 2)),
+                                   use_density = c(rep(TRUE, nreps * 11), 
+                                                   rep(FALSE, nreps))) %>%
+    mutate(case = 1:(nreps * noptions)) %>%
+    select(case, bin_continuous, nbins, quantile_bins, use_density)
+  
+  # Tell R to run the upcoming code in parallel
+  plan(multiprocess)
+
+  # Run lime for the sensitivity analysis
+  hamby224_sensitivity_outputs <- future_pmap(.l = as.list(hamby224_sensitivity_inputs %>%
+                                                             select(-case)),
+             .f = run_lime, # run_lime is one of my helper functions
+             train = hamby173and252_train %>% select(rf_features),
+             test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+             rfmodel = as_classifier(rtrees),
+             label = "TRUE",
+             nfeatures = 3,
+             seed = FALSE) %>%
+    map_df(function(list) list$explain) %>%
+    mutate(rep = factor(rep(rep(1:nreps, each = dim(hamby224_test %>% na.omit())[1] * 3),
+                            noptions))) %>%
+    full_join(hamby224_test %>% na.omit() %>% 
+                mutate(case = as.character(case)), by = "case") %>%
+    mutate(case = factor(case)) %>%
+    select(case, model_r2:feature_weight, bin_continuous:rep, set:land2, rfscore, samesource)
+  
+  # Save the sensitivity inputs and outputs
+  saveRDS(hamby224_sensitivity_inputs, "../data/hamby224_sensitivity_inputs.rds")
+  saveRDS(hamby224_sensitivity_outputs, "../data/hamby224_sensitivity_outputs.rds")
+  
+} else {
+  
+  # Load in the sensitivity inputs and outputs
+  hamby224_sensitivity_inputs <- readRDS("../data/hamby224_sensitivity_inputs.rds")
+  hamby224_sensitivity_outputs <- readRDS("../data/hamby224_sensitivity_outputs.rds")
+
+}
+```
+
+```{r}
+hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
+  mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
+                            sprintf("%.0f quantile bins", nbins),
+                            ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
+                                   sprintf("%.0f equally space bins", nbins),
+                                   ifelse(bin_continuous == FALSE & use_density == TRUE, 
+                                          "kernel density", "normal approximation"))),
+         diff = rfscore - model_prediction) %>%
+  mutate(situation = fct_relevel(situation, 
+                                 "2 quantile bins", 
+                                 "3 quantile bins",
+                                 "4 quantile bins",
+                                 "5 quantile bins",
+                                 "6 quantile bins"))
+
+hamby224_sensitivity_mses <- hamby224_sensitivity_results %>%
+  group_by(set, rep, situation) %>%
+  summarise(mse = sum((diff)^2) / length(diff))
+```
+
+```{r}
+hamby224_consistency <- hamby224_sensitivity_results %>%
+  select(set, situation, case, rep, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
+  group_by(set, situation, case, rep) %>%
+  slice(1) %>%
+  ungroup() %>%
+  group_by(set, situation, case) %>%
+  summarise(nlevels = length(levels(factor(feature))),
+            count = n()) %>%
+  ungroup() %>%
+  group_by(set, situation) %>%
+  summarise(mean_nlevels = mean(nlevels),
+            sd_nlevels = sd(nlevels),
+            upper = mean(nlevels) + sd(nlevels),
+            lower = mean(nlevels) - sd(nlevels),
+            max = max(nlevels),
+            min = min(nlevels))
+```
+
+```{r}
+hamby224_consistency %>%
+  ggplot(aes(x = situation, y = mean_nlevels)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  facet_grid(. ~ set) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+hamby224_sensitivity_results %>%
+  select(set, situation, case, rep, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
+  group_by(set, situation, case, rep) %>%
+  slice(1) %>%
+  ungroup() %>%
+  group_by(set, situation, case) %>%
+  summarise(nlevels = length(levels(factor(feature)))) %>%
+  ggplot(aes(x = situation, fill = factor(nlevels))) + 
+  geom_bar(position = "stack") +
+  facet_grid( ~ set) + 
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+The plot below needs some work, but it does contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases. 
+
+```{r}
+hamby224_sensitivity_results %>%
+  filter(set == "Set 1") %>%
+  droplevels() %>%
+  select(situation, case, rep, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(situation, case, rep, desc(feature_weight_abs)) %>%
+  group_by(situation, case, rep) %>%
+  slice(1) %>%
+  ungroup() %>%
+  group_by(situation, case) %>%
+  mutate(nlevels = length(levels(factor(feature)))) %>%
+  ungroup() %>%
+  arrange(situation, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(levels(case)), each = 10), 12)) %>%
+  ggplot(aes(x = order, fill = feature)) + 
+  geom_bar(position = "stack", width = 1) + 
+  coord_flip() + 
+  facet_wrap(situation ~ ., ncol = 5) +
+  #facet_grid(nlevels ~ situation) +
+  theme(legend.position = "bottom",
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_brewer(palette = "Blues")
+```
+
+```{r}
+hamby224_sensitivity_mses %>%
+  ggplot(aes(x = situation, y = mse)) + 
+  geom_boxplot() + 
+  geom_point() + 
+  facet_grid( ~ set) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(x = "", y = "MSE")
+```
+
+### Deciding on LIME Input Settings
+
+```{r}
+joined_results <- hamby224_lime_results %>%
+  ungroup() %>%
+  mutate(nbins = as.numeric(as.character(nbins))) %>%
+  mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
+                            sprintf("%.0f quantile bins", nbins),
+                            ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
+                                   sprintf("%.0f equally space bins", nbins),
+                                   ifelse(bin_continuous == FALSE & use_density == TRUE, 
+                                          "kernel density", "normal approximation")))) %>%
+  mutate(situation = fct_relevel(situation, 
+                                 "2 quantile bins", 
+                                 "3 quantile bins",
+                                 "4 quantile bins",
+                                 "5 quantile bins",
+                                 "6 quantile bins")) %>%
+  select(set, situation, mse, ave_r2) %>%
+  full_join(hamby224_sensitivity_mses %>%
+              group_by(set, situation) %>%
+              summarise(mean_sensitivity_mse = mean(mse), 
+                        sd_sensitivity_mse = sd(mse)),
+            by = c("set", "situation")) %>%
+  full_join(hamby224_consistency %>% select(set, situation, mean_nlevels, sd_nlevels), 
+            by = c("set", "situation")) %>%
+  #filter(!(situation %in% c("normal approximation", "kernel density"))) %>%
+  group_by(set) %>%
+  mutate(mse_order = dense_rank(mse),
+         ave_r2_order = dense_rank(desc(ave_r2)),
+         mean_sensitivity_mse_order = dense_rank(mean_sensitivity_mse),
+         mean_nlevels_order = dense_rank(mean_nlevels))
+```
+
+```{r}
+joined_results %>%
+  ungroup() %>%
+  filter(set == "Set 1") %>%
+  select(situation, mse_order, mean_sensitivity_mse_order, mean_nlevels_order, ave_r2_order) %>%
+  arrange(mse_order, mean_sensitivity_mse_order, mean_nlevels_order, ave_r2_order) %>%
+  knitr::kable()
+
+joined_results %>%
+  ungroup() %>%
+  filter(set == "Set 11") %>%
+  select(situation, mse_order, mean_sensitivity_mse_order, mean_nlevels_order, ave_r2_order) %>%
+  arrange(mse_order, mean_sensitivity_mse_order, mean_nlevels_order, ave_r2_order) %>%
+  knitr::kable()
+```
