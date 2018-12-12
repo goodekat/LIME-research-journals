@@ -4,6 +4,7 @@ TO DO LIST
 -------------
 
 Questions:
+- can you sign my audit form?
 - paper
   - how much detail should I spend describing the datasets? how familiar are the examiners 
     with the data? should I include plots of the feature distributions?
@@ -13,21 +14,21 @@ Questions:
     review (other interpretation methods)? how indepth should I get with this paper?
 
 Thoughts:
-- I think we should use equally spaced bins for both set 1 and set 11, but we should use 
-  3 bins for set 1 and 2 bins for set 11. These are the options with the lowest MSEs that
-  use bins. (This thought was made before seeing the full variation in MSEs)
 
 Completed:
 - visualize and summarize the variation results
 - choose an option that leads to both consistent and accurate results
-  - I think that for this paper, it may be better to just use the results that 
-    provides the most "accurate" results
+  - I think that for this paper, it may be better to just focus on the result that 
+    provides the most "accurate" result (think more about consistency later - even
+    though the results do seem pretty consistent)
 - created a journal and moved all experimenting code into the journal
+- wrote up thoughts in journal
 
 Current:
-- look into computing a diversity measure for the sensitivity analysis
+- outline paper and think of more questions for Heike
 - make simple vs complicated app
-- write a draft of the examiners paper
+- look into computing a diversity measure for the sensitivity analysis
+- write a draft of the examiners paper (during break)
 - read through LIME papers again
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 

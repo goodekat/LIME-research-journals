@@ -32,7 +32,7 @@ hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 rf_features <- rownames(rtrees$importance)
 ```
 
-# December 5, 2018 to December 11, 2018
+# December 5, 2018 to December 14, 2018
 
 I decided to start a journal this week to keep track of the work I am doing in regards to applying LIME to the Hamby bullet data. I have been trying to decide which input values to use for LIME in the forensic examiners' paper, and I have decided that I would like to simplify matters even more by only focusing on a few input options. I have considered a handful of ways of answering this question (accuracy within one implementation of lime, accuracy across 10 implementations of lime, etc.), but I would like to reserve some of these ways for a future more technical paper. However, I would like a place to store my work to use for future purposes, and it would be nice to have a place to work where I do not feel the need to optimize code. I am hoping that this will be a place where I can write drafts of code and create first versions of graphics. Then I can clean up and organize the code when I write the paper.
 
@@ -395,29 +395,35 @@ hamby224_lime_results <- hamby224_lime_comparisons %>%
                                  "3 quantile bins",
                                  "4 quantile bins",
                                  "5 quantile bins",
-                                 "6 quantile bins"))
+                                 "6 quantile bins")) %>%
+  mutate(bin_situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE,
+                                "quantile bins",
+                                ifelse(bin_continuous == TRUE & quantile_bins == FALSE,
+                                       "equally spaced bins", "other")))
 ```
 
 The plot below shows the mean squared errors for each of the input situations faceted by set. In both cases, the lowest mean squared error occurs with 3 equally spaced bins. This seems to suggest that using 3 equally spaced bins should provide better explanations.
 
 ```{r}
 hamby224_lime_results %>%
-  ggplot(aes(x = situation, y = mse)) +
+  ggplot(aes(x = situation, y = mse, color = bin_situation)) +
   geom_point() + 
   facet_grid( ~ set) + 
   theme_bw() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "bottom")
 ```
 
 The plot below shows the average $R^2$ value for each of the input situations faceted by set. The results are very similar for each set, and the highest $R^2$ values occur for 2 quantile bins. The $R^2$ values for 3 equally spaced bins are in the middle.
 
 ```{r}
 hamby224_lime_results %>%
-  ggplot(aes(x = situation, y = ave_r2)) +
+  ggplot(aes(x = situation, y = ave_r2, color = bin_situation)) +
   geom_point() + 
   facet_grid( ~ set) + 
   theme_bw() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom")
 ```
 
 ### Assessing the Variability of the LIME Results
@@ -492,12 +498,16 @@ hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
                                  "3 quantile bins",
                                  "4 quantile bins",
                                  "5 quantile bins",
-                                 "6 quantile bins"))
+                                 "6 quantile bins")) %>%
+  mutate(bin_situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE,
+                                "quantile bins",
+                                ifelse(bin_continuous == TRUE & quantile_bins == FALSE,
+                                       "equally spaced bins", "other")))
 ```
 
 ```{r}
 hamby224_sensitivity_mses <- hamby224_sensitivity_results %>%
-  group_by(set, rep, situation) %>%
+  group_by(set, rep, situation, bin_situation) %>%
   summarise(mse = sum((diff)^2) / length(diff))
 ```
 
@@ -506,7 +516,7 @@ The plot below shows boxplots of the 10 mean squared errors computed for each of
 ```{r}
 hamby224_sensitivity_mses %>%
   ggplot(aes(x = situation, y = mse)) + 
-  geom_boxplot() + 
+  geom_boxplot(aes(color = bin_situation)) + 
   geom_point() + 
   facet_grid( ~ set) + 
   theme_bw() +
@@ -516,17 +526,17 @@ hamby224_sensitivity_mses %>%
 
 ```{r}
 hamby224_consistency <- hamby224_sensitivity_results %>%
-  select(set, situation, case, rep, feature, feature_weight) %>%
+  select(set, situation, bin_situation, case, rep, feature, feature_weight) %>%
   mutate(feature_weight_abs = abs(feature_weight)) %>%
   arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
   group_by(set, situation, case, rep) %>%
   slice(1) %>%
   ungroup() %>%
-  group_by(set, situation, case) %>%
+  group_by(set, situation, bin_situation, case) %>%
   summarise(nlevels = length(levels(factor(feature))),
             count = n()) %>%
   ungroup() %>%
-  group_by(set, situation) %>%
+  group_by(set, situation, bin_situation) %>%
   summarise(mean_nlevels = mean(nlevels),
             sd_nlevels = sd(nlevels),
             upper = mean(nlevels) + sd(nlevels),
@@ -542,7 +552,7 @@ There are a handful of situations with a mean near one and very little variation
 ```{r}
 hamby224_consistency %>%
   ggplot(aes(x = situation, y = mean_nlevels)) + 
-  geom_point() + 
+  geom_point(aes(color = bin_situation)) + 
   geom_errorbar(aes(ymin = lower, ymax = upper)) +
   facet_grid(. ~ set) + 
   theme_bw() +
@@ -565,10 +575,13 @@ hamby224_sensitivity_results %>%
   geom_bar(position = "stack") +
   facet_grid( ~ set) + 
   theme(legend.position = "bottom", 
-        axis.text.x = element_text(angle = 45, hjust = 1))
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_brewer(palette = "Blues")
 ```
 
-The plot below needs some work, but it does contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases. 
+The plot below needs some work, but it does contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases.
+
+The fact that different features get chosen as the top feature for different estimation techniques makes sense. You would expect that the number of bins would determine which features are better suited for predicting whether or not a comparison is a match. For example, if you look back at the feature distribution plots, you can see that ccf is the obvious choice for determining between matches and non-matches if you have to choose two equally spaced bins. This is the feature that lime most frequently chooses. You can make similar arguments for other cases as well. Even though different inputs select different variables, I would expect that some variables will be better at prediction than others. I think this is what leads some input values to better LIME explanations and lower MSEs than others.
 
 ```{r fig.height = 8, fig.width = 10}
 hamby224_sensitivity_results %>%
@@ -597,9 +610,35 @@ hamby224_sensitivity_results %>%
   labs(x = "cases")
 ```
 
+I was thinking a bit more about the relationship between the top features chosen and the type of binning used. I realized it would be helpful to view the relationship between the features and the random forest score. The plots below show the testing data with random forest score versus each of the features. The points are colored by the samesource variable.
+
+```{r}
+hamby224_test %>% 
+  select(rf_features, rfscore, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, rfscore, samesource) %>%
+  ggplot(aes(x = value, y = rfscore, color = samesource)) + 
+  geom_point() + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Random Forest Score", color = "Same Source?",
+       title = "Hamby 224 Testing Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+```
+
 ### Deciding on LIME Input Settings
 
 In order to decide on which LIME settings to use for the firearm examiners' paper, I decided to create a table that ranks each of the 12 input settings by MSE from the single implementation, the average MSE across the 10 implementations, the average number of top features chosen across the 10 implementations, and the average $R^2$ value from the single implementation. The first table below is for set 1, and the second table below is for set 11.
+
+While using these to help me decide which input settings to use, I had a handful of thoughts:
+
+* Since I am still working on making sense of the variation results, and it would be nice to get the first paper out, I am thinking of basing the decision of input values entirely off of only the assessment measures from the one case.
+* Even with needing more time to think about how to understand the meaning of the results from the 10 reps, the mean MSE from these has very similar results to the MSEs from the one rep, and it does not appear that the top chosen features vary too much between the reps. This makes me think that it would be okay to base my decision off of the results from the single rep.
+* Both Heike and I do not think that the $R^2$ is that helpful of a measure for determining whether the LIME explanations are good, so I am not going to put much weight on it.
+* Additionally, I do not want to consider either the normal approximation or kernel density estimate since I have not figured out a good way to visualize these in the app. Right now, the feature plots from these explanations are not very helpful. I would need to adjust the intercept or something.
+
+Based on the MSEs from the single impelementation of LIME, I will use 3 equally spaced bins for both the set 1 and set 11 explanations in the firearm examiner paper since it leads to the lowest MSE for both sets.
 
 ```{r}
 joined_results <- hamby224_lime_results %>%
@@ -625,7 +664,6 @@ joined_results <- hamby224_lime_results %>%
             by = c("set", "situation")) %>%
   full_join(hamby224_consistency %>% select(set, situation, mean_nlevels, sd_nlevels), 
             by = c("set", "situation")) %>%
-  #filter(!(situation %in% c("normal approximation", "kernel density"))) %>%
   group_by(set) %>%
   mutate(mse_order = dense_rank(mse),
          ave_r2_order = dense_rank(desc(ave_r2)),
@@ -639,12 +677,20 @@ joined_results %>%
   filter(set == "Set 1") %>%
   select(situation, mse_order, mean_sensitivity_mse_order, mean_nlevels_order, ave_r2_order) %>%
   arrange(mse_order, mean_sensitivity_mse_order, mean_nlevels_order, ave_r2_order) %>%
-  knitr::kable()
+  DT::datatable(options = list(pageLength = 12, paging = FALSE, searching = FALSE),
+                rownames = FALSE,
+                colnames = c("Situation", "MSE", "Mean MSE", "Mean Number of Top Features", 
+                             "Mean R2"),
+                caption = "Results from Set 1")
 
 joined_results %>%
   ungroup() %>%
   filter(set == "Set 11") %>%
   select(situation, mse_order, mean_sensitivity_mse_order, mean_nlevels_order, ave_r2_order) %>%
   arrange(mse_order, mean_sensitivity_mse_order, mean_nlevels_order, ave_r2_order) %>%
-  knitr::kable()
+  DT::datatable(options = list(pageLength = 12, paging = FALSE, searching = FALSE),
+                rownames = FALSE,
+                colnames = c("Situation", "MSE", "Mean MSE", "Mean Number of Top Features", 
+                             "Mean R2"),
+                caption = "Results from Set 11")
 ```
