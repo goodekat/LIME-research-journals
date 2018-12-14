@@ -47,9 +47,11 @@ ui <- fluidPage(
   # Application title
   titlePanel("LIME Explanations for Bullet Matching"),
   
+  # fluidRow(column(width = 12,
+  #                 checkboxInput("limeoptions", "Show LIME Input Options", value = FALSE))),
+  
   # Row for input options
   fluidRow(column(width = 6,
-                  #p("This app allows the user to explore the LIME explanations for Hamby 224 predictions made by the random forest model rtrees."),
                   fluidRow(column(width = 6,
                                   selectInput("set", 
                                               label = "Select a Hamby 224 dataset", 
@@ -58,17 +60,20 @@ ui <- fluidPage(
                                     condition = "input.density == 'Bins'",
                                     selectInput('bintype',
                                                 label = "Select the bin type for LIME", 
-                                                choices =  c("Quantile Bins", 
-                                                             "Equally Spaced Bins")))),
+                                                choices =  c("Equally Spaced Bins",
+                                                             "Quantile Bins"),
+                                                selected = "Equally Spaced Bins"))),
                            column(width = 6,
                                   selectInput("density", 
                                               label = "Select density estimation method for LIME", 
-                                              choices = c("Bins", "Kernel Density", "Normal Approximation")),
+                                              choices = c("Bins", "Kernel Density", "Normal Approximation"),
+                                              selected = "Bins"),
                                   conditionalPanel(
                                     condition = "input.density == 'Bins'",
                                     selectInput("nbins", 
                                                 label = "Select the number of bins for LIME", 
-                                                choices = 2:6)))),
+                                                choices = 2:6,
+                                                selected = 3)))),
                   plotlyOutput("tileplot")),
           
            column(width = 6,

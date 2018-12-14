@@ -372,7 +372,7 @@ hamby224_lime_comparisons %>%
 #### Comparing Input Values by MSE and $R^2$
 
 In order to assess which lime implementation is doing the best job of capturing the predictions from the random forest model, I decided to calculate the mean squared error for each of the input situations. I defined the mean squared error as 
-  $$\frac{\sum_{i=1}^n (\hat{p}_{\mbox{simple}}-\hat{p}_{\mbox{complex}})^2}{n}$$
+  $$\frac{\sum_{i=1}^n (\hat{p}_{\mbox{simple},i}-\hat{p}_{\mbox{complex},i})^2}{n}$$
 where $n$ is the number of observations in the testing dataset (within a set). Additionally, I was curious to compare the fits of the ridge regression models across input values, so I calculated the average $R^2$ for each input situation.
 
 ```{r}
@@ -694,3 +694,23 @@ joined_results %>%
                              "Mean R2"),
                 caption = "Results from Set 11")
 ```
+
+
+```{r}
+library(rpart)
+
+tree <- rpart(samesource ~ ccf, data = hamby173and252_train, 
+              control = rpart.control(cp = 0.0005, maxdepth = 2))
+plot(tree)
+text(tree)
+
+tree2 <- cutree(tree, k = 5)
+```
+
+
+
+
+
+
+
+

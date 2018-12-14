@@ -5,7 +5,10 @@ TO DO LIST
 
 Questions:
 - can you sign my audit form?
+- conference money?
 - paper
+  - is the structure of the paper okay?
+  - are there any other sections I should add?
   - how much detail should I spend describing the datasets? how familiar are the examiners 
     with the data? should I include plots of the feature distributions?
   - is it okay if I mention that the input bin options were chosen using a mse, or is that
@@ -23,12 +26,12 @@ Completed:
     though the results do seem pretty consistent)
 - created a journal and moved all experimenting code into the journal
 - wrote up thoughts in journal
+- outline paper and think of more questions for Heike
 
 Current:
-- outline paper and think of more questions for Heike
 - make simple vs complicated app
-- look into computing a diversity measure for the sensitivity analysis
 - write a draft of the examiners paper (during break)
+- look into computing a diversity measure for the sensitivity analysis
 - read through LIME papers again
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 
