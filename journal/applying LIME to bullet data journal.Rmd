@@ -32,15 +32,15 @@ hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 rf_features <- rownames(rtrees$importance)
 ```
 
-# December 5, 2018 to December 14, 2018
+## December 5, 2018 to December 14, 2018
 
 I decided to start a journal this week to keep track of the work I am doing in regards to applying LIME to the Hamby bullet data. I have been trying to decide which input values to use for LIME in the forensic examiners' paper, and I have decided that I would like to simplify matters even more by only focusing on a few input options. I have considered a handful of ways of answering this question (accuracy within one implementation of lime, accuracy across 10 implementations of lime, etc.), but I would like to reserve some of these ways for a future more technical paper. However, I would like a place to store my work to use for future purposes, and it would be nice to have a place to work where I do not feel the need to optimize code. I am hoping that this will be a place where I can write drafts of code and create first versions of graphics. Then I can clean up and organize the code when I write the paper.
 
 Prior to this journal, I had been working on all of my ideas in the R markdown document for the paper, but now I am going to transfer a lot of that code to this journal. Many of the sections below include work that I did earlier this semester. I am just transferring them here now. Later I will move the necessary parts to the paper.
 
-## Previous Work
+### Previous Work
 
-### Feature Plots of Training and Testing Data Filled by `samesource`
+#### Feature Plots of Training and Testing Data Filled by `samesource`
 
 I created the following two plots of the training data as suggested by Heike. The histograms below show the distributions of the features used in the random forest `rtrees`. The histograms are filled by the `samesource` variable, which is the truth of whether or not the comparison is from the same barrel and land. The default histograms make it hard to compare the distributions of the matches and non-matches since there are many more comparisons that have `samesource == FALSE`.
 
@@ -108,7 +108,7 @@ hamby224_test %>%
   theme(legend.position = "bottom")
 ```
 
-### Correlation Plots of Training and Testing Data
+#### Correlation Plots of Training and Testing Data
 
 I made these plots to look at the correlation between features in the training data within the TRUE and FALSE cases of samesource. The features are highly correlated for the match comparisons. It is clear that the variables are more correlated with the match comparisons than the non-match comparisons. However, there are still some variables that are relatively highly correlation with the non-match comparisons.
 
@@ -229,7 +229,7 @@ plot_grid(cor_title_test,
           rel_heights = c(0.25, 3))
 ```
 
-### Visualizations of the LIME Explanations
+#### Visualizations of the LIME Explanations
 
 Heike made a plot with the structure of the one below when we began with the default settings of `lime`. This one has been created from the lime explanations with 2 quantile bins. It includes all three of the chosen features for each case in the testing dataset. For both sets, the cutoff of 0.275 < ccf occurs the most frequently.
 
@@ -262,7 +262,7 @@ hamby224_test %>%
   labs(x = "", y = "", fill = "RF Score")
 ```
 
-### Draft of LIME Procedure from the `lime` R Package
+#### Draft of LIME Procedure from the `lime` R Package
 
 I wrote this up to start thinking about how to describe the procedure that the `lime` R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner's paper will be much simpler...
 
@@ -310,11 +310,11 @@ For the prediction of interest,
 
 Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
 
-## Work on Determining Input Values for LIME
+### Work on Determining Input Values for LIME
 
 When we began looking at the explanations from `lime` with the default settings, we did not think that they made sense. This led me to try applying LIME with a handful of input values. However, since LIME is based on random permutations, I was curious to know how consistent the results were. This led me to try running each implementation for specific starting values a handful of times. The next two sections consider the results from these studies.
 
-### Assessing the Accuracy of the LIME Results
+#### Assessing the Accuracy of the LIME Results
 
 The figures in this section are created from the implementations of LIME on the set 1 from the training data for the input options of 2 to 6 quantile bins, 2 to 6 equally spaced bins, kernel density estimation, and normal distribtion approximation. Each set of input values was only run once.
 
@@ -324,7 +324,7 @@ The figures in this section are created from the implementations of LIME on the 
 hamby224_lime_comparisons <- readRDS("../data/hamby224_lime_comparisons.rds")
 ```
 
-#### Complex versus Simple Model Predictions
+##### Complex versus Simple Model Predictions
 
 The plot below compares the predictions from the "simple model" (the ridge regression model) and the "complex model" (the random forest `rtrees`) on the x-axis from the lime implementations with bin estimation (`bin_continuous == TRUE`). The simple model predictions are on the y-axis, and the complex model predictions are on the x-axis. The plot is faceted by number of bins and whether or not the bins are equally spaced or based on quantiles. The points are colored by the $R^2$ value from the fit of the simple model. The lines are linear regression lines fit to the data points within a facet. We would hope that there is a linear relationship between these two variables. None of the cases show strong linear trends, but some are more linear than others. The quantile bins show that the simple model never makes a prediction over 0.6, whereas the random forest model can have predictions of up to 1. The equally spaced bins do have probabilities that exceed 0.6, but only with 3 and 6 bins. I noticed that within the facets, the points are in mostly horiztonal strips, and the number of strips is about the number of bins from the lime implementation.
 
@@ -369,7 +369,7 @@ hamby224_lime_comparisons %>%
   geom_hline(yintercept = 0, color = "blue")
 ```
 
-#### Comparing Input Values by MSE and $R^2$
+##### Comparing Input Values by MSE and $R^2$
 
 In order to assess which lime implementation is doing the best job of capturing the predictions from the random forest model, I decided to calculate the mean squared error for each of the input situations. I defined the mean squared error as 
   $$\frac{\sum_{i=1}^n (\hat{p}_{\mbox{simple},i}-\hat{p}_{\mbox{complex},i})^2}{n}$$
@@ -426,7 +426,7 @@ hamby224_lime_results %>%
         legend.position = "bottom")
 ```
 
-### Assessing the Variability of the LIME Results
+#### Assessing the Variability of the LIME Results
 
 In order to assess how variable the LIME results are, I ran each of the 12 input situations 10 times. I wanted to look at the variability of the mse for each situation, and I wanted to see how consistent the choice of selected features is by LIME.
 
@@ -583,6 +583,8 @@ The plot below needs some work, but it does contain some interesting information
 
 The fact that different features get chosen as the top feature for different estimation techniques makes sense. You would expect that the number of bins would determine which features are better suited for predicting whether or not a comparison is a match. For example, if you look back at the feature distribution plots, you can see that ccf is the obvious choice for determining between matches and non-matches if you have to choose two equally spaced bins. This is the feature that lime most frequently chooses. You can make similar arguments for other cases as well. Even though different inputs select different variables, I would expect that some variables will be better at prediction than others. I think this is what leads some input values to better LIME explanations and lower MSEs than others.
 
+In the meeting with Heike, we talked about how this plot suggests that LIME is not doing a very good job of providing local explanations. Regardless of the case, it is often suggesting only one of two variables are important, and the variable importance depends on the number of bins. In this plot, I would like consistency in the x-direction, but I would like variability in the y-direction to better understand the variables that are important for a specific case.
+
 ```{r fig.height = 8, fig.width = 10}
 hamby224_sensitivity_results %>%
   filter(set == "Set 1") %>%
@@ -627,7 +629,7 @@ hamby224_test %>%
 
 ```
 
-### Deciding on LIME Input Settings
+#### Deciding on LIME Input Settings
 
 In order to decide on which LIME settings to use for the firearm examiners' paper, I decided to create a table that ranks each of the 12 input settings by MSE from the single implementation, the average MSE across the 10 implementations, the average number of top features chosen across the 10 implementations, and the average $R^2$ value from the single implementation. The first table below is for set 1, and the second table below is for set 11.
 
@@ -695,21 +697,19 @@ joined_results %>%
                 caption = "Results from Set 11")
 ```
 
+#### Notes on meeting with Heike
 
-```{r}
-library(rpart)
+* We talked about including the penalty for the number of parameters in the dicussion of the paper.
+* We talked about using a tree to choose the bins. This would allow us to automate the process and to obtain a penalty parameter since the trees give us nesting. (MSE + lambda * p where p is the from the number of trees multiplied by the number of ...)
+* Look at the AUC after binning
 
-tree <- rpart(samesource ~ ccf, data = hamby173and252_train, 
-              control = rpart.control(cp = 0.0005, maxdepth = 2))
-plot(tree)
-text(tree)
+## December 15, 2018 to January 8, 2018
 
-tree2 <- cutree(tree, k = 5)
+Heike wrote the function `treebink` to take x and y variables for fitting a tree and returning the cuts for $k$ bins based on the splits from the tree. Here is an example using the function below with the predictor variable of ccf.
+
+```{r echo = TRUE}
+treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 5)
 ```
-
-
-
-
 
 
 

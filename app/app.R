@@ -47,8 +47,8 @@ ui <- fluidPage(
   # Application title
   titlePanel("LIME Explanations for Bullet Matching"),
   
-  # fluidRow(column(width = 12,
-  #                 checkboxInput("limeoptions", "Show LIME Input Options", value = FALSE))),
+  fluidRow(column(width = 12,
+                 checkboxInput("limeoptions", "Show LIME input options", value = FALSE))),
   
   # Row for input options
   fluidRow(column(width = 6,
@@ -56,14 +56,16 @@ ui <- fluidPage(
                                   selectInput("set", 
                                               label = "Select a Hamby 224 dataset", 
                                               choices = c("Set 1", "Set 11")),
+                                  conditionalPanel(condition = "input.limeoptions",
                                   conditionalPanel(
                                     condition = "input.density == 'Bins'",
                                     selectInput('bintype',
                                                 label = "Select the bin type for LIME", 
                                                 choices =  c("Equally Spaced Bins",
                                                              "Quantile Bins"),
-                                                selected = "Equally Spaced Bins"))),
+                                                selected = "Equally Spaced Bins")))),
                            column(width = 6,
+                                  conditionalPanel(condition = "input.limeoptions",
                                   selectInput("density", 
                                               label = "Select density estimation method for LIME", 
                                               choices = c("Bins", "Kernel Density", "Normal Approximation"),
@@ -73,7 +75,7 @@ ui <- fluidPage(
                                     selectInput("nbins", 
                                                 label = "Select the number of bins for LIME", 
                                                 choices = 2:6,
-                                                selected = 3)))),
+                                                selected = 3))))),
                   plotlyOutput("tileplot")),
           
            column(width = 6,
@@ -128,7 +130,7 @@ server <- function(input, output) {
       } 
       
       # Make the plot interactive
-      ggplotly(plot, source = "tileplot", width = 700, height = 550, tooltip = "text") %>%
+      ggplotly(plot, source = "tileplot", width = 635, height = 525, tooltip = "text") %>%
         style(hoverinfo = "skip", traces = 7) %>% 
         config(displayModeBar = FALSE)
   

@@ -4,38 +4,25 @@ TO DO LIST
 -------------
 
 Questions:
-- can you sign my audit form?
 - conference money?
-- paper
-  - is the structure of the paper okay?
-  - are there any other sections I should add?
-  - how much detail should I spend describing the datasets? how familiar are the examiners 
-    with the data? should I include plots of the feature distributions?
-  - is it okay if I mention that the input bin options were chosen using a mse, or is that
-    too much for the forensic examiners' paper?
-  - how much of a literature review should I do? what papers should I include in the lit 
-    review (other interpretation methods)? how indepth should I get with this paper?
+- ask about ggResidpanel error: Error in grid.Call(C_textBounds, as.graphicsAnnot(x$label),
+  x$x, x$y, : polygon edge not found
 
 Thoughts:
 
 Completed:
-- visualize and summarize the variation results
-- choose an option that leads to both consistent and accurate results
-  - I think that for this paper, it may be better to just focus on the result that 
-    provides the most "accurate" result (think more about consistency later - even
-    though the results do seem pretty consistent)
-- created a journal and moved all experimenting code into the journal
-- wrote up thoughts in journal
-- outline paper and think of more questions for Heike
+- write more detailed description of the issues with current settings of lime
+- make simple vs complicated app
 
 Current:
-- make simple vs complicated app
 - write a draft of the examiners paper (during break)
+- try out different weights
+- work with Heike's function to get the tree bins up and running
 - look into computing a diversity measure for the sensitivity analysis
 - read through LIME papers again
-- compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 
 Later:
+- compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
 - add distribution visualizations to the app with the chosen bins
 - try out logistic regression idea for bins (write own bin list to put in explain)
 - try out subsampling idea

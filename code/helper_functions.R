@@ -162,3 +162,60 @@ bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, c
   return(feature_bin)
   
 }
+
+## ---------------------------------------------------------------
+## Create Bins using a Tree
+## ---------------------------------------------------------------
+
+# Function to get from a tree to k bins:
+# Inputs: x = feature, y = response variable, k = number of bins
+# Outputs: k-1 values for breakpoints (does not include minimum and maximum)
+
+library(tidyverse)
+library(rpart)
+library(partykit)
+
+treebink <- function (y, x, k, minsplit = 20) {
+  
+  cp <- 0.01
+  tree <- rpart::rpart(y ~ x, control = rpart.control(cp = cp, minsplit = minsplit))
+  while ((nrow(tree$cptable) < k) & (cp > 1e-9)) {
+    cp <- cp/10
+    tree <- rpart::rpart(y ~ x, control = rpart.control(cp = cp, minsplit = minsplit))
+  }
+  cpdf <- data.frame(tree$cptable)
+  idx <- which(cpdf$nsplit == k-1)
+  if (length(idx) == 0) idx <- nrow(cpdf)
+  cp <- cpdf$CP[idx]
+  tree <-  rpart::prune(tree, cp = cp)
+  
+  ###############
+  # now we have a tree with the right number of splits
+  
+  nodes <- partykit:::.list.rules.party(as.party(tree))
+  dframe <- data.frame(rule = nodes)
+  dframe$split <- strsplit(as.character(dframe$rule), " & ")
+  dframe$id <- 1:nrow(dframe)
+  
+  dframe <- dframe %>% unnest(split)
+  dframe <- dframe %>% mutate(value = readr::parse_number(split)
+                              #  lower = stringr::str_detect(split, pattern = ">=")
+  )
+  # we could now do all sorts of fancy interval output, but we just need the breaks
+  breaks <- sort(unique(dframe$value))
+  if (length(breaks) != k-1) warning("Not enough intervals found, consider decreasing minsplit (default is 20)")
+  breaks
+  
+}
+
+# Examples:
+# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 5)
+# 
+# # gives warning
+# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 10)
+# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 10, minsplit = 5)
+# 
+# # gives warning
+# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 5, minsplit = 40)
+
+
