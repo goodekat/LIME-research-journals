@@ -10,7 +10,8 @@ bibliography: references.bib
 
 ```{r setup, include = FALSE}
 # Set knitr options
-knitr::opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, fig.pos = "center")
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE, 
+                      fig.pos = "center")
 
 # Load libraries
 library(tidyverse)
@@ -285,13 +286,35 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
   # Finish creating the strictly less than variable
   hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
   
-  # Reorder the variables of feature_desc and feature_bin for plotting purposes
+  # Reorder the variables of feature_desc and feature_bin for plotting purposes and
+  # create new variables of situation and bin_situation
   hamby224_test_explain <- hamby224_test_explain %>%
     mutate(feature_desc = reorder(feature_desc, strictly_less),
            feature_desc = reorder(feature_desc, feature_number),
            feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
-    select(bin_continuous:bin_method, case:feature_desc, feature_bin:strictly_less, 
-           data, prediction)
+    mutate(nbins = as.numeric(as.character(nbins)),
+           situation = ifelse(bin_continuous == TRUE & bin_method == "quantile_bins", 
+                              sprintf("%.0f quantile bins", nbins),
+                              ifelse(bin_continuous == TRUE & bin_method == "equally_spaced",
+                                     sprintf("%.0f equally spaced bins", nbins),
+                                     ifelse(bin_continuous == TRUE & bin_method == "tree",
+                                            sprintf("%.0f tree based bins", nbins),
+                                            ifelse(bin_continuous == FALSE & use_density == TRUE, 
+                                                   "kernel density", 
+                                                   "normal approximation")))) %>%
+             fct_relevel("2 quantile bins", "3 quantile bins", "4 quantile bins",
+                         "5 quantile bins", "6 quantile bins", "2 equally spaced bins",
+                         "3 equally spaced bins", "4 equally spaced bins",
+                         "5 equally spaced bins", "6 equally spaced bins")) %>%
+    mutate(bin_situation = ifelse(bin_method == "quantile_bins" & bin_continuous == TRUE,
+                                "quantile bins",
+                                ifelse(bin_method == "equally_spaced" & bin_continuous == TRUE,
+                                       "equally spaced bins", 
+                                       ifelse(bin_method == "tree" & bin_continuous == TRUE,
+                                              "tree based bins", "other")))) %>%
+    mutate(bin_situation = factor(bin_situation)) %>%
+    select(situation, bin_situation, bin_continuous:bin_method, case:feature_desc,
+           feature_bin:strictly_less, data, prediction)
 
   # Save the combined test and explain data
   saveRDS(hamby224_test_explain, "../data/hamby224_test_explain.rds")
@@ -316,10 +339,11 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
     group_by(case, bin_continuous, quantile_bins, nbins, use_density, bin_method) %>%
     slice(1) %>%
     ungroup() %>%
-    select(bin_continuous, quantile_bins, nbins, use_density, 
+    select(situation, bin_situation, bin_method, bin_continuous, quantile_bins, nbins, use_density, 
            set, case, rf_features, rfscore, model_prediction, model_r2) %>%
     mutate(diff = rfscore - model_prediction,
            mean = (rfscore + model_prediction) / 2)
+    
   
   # Save the lime comparison data frame
   saveRDS(hamby224_lime_comparisons, "../data/hamby224_lime_comparisons.rds")
