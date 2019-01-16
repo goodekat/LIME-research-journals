@@ -170,23 +170,25 @@ The developers of LIME wrote a Python package to implement LIME, and Thomas Lin 
 if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   
   # Specify the options to use with lime
-  hamby224_lime_inputs <- data.frame(bin_continuous = c(rep(TRUE, 10), rep(FALSE, 2)),
-                                     quantile_bins = c(rep(TRUE, 5), rep(FALSE, 5), 
-                                                       rep(TRUE, 2)),
-                                     nbins = c(rep(2:6, 2), rep(4, 2)),
-                                     use_density = c(rep(TRUE, 10), TRUE, FALSE)) %>%
-    mutate(case = 1:length(bin_continuous)) %>%
-    select(case, bin_continuous, nbins, quantile_bins, use_density)
+  hamby224_lime_inputs <- list(bin_continuous = c(rep(TRUE, 15), rep(FALSE, 2)),
+                               quantile_bins = c(rep(TRUE, 5), rep(FALSE, 5), 
+                                                 rep(TRUE, 5), rep(TRUE, 2)),
+                               nbins = c(rep(2:6, 3), rep(4, 2)),
+                               use_density = c(rep(TRUE, 15), TRUE, FALSE),
+                               bin_method = c(rep("quantile_bins", 5),
+                                              rep("equally_spaced", 5),
+                                              rep("tree", 5),
+                                              rep("quantile_bins", 2)))
   
   # Tell R to run the upcoming code in parallel
   plan(multiprocess)
   
   # Apply lime to the full training data with the specified input options
-  hamby224_lime_explain <- future_pmap(.l = as.list(hamby224_lime_inputs %>% 
-                                                    select(-case)),
+  hamby224_lime_explain <- future_pmap(.l = hamby224_lime_inputs,
              .f = run_lime, # run_lime is one of my helper functions
              train = hamby173and252_train %>% select(rf_features),
              test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+             response = hamby173and252_train$samesource,
              rfmodel = as_classifier(rtrees),
              label = "TRUE",
              nfeatures = 3,
@@ -197,13 +199,22 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   hamby224_explain <- map_df(hamby224_lime_explain, function(list) list$explain)
   
   # Name the items in the lime list
-  names(hamby224_lime) <- map_chr(1:dim(hamby224_lime_inputs)[1], function(case) 
-      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s",
+  names(hamby224_lime) <- map_chr(1:length(hamby224_lime_inputs), function(case) 
+      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s, bin_method = %s",
               hamby224_lime_inputs$bin_continuous[case],
               hamby224_lime_inputs$quantile_bins[case],
               hamby224_lime_inputs$nbins[case],
-              hamby224_lime_inputs$use_density[case]))
+              hamby224_lime_inputs$use_density[case],
+              hamby224_lime_inputs$bin_method[case]))
 
+  hamby224_lime_inputs <- hamby224_lime_inputs %>%
+    unlist() %>%
+    matrix(ncol = length(hamby224_lime_inputs), 
+           dimnames = list(NULL, names(hamby224_lime_inputs))) %>%
+    as.data.frame() %>%
+    mutate(case = 1:length(hamby224_lime_inputs$quantile_bins)) %>%
+    select(case, bin_continuous:bin_method)
+  
   # Save the lime objects
   saveRDS(hamby224_lime_inputs, "../data/hamby224_lime_inputs.rds")
   saveRDS(hamby224_lime, "../data/hamby224_lime.rds")
@@ -260,7 +271,8 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
                                   b_c = bin_continuous,
                                   q_b = quantile_bins,
                                   n_b = nbins,
-                                  u_d = use_density),
+                                  u_d = use_density,
+                                  b_m = bin_method),
                             .f = bin_labeller, # bin_labeller is one of my helper functions
                             bin_data = hamby224_bin_boundaries,
                             case_info = hamby224_lime_inputs)) %>%
@@ -278,7 +290,7 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
     mutate(feature_desc = reorder(feature_desc, strictly_less),
            feature_desc = reorder(feature_desc, feature_number),
            feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
-    select(bin_continuous:use_density, case:feature_desc, feature_bin:strictly_less, 
+    select(bin_continuous:bin_method, case:feature_desc, feature_bin:strictly_less, 
            data, prediction)
 
   # Save the combined test and explain data
@@ -301,7 +313,7 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
   # model predictions
   hamby224_lime_comparisons <- hamby224_test_explain %>%
     select(-data, -prediction) %>%
-    group_by(case, bin_continuous, quantile_bins, nbins, use_density) %>%
+    group_by(case, bin_continuous, quantile_bins, nbins, use_density, bin_method) %>%
     slice(1) %>%
     ungroup() %>%
     select(bin_continuous, quantile_bins, nbins, use_density, 

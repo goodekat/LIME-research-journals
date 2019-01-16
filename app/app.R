@@ -62,7 +62,8 @@ ui <- fluidPage(
                                     selectInput('bintype',
                                                 label = "Select the bin type for LIME", 
                                                 choices =  c("Equally Spaced Bins",
-                                                             "Quantile Bins"),
+                                                             "Quantile Bins",
+                                                             "Tree Based Bins"),
                                                 selected = "Equally Spaced Bins")))),
                            column(width = 6,
                                   conditionalPanel(condition = "input.limeoptions",
@@ -176,16 +177,22 @@ server <- function(input, output) {
           chosen_estimator <- TRUE
           chosen_bintype <- TRUE
           chosen_nbins <- 4
+          chosen_method <- "quantile_bins"
         } else if (input$density == "Normal Approximation") {
           chosen_bins <- FALSE
           chosen_estimator <- FALSE
           chosen_bintype <- TRUE
           chosen_nbins <- 4
+          chosen_method <- "quantile_bins"
         } else {
           chosen_bins <- TRUE
           chosen_estimator <- TRUE
-          chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
+          chosen_bintype <- ifelse(input$bintype %in% c("Quantile Bins", "Tree Based Bins"),
+                                   TRUE, FALSE)
           chosen_nbins <- input$nbins
+          chosen_method <- ifelse(input$bintype == "Quantile Bins", "quantile_bins",
+                                  ifelse(input$bintype == "Equally Spaced Bins", "equally_spaced",
+                                         "tree"))
         }
         
         # Create a dataset with the feature information for the selected comparison
@@ -195,6 +202,7 @@ server <- function(input, output) {
                  quantile_bins == chosen_bintype,
                  nbins == chosen_nbins,
                  use_density == chosen_estimator,
+                 bin_method == chosen_method,
                  land1 == as.character(location$land1),
                  land2 == as.character(location$land2),
                  bullet1 == location$bullet1,
@@ -280,7 +288,7 @@ server <- function(input, output) {
     if(length(click_data)){
       
       if(!is.na(click_data$z)){
-            
+          
         # Grab the chosen input options
         chosen_set <- paste("Set", unlist(strsplit(input$set, split = " "))[2])
         if (input$density == "Kernel Density") {
@@ -288,16 +296,22 @@ server <- function(input, output) {
           chosen_estimator <- TRUE
           chosen_bintype <- TRUE
           chosen_nbins <- 4
+          chosen_method <- "quantile_bins"
         } else if (input$density == "Normal Approximation") {
           chosen_bins <- FALSE
           chosen_estimator <- FALSE
           chosen_bintype <- TRUE
           chosen_nbins <- 4
+          chosen_method <- "quantile_bins"
         } else {
           chosen_bins <- TRUE
           chosen_estimator <- TRUE
-          chosen_bintype <- ifelse(input$bintype == "Quantile Bins", TRUE, FALSE)
+          chosen_bintype <- ifelse(input$bintype %in% c("Quantile Bins", "Tree Based Bins"),
+                                   TRUE, FALSE)
           chosen_nbins <- input$nbins
+          chosen_method <- ifelse(input$bintype == "Quantile Bins", "quantile_bins",
+                                  ifelse(input$bintype == "Equally Spaced Bins", "equally_spaced",
+                                         "tree"))
         }
         
         # Create a dataset with the location of cell that was clicked
@@ -313,6 +327,7 @@ server <- function(input, output) {
                  quantile_bins == chosen_bintype,
                  nbins == chosen_nbins,
                  use_density == chosen_estimator,
+                 bin_method == chosen_method,
                  land1 == as.character(location$land1),
                  land2 == as.character(location$land2),
                  bullet1 == location$bullet1,
@@ -325,7 +340,8 @@ server <- function(input, output) {
           filter(bin_continuous == chosen_bins,
                  quantile_bins == chosen_bintype,
                  nbins == chosen_nbins,
-                 use_density == chosen_estimator) %>%
+                 use_density == chosen_estimator,
+                 bin_method == chosen_method) %>%
           pull(case)
         
         # Create a table with the observed data and bins if necessary

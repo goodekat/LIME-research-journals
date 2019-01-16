@@ -2,7 +2,11 @@
 title: "Applying LIME to Bullet Data Journal"
 author: "Katherine Goode"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
@@ -32,7 +36,7 @@ hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 rf_features <- rownames(rtrees$importance)
 ```
 
-## December 5, 2018 to December 14, 2018
+## 12/5/18 - 12/14/18
 
 I decided to start a journal this week to keep track of the work I am doing in regards to applying LIME to the Hamby bullet data. I have been trying to decide which input values to use for LIME in the forensic examiners' paper, and I have decided that I would like to simplify matters even more by only focusing on a few input options. I have considered a handful of ways of answering this question (accuracy within one implementation of lime, accuracy across 10 implementations of lime, etc.), but I would like to reserve some of these ways for a future more technical paper. However, I would like a place to store my work to use for future purposes, and it would be nice to have a place to work where I do not feel the need to optimize code. I am hoping that this will be a place where I can write drafts of code and create first versions of graphics. Then I can clean up and organize the code when I write the paper.
 
@@ -316,7 +320,7 @@ When we began looking at the explanations from `lime` with the default settings,
 
 #### Assessing the Accuracy of the LIME Results
 
-The figures in this section are created from the implementations of LIME on the set 1 from the training data for the input options of 2 to 6 quantile bins, 2 to 6 equally spaced bins, kernel density estimation, and normal distribtion approximation. Each set of input values was only run once.
+The figures in this section are created from the implementations of LIME on the set 1 from the training data for the input options of 2 to 6 quantile bins, 2 to 6 equally spaced bins, kernel density estimation, and normal distribution approximation. Each set of input values was only run once.
 
 ```{r}
 # Read in the lime comparison data (the comparisons are run in the firearm examiner
@@ -326,7 +330,7 @@ hamby224_lime_comparisons <- readRDS("../data/hamby224_lime_comparisons.rds")
 
 ##### Complex versus Simple Model Predictions
 
-The plot below compares the predictions from the "simple model" (the ridge regression model) and the "complex model" (the random forest `rtrees`) on the x-axis from the lime implementations with bin estimation (`bin_continuous == TRUE`). The simple model predictions are on the y-axis, and the complex model predictions are on the x-axis. The plot is faceted by number of bins and whether or not the bins are equally spaced or based on quantiles. The points are colored by the $R^2$ value from the fit of the simple model. The lines are linear regression lines fit to the data points within a facet. We would hope that there is a linear relationship between these two variables. None of the cases show strong linear trends, but some are more linear than others. The quantile bins show that the simple model never makes a prediction over 0.6, whereas the random forest model can have predictions of up to 1. The equally spaced bins do have probabilities that exceed 0.6, but only with 3 and 6 bins. I noticed that within the facets, the points are in mostly horiztonal strips, and the number of strips is about the number of bins from the lime implementation.
+The plot below compares the predictions from the "simple model" (the ridge regression model) and the "complex model" (the random forest `rtrees`) on the x-axis from the lime implementations with bin estimation (`bin_continuous == TRUE`). The simple model predictions are on the y-axis, and the complex model predictions are on the x-axis. The plot is faceted by number of bins and whether or not the bins are equally spaced or based on quantiles. The points are colored by the $R^2$ value from the fit of the simple model. The lines are linear regression lines fit to the data points within a facet. We would hope that there is a linear relationship between these two variables. None of the cases show strong linear trends, but some are more linear than others. The quantile bins show that the simple model never makes a prediction over 0.6, whereas the random forest model can have predictions of up to 1. The equally spaced bins do have probabilities that exceed 0.6, but only with 3 and 6 bins. I noticed that within the facets, the points are in mostly horizontal strips, and the number of strips is about the number of bins from the lime implementation.
 
 ```{r}
 hamby224_lime_comparisons %>%
@@ -341,7 +345,7 @@ hamby224_lime_comparisons %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-The plot below shows the absolute value of the difference between the complex model prediction and the simple model prediction versus the complex model prediction. The points are faceted by number of bins and whether the bins are equally spaced or based on quantiles. Again, the points are colored by the $R^2$ values from the simple model. All cases show a v-shaped trend. The low part of the v occurs around a random forest score of about 0.25. That is, the simple model is most accurately portraying the complex model predictions around the random forest score of 0.25. It gets worse near the extremes. However, it is interesting to note that with the equally spaced bins, the absolute difference decreases near 1 for 3 to 6 bins. This si not the case with the quantile bins. It appears that the equally spaced bins are able to make slightly better predictions than the quantile bins when there is a high probability of a match.
+The plot below shows the absolute value of the difference between the complex model prediction and the simple model prediction versus the complex model prediction. The points are faceted by number of bins and whether the bins are equally spaced or based on quantiles. Again, the points are colored by the $R^2$ values from the simple model. All cases show a v-shaped trend. The low part of the v occurs around a random forest score of about 0.25. That is, the simple model is most accurately portraying the complex model predictions around the random forest score of 0.25. It gets worse near the extremes. However, it is interesting to note that with the equally spaced bins, the absolute difference decreases near 1 for 3 to 6 bins. This is not the case with the quantile bins. It appears that the equally spaced bins are able to make slightly better predictions than the quantile bins when there is a high probability of a match.
 
 ```{r}
 hamby224_lime_comparisons %>%
@@ -355,7 +359,7 @@ hamby224_lime_comparisons %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-At somepoint, I got the idea in my head that it woudl be interesting to look at the "residuals" (difference in complex and simple model predictions) by feature. The plot below shows one example with the data from 3 equally spaced bins. There are clear trends in the plots, but I am not quite sure what to make of this or how to use it. This may be something to return to.
+At some point, I got the idea in my head that it would be interesting to look at the "residuals" (difference in complex and simple model predictions) by feature. The plot below shows one example with the data from 3 equally spaced bins. There are clear trends in the plots, but I am not quite sure what to make of this or how to use it. This may be something to return to.
 
 ```{r}
 hamby224_lime_comparisons %>%
@@ -559,7 +563,7 @@ hamby224_consistency %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-The bar chart below shows the proportion of different number of top features chosen across all test cases within a set for each input situation. This shows that the most different features chosen was four. However, many of the caes only have one or two different features chosen, and usually, a larger proportion of the cases have only one top feature chosen across the 10 reps.
+The bar chart below shows the proportion of different number of top features chosen across all test cases within a set for each input situation. This shows that the most different features chosen was four. However, many of the cases only have one or two different features chosen, and usually, a larger proportion of the cases have only one top feature chosen across the 10 reps.
 
 ```{r}
 hamby224_sensitivity_results %>%
@@ -640,7 +644,7 @@ While using these to help me decide which input settings to use, I had a handful
 * Both Heike and I do not think that the $R^2$ is that helpful of a measure for determining whether the LIME explanations are good, so I am not going to put much weight on it.
 * Additionally, I do not want to consider either the normal approximation or kernel density estimate since I have not figured out a good way to visualize these in the app. Right now, the feature plots from these explanations are not very helpful. I would need to adjust the intercept or something.
 
-Based on the MSEs from the single impelementation of LIME, I will use 3 equally spaced bins for both the set 1 and set 11 explanations in the firearm examiner paper since it leads to the lowest MSE for both sets.
+Based on the MSEs from the single implementation of LIME, I will use 3 equally spaced bins for both the set 1 and set 11 explanations in the firearm examiner paper since it leads to the lowest MSE for both sets.
 
 ```{r}
 joined_results <- hamby224_lime_results %>%
@@ -699,11 +703,11 @@ joined_results %>%
 
 #### Notes on meeting with Heike
 
-* We talked about including the penalty for the number of parameters in the dicussion of the paper.
+* We talked about including the penalty for the number of parameters in the discussion of the paper.
 * We talked about using a tree to choose the bins. This would allow us to automate the process and to obtain a penalty parameter since the trees give us nesting. (MSE + lambda * p where p is the from the number of trees multiplied by the number of ...)
 * Look at the AUC after binning
 
-## December 15, 2018 to January 8, 2018
+## 12/15/18 - 1/13/19
 
 Heike wrote the function `treebink` to take x and y variables for fitting a tree and returning the cuts for $k$ bins based on the splits from the tree. Here is an example using the function below with the predictor variable of ccf.
 
@@ -711,6 +715,53 @@ Heike wrote the function `treebink` to take x and y variables for fitting a tree
 treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 5)
 ```
 
+## 1/14/19 - ?
 
+### Goals
 
+Goals for spring semester:
+
+- implement ideas for better binning methods
+- write draft of firearm examiner's paper with everything but the methods and results sections
+- find an idea that leads to better LIME explanations
+- once the better LIME binning method has been selected, write the methods and results sections
+- make plans for the statistical paper
+
+Goals for week 1:
+
+- set up meeting time with Heike
+- get tree method up and running
+- start to work on evaluation of the results of the new method
+- start looking into the weights
+- work on introduction and data section of firearm examiners' paper
+
+### Visualizations of Tree Based Bins Results
+
+```{r}
+# I need to fix the situations to new options 
+hamby224_test_explain %>%
+  mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
+                            sprintf("%.0f quantile bins", nbins),
+                            ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
+                                   sprintf("%.0f equally spaced bins", nbins),
+                                   ifelse(bin_continuous == FALSE & use_density == TRUE, 
+                                          "kernel density", "normal approximation"))),
+         diff = rfscore - model_prediction) %>%
+  mutate(situation = fct_relevel(situation, 
+                                 "2 quantile bins", 
+                                 "3 quantile bins",
+                                 "4 quantile bins",
+                                 "5 quantile bins",
+                                 "6 quantile bins")) %>%
+  mutate(bin_situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE,
+                                "quantile bins",
+                                ifelse(bin_continuous == TRUE & quantile_bins == FALSE,
+                                       "equally spaced bins", "other"))) %>%
+  filter(set == "Set 1") %>%
+  droplevels() %>%
+  na.omit() %>%
+  select(situation, case, feature, feature_weight) %>%
+  ggplot(aes(x = case, y = situation, fill = feature)) + 
+  geom_tile()
+```
 

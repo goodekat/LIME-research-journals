@@ -1,28 +1,187 @@
 ## Helper Functions for the Paper
 
 ## ---------------------------------------------------------------
+## Create Bins using a Tree
+## ---------------------------------------------------------------
+
+# Function to get from a tree to k bins:
+# Inputs: x = feature, y = response variable, k = number of bins
+# Outputs: k-1 values for breakpoints (does not include minimum and maximum)
+
+library(tidyverse)
+library(rpart)
+library(partykit)
+
+treebink <- function (y, x, k, minsplit = 20) {
+  
+  cp <- 0.01
+  tree <- rpart::rpart(y ~ x, control = rpart.control(cp = cp, minsplit = minsplit))
+  while ((nrow(tree$cptable) < k) & (cp > 1e-9)) {
+    cp <- cp/10
+    tree <- rpart::rpart(y ~ x, control = rpart.control(cp = cp, minsplit = minsplit))
+  }
+  cpdf <- data.frame(tree$cptable)
+  cpdf$ksplits <- cpdf$nsplit-(k-1)
+  idx <- which.min(abs(cpdf$ksplits))
+   
+  cp <- cpdf$CP[idx]
+  tree <-  rpart::prune(tree, cp = cp)
+  
+  ###############
+  # now we have a tree with the right number of splits
+  
+  nodes <- partykit:::.list.rules.party(as.party(tree))
+  dframe <- data.frame(rule = nodes)
+  dframe$split <- strsplit(as.character(dframe$rule), " & ")
+  dframe$id <- 1:nrow(dframe)
+  
+  dframe <- dframe %>% unnest(split)
+  dframe <- dframe %>% mutate(value = readr::parse_number(split)
+                              #  lower = stringr::str_detect(split, pattern = ">=")
+  )
+  # we could now do all sorts of fancy interval output, but we just need the breaks
+  breaks <- sort(unique(dframe$value))
+  if (length(breaks) != k-1) warning("Not enough intervals found, consider decreasing minsplit (default is 20)")
+  breaks
+  
+}
+
+# Examples:
+# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 5)
+# 
+# # gives warning
+# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 10)
+# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 10, minsplit = 5)
+# 
+# # gives warning
+# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 5, minsplit = 40)
+
+## ---------------------------------------------------------------
+## My Version of the LIME Function (includes tree binning option)
+## ---------------------------------------------------------------
+
+# x: The features from the training data used for training the model that should be explained.
+# y: The resopnse variable from the training dataset
+# model: The model whose output should be explained
+# preprocess: Function to transform a character vector to the format expected from the model.
+# tokenization: function used to tokenize text for the permutations.
+# keep_word_position: set to TRUE if to keep order of words. Warning: each word will be replaced by word_position.
+# ...: Arguments passed on to methods
+# bin_continuous: Should continuous variables be binned when making the explanation
+# n_bins: The number of bins for continuous variables if bin_continuous = TRUE
+# quantile_bins: Should the bins be based on n_bins quantiles or spread evenly over the range of the training data
+# use_density: If bin_continuous = FALSE should continuous data be sampled using a kernel density estimation. If not, 
+#              continuous features are expected to follow a normal distribution.
+# bin_method: Binning method that should be used ("quantile_bins", "equally_spaced", or "tree")
+
+library(assertthat)
+
+mylime <- function(x, y, model, preprocess = NULL, bin_continuous = TRUE, n_bins = 4, 
+                   quantile_bins = TRUE, use_density = TRUE, bin_method = "quantile_bins", ...) {
+  
+  # Transform a character vector to the format expected from the model.
+  if (is.null(preprocess)) preprocess <- function(x) x
+  assert_that(is.function(preprocess))
+  
+  # Create the explaniner 
+  explainer <- c(as.list(environment()), list(...))
+  
+  # Set the explainer values of x and y to NULL
+  explainer$x <- NULL
+  explainer$y <- NULL
+  
+  # Determines the type of each variable in the data
+  explainer$feature_type <- setNames(sapply(x, function(f) {
+    if (is.integer(f)) {
+      if (length(unique(f)) == 1) 'constant' else 'integer'
+    } else if (is.numeric(f)) {
+      if (length(unique(f)) == 1) 'constant' else 'numeric'
+    } else if (is.character(f)) {
+      'character'
+    } else if (is.factor(f)) {
+      'factor'
+    } else if (is.logical(f)) {
+      'logical'
+    } else if (inherits(f, 'Date') || inherits(f, 'POSIXt')) {
+      'date_time'
+    } else {
+      stop('Unknown feature type', call. = FALSE)
+    }
+  }), names(x))
+  
+  # Return a warning if any variable is a constant
+  if (any(explainer$feature_type == 'constant')) {
+    warning('Data contains numeric columns with zero variance', call. = FALSE)
+  }
+  
+  # Obtain the bin cuts using the specified method
+  bin_method <- as.character(bin_method)
+  explainer$bin_cuts <- setNames(lapply(seq_along(x), function(i) {
+    if (explainer$feature_type[i] %in% c('numeric', 'integer')) {
+      if (bin_method == "quantile_bins") {
+        bins <- quantile(x[[i]], seq(0, 1, length.out = n_bins + 1), na.rm = TRUE)
+        bins[!duplicated(bins)]
+      } else if (bin_method == "equally_spaced") {
+        d_range <- range(x[[i]], na.rm = TRUE)
+        seq(d_range[1], d_range[2], length.out = n_bins + 1)
+      } else if (bin_method == "tree"){
+        inner <- treebink(y = y, x[[i]], k = n_bins)
+        min <- min(x[[i]])
+        max <- max(x[[i]])
+        bins <- c(min, inner, max)
+        return(bins)
+      }
+    }
+  }), names(x))
+  
+  # Determine the proportion of values between each of the bin cuts
+  explainer$feature_distribution <- setNames(lapply(seq_along(x), function(i) {
+    switch(
+      explainer$feature_type[i],
+      integer = ,
+      numeric = if (bin_continuous) {
+        table(cut(x[[i]], unique(explainer$bin_cuts[[i]]), labels = FALSE, include.lowest = TRUE))/nrow(x)
+      } else if (use_density) {
+        density(x[[i]])
+      } else {
+        c(mean = mean(x[[i]], na.rm = TRUE), sd = sd(x[[i]], na.rm = TRUE))
+      },
+      character = ,
+      logical = ,
+      factor = table(x[[i]])/nrow(x),
+      NA
+    )
+  }), names(x))
+  
+  # Attach a structure to the explainer
+  structure(explainer, class = c('data_frame_explainer', 'explainer', 'list'))
+  
+}
+
+## ---------------------------------------------------------------
 ## Run the Lime Functions
 ## ---------------------------------------------------------------
 
 # Function for running the lime functions which runs the lime and explain 
 # objects in a list
-run_lime <- function(bin_continuous, quantile_bins, nbins, use_density,
-                     train, test, rfmodel, label, nfeatures, 
-                     seed = TRUE){
+run_lime <- function(bin_continuous, quantile_bins, nbins, use_density, bin_method,
+                     train, test, response, rfmodel, label, nfeatures, seed = TRUE){
   
   # Set a seed if requested
   if (seed == TRUE) set.seed(20181128)
   
-  # Run the lime function
-  lime <- lime(x = train, model = rfmodel, bin_continuous = bin_continuous, 
-               n_bins = nbins, quantile_bins = quantile_bins, use_density = use_density)
+  # Run my lime function
+  lime <- mylime(x = train, y = response, model = rfmodel, bin_continuous = bin_continuous, 
+                 n_bins = nbins, quantile_bins = quantile_bins, use_density = use_density,
+                 bin_method = bin_method)
   
   # Run the explain function and add a variable for the number of bins
   explain <- explain(x = test, explainer = lime, labels = label, n_features = nfeatures) %>%
     mutate(bin_continuous = bin_continuous,
            quantile_bins = quantile_bins,
            nbins = nbins,
-           use_density = use_density)
+           use_density = use_density,
+           bin_method = bin_method)
   
   return(list(lime = lime, explain = explain))
   
@@ -111,7 +270,7 @@ create_bin_data <- function(lime_object){
 ## ---------------------------------------------------------------
 
 # Function to use for creating bin labels in the test_explain dataset
-bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, case_info){
+bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, b_m, bin_data, case_info){
   
   if (is.na(feature) | b_c == FALSE) {
     
@@ -126,7 +285,8 @@ bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, c
       filter(bin_continuous == b_c, 
              quantile_bins == q_b,
              nbins == n_b, 
-             use_density == u_d) %>%
+             use_density == u_d,
+             bin_method == b_m) %>%
       pull(case)
     
     # Subset the bin cuts table to the selected feature
@@ -162,60 +322,3 @@ bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, bin_data, c
   return(feature_bin)
   
 }
-
-## ---------------------------------------------------------------
-## Create Bins using a Tree
-## ---------------------------------------------------------------
-
-# Function to get from a tree to k bins:
-# Inputs: x = feature, y = response variable, k = number of bins
-# Outputs: k-1 values for breakpoints (does not include minimum and maximum)
-
-library(tidyverse)
-library(rpart)
-library(partykit)
-
-treebink <- function (y, x, k, minsplit = 20) {
-  
-  cp <- 0.01
-  tree <- rpart::rpart(y ~ x, control = rpart.control(cp = cp, minsplit = minsplit))
-  while ((nrow(tree$cptable) < k) & (cp > 1e-9)) {
-    cp <- cp/10
-    tree <- rpart::rpart(y ~ x, control = rpart.control(cp = cp, minsplit = minsplit))
-  }
-  cpdf <- data.frame(tree$cptable)
-  idx <- which(cpdf$nsplit == k-1)
-  if (length(idx) == 0) idx <- nrow(cpdf)
-  cp <- cpdf$CP[idx]
-  tree <-  rpart::prune(tree, cp = cp)
-  
-  ###############
-  # now we have a tree with the right number of splits
-  
-  nodes <- partykit:::.list.rules.party(as.party(tree))
-  dframe <- data.frame(rule = nodes)
-  dframe$split <- strsplit(as.character(dframe$rule), " & ")
-  dframe$id <- 1:nrow(dframe)
-  
-  dframe <- dframe %>% unnest(split)
-  dframe <- dframe %>% mutate(value = readr::parse_number(split)
-                              #  lower = stringr::str_detect(split, pattern = ">=")
-  )
-  # we could now do all sorts of fancy interval output, but we just need the breaks
-  breaks <- sort(unique(dframe$value))
-  if (length(breaks) != k-1) warning("Not enough intervals found, consider decreasing minsplit (default is 20)")
-  breaks
-  
-}
-
-# Examples:
-# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 5)
-# 
-# # gives warning
-# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 10)
-# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 10, minsplit = 5)
-# 
-# # gives warning
-# treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 5, minsplit = 40)
-
-

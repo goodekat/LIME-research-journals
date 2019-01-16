@@ -4,22 +4,17 @@ TO DO LIST
 -------------
 
 Questions:
-- conference money?
-- ask about ggResidpanel error: Error in grid.Call(C_textBounds, as.graphicsAnnot(x$label),
-  x$x, x$y, : polygon edge not found
-
-Thoughts:
 
 Completed:
-- write more detailed description of the issues with current settings of lime
-- make simple vs complicated app
 
 Current:
-- write a draft of the examiners paper (during break)
+- run sensativity analysis with tree method included
+- visualize results of sensativity analysis
+- write a draft of the examiners paper
 - try out different weights
-- work with Heike's function to get the tree bins up and running
 - look into computing a diversity measure for the sensitivity analysis
 - read through LIME papers again
+- submit a JSM proposal
 
 Later:
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
