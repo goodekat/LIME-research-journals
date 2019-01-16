@@ -26,6 +26,7 @@ library(tidyverse)
 library(bulletr)
 library(randomForest)
 library(lime)
+library(caret)
 library(cowplot)
 library(purrr)
 library(future)
@@ -316,6 +317,118 @@ For the prediction of interest,
 7. The feature weights are extracted and used as the explanations.
 
 Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
+
+# Caret vs RandomForest
+
+The `lime` function in lime is set up to work with specific packages. For example, `lime` works with a random forest model fit using the caret package, but it is not set up to work with a random forest fit using the randomForest package. I found a suggestion to apply the function `as_classifier` from the lime package to a model fit using randomForest in order for the `lime` function to accept the model. It seemed to work. However, I wanted to compare the lime results from a model fit using caret and the same model fit using randomForest. To do this, I used the iris data. The code below goes through the process of fiting the two models (`rf_model` and `caret_model`). Then the `lime` and `explain` functions are applied to both models.
+
+```{r}
+# Code for comparing the output from LIME when the model is 
+# fit with caret and randomForest
+# Last Updated: 2018/11/13
+
+## Set up -----------------------------------------------------------------------------
+
+# Split up the data set
+iris_test <- iris[1:5, 1:4]
+iris_train <- iris[-(1:5), 1:4]
+iris_lab <- iris[[5]][-(1:5)]
+
+## LIME with caret --------------------------------------------------------------------
+
+# Create Random Forest model on iris data
+caret_model <- train(iris_train, iris_lab, method = 'rf')
+
+# Create an explainer object
+caret_explainer <- lime(iris_train, caret_model)
+
+# Explain new observation
+caret_explanation <- explain(iris_test, caret_explainer, n_labels = 1, n_features = 4)
+
+## LIME with randomForest -------------------------------------------------------------
+
+rf_model <- randomForest(iris_train, iris_lab)
+
+# Create an explainer object
+rf_explainer <- lime(iris_train, model = as_classifier(rf_model))
+
+# Explain new observation
+rf_explanation <- explain(iris_test, rf_explainer, n_labels = 1, n_features = 4)
+```
+
+To compare the lime explanations from the two models, I extracted the $R^2$ value from the simple model, the simple model intercept, the simple model prediction, the feature values, and the feature weights from both explanation datasets. I computed the MSE between each of these values from the two models, and I plotted them on a scatterplot. Since lime is based on random permutations, I would not expect the values from the two models to be exact. However, I would like them to be close. The MSEs are all close to zero, and the plots suggest that the values do an okay job of following the 1-1 line. We decided this seems like the two versions of the explanations are reasonably exchangeable.
+
+```{r}
+## Comparisons -----------------------------------------------------------------------
+
+# Grab the numeric caret explanation variables of interest
+caret_numeric <- caret_explanation %>%
+  select(model_r2, model_intercept, model_prediction, feature_value, feature_weight) %>%
+  gather(key = "variable", value = "caret_value")
+
+# Grab the numeric randomForest explanation variables of interest
+rf_numeric <- rf_explanation %>%
+  select(model_r2, model_intercept, model_prediction, feature_value, feature_weight) %>%
+  gather(key = "variable", value = "rf_value")
+
+# Join the two
+lime_numeric <- caret_numeric %>%
+  mutate(rf_value = rf_numeric$rf_value, 
+         variable = factor(variable))
+
+# Look at the MSEs for the variables
+lime_numeric %>%
+  group_by(variable) %>%
+  summarise(MSE = sum((caret_value - rf_value)^2) / dim(lime_numeric)[1])
+
+# Scatterplots of the randomForest versus caret variable values
+ggplot(lime_numeric, aes(x = caret_value, y = rf_value)) + 
+  geom_point() + 
+  facet_wrap( ~ variable, scales = "free") + 
+  geom_abline(intercept = 0, slope = 1)
+```
+
+# Comparing Furrr Times
+
+The amount of time it took me to run the explain function with all of my input options was getting pretty long. Heike suggest that I use the furrr package, which implements the purrr functions using the speeed of the future package. I ran and timed the code below to see how much faster the code was. Using the multiprocess option, the code took about half the amount of time to run (from 218.188 seconds to 108.731 seconds)!
+
+```{r eval = FALSE}
+# It took about half the time when using the function from furrr!
+
+library(tictoc)
+library(future)
+library(furrr)
+
+# Slow way
+plan(sequential)
+tictoc::tic()
+sensitivity_explain <- future_pmap(.l = as.list(sensitivity_inputs %>% 
+                                                         select(-case)),
+                                          .f = run_lime, # run_lime is one of my helper functions
+                                          train = hamby173and252_train %>% select(rf_features),
+                                          test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+                                          rfmodel = as_classifier(rtrees),
+                                          label = "TRUE",
+                                          nfeatures = 3,
+                                          seed = FALSE)
+tictoc::toc()
+# 218.188 sec elapsed
+
+# Fast way
+plan(multiprocess)
+tictoc::tic()
+sensitivity_explain <- future_pmap(.l = as.list(sensitivity_inputs %>% 
+                                                         select(-case)),
+                                          .f = run_lime, # run_lime is one of my helper functions
+                                          train = hamby173and252_train %>% select(rf_features),
+                                          test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+                                          rfmodel = as_classifier(rtrees),
+                                          label = "TRUE",
+                                          nfeatures = 3,
+                                          seed = FALSE)
+tictoc::toc()
+# 107.731 sec elapsed
+```
 
 # Tree Based Bins
 
