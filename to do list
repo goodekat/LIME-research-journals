@@ -6,22 +6,25 @@ TO DO LIST
 Goals for spring semester:
 - implement ideas for better binning methods
 - find an idea that leads to better LIME explanations
-- write draft of firearm examiner's paper
+- write firearm examiner's paper
 - make plans for the statistical paper
 
 Questions:
 
 Completed:
+- finished reorganizing journal
+- updated code in journal to account for tree based bins
 
 Current:
-- finish reorganizing journal
-- update all code in journal to account for tree based bins
-- rerun all code once Heike fixes the binning function
-- run sensativity analysis with tree method included
-- visualize results of sensativity analysis
+- better understand trees and Heike's function to see if I can help
+- think of a way to measure the consistency of variables chosen within in one implementation
+- once Heike fixes the binning function:
+  - update interpretations of best MSE and R^2
+  - edit code for results from sensativity analysis to account for tree method
+  - rerun all code in paper and journal
+- look into submitting a JSM proposal
 
 Later:
-- submit a JSM proposal
 - write a draft of the examiners paper
 - try out different weights
 - look into computing a diversity measure for the sensitivity analysis

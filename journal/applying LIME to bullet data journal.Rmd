@@ -22,15 +22,16 @@ Prior to this journal, I had been working on all of my ideas in the R markdown d
 
 ```{r}
 # Load libraries
-library(tidyverse)
 library(bulletr)
-library(randomForest)
-library(lime)
 library(caret)
 library(cowplot)
-library(purrr)
-library(future)
 library(furrr)
+library(future)
+library(lime)
+library(plotly)
+library(purrr)
+library(randomForest)
+library(tidyverse)
 
 # Source functions
 source("../code/helper_functions.R")
@@ -270,6 +271,119 @@ hamby224_test %>%
   labs(x = "", y = "", fill = "RF Score")
 ```
 
+I also wrote some code to create the above plot using individual plots instead of facets. This is included below (but not executed).
+
+```{r eval = FALSE}
+# Code for creating the heatmap plots using individual plots
+
+# Input data
+hamby224_test_explain <- readRDS("./data/hamby224_test_explain.rds")
+
+# Create a dataset with all combinations of lands and bullets comparisons for each set
+combinations1 <- data.frame(set = factor(1),
+                            expand.grid(land1 = factor(1:6),
+                                        land2 = factor(1:6),
+                                        bullet1 = factor(c("1", "2", "Q")),
+                                        bullet2 = factor(c("1", "2", "Q"))))
+combinations11 <- data.frame(set = factor(11),
+                             expand.grid(land1 = factor(1:6),
+                                         land2 = factor(1:6), 
+                                         bullet1 = factor(c("1", "2", "I")),
+                                         bullet2 = factor(c("1", "2", "I"))))
+combinations <- rbind(combinations1, combinations11)
+
+# Join the combinations and the data so that all combinations have a row in the data
+hamby224_test_explain_NAs <- left_join(combinations, hamby224_test_explain,
+                                       by = c("set", "land1", "land2", "bullet1", "bullet2")) %>%
+  mutate(bullet1 = forcats::fct_recode(bullet1, "Known 1" = "1", "Known 2" = "2", 
+                                       "Questioned" = "Q", "Questioned" = "I"),
+         bullet2 = forcats::fct_recode(bullet2, "Known 1" = "1", "Known 2" = "2", 
+                                       "Questioned" = "Q", "Questioned" = "I"))
+
+chosen_set = 1
+
+p1 <- hamby224_test_explain_NAs %>%
+  filter(set == chosen_set, bullet1 == "Known 1", bullet2 == "Known 1") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p2 <- hamby224_test_explain_NAs %>%
+  filter(set == chosen_set, bullet1 == "Known 1", bullet2 == "Known 2") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p3 <- hamby224_test_explain_NAs %>%
+  filter(set == chosen_set, bullet1 == "Known 1", bullet2 == "Questioned") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p4 <- ggplot() + geom_blank() + theme_classic()
+
+p5 <- hamby224_test_explain_NAs %>%
+  filter(set == chosen_set, bullet1 == "Known 2", bullet2 == "Known 2") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p6 <- hamby224_test_explain_NAs %>%
+  filter(set == chosen_set, bullet1 == "Known 2", bullet2 == "Questioned") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p7 <- ggplot() + geom_blank() + theme_classic()
+
+p8 <- ggplot() + geom_blank() + theme_classic()
+
+p9 <- hamby224_test_explain_NAs %>%
+  filter(set == chosen_set, bullet1 == "Questioned", bullet2 == "Questioned") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  #facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5, limits = c(0,1)) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score")
+
+style(subplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, nrows = 3, titleX = TRUE, titleY = TRUE, margin = 0.03),
+      hoverinfo = "skip",
+      traces = 7)
+```
+
 # Draft of LIME Procedure
 
 I wrote this up to start thinking about how to describe the procedure that the `lime` R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner's paper will be much simpler...
@@ -340,20 +454,20 @@ iris_lab <- iris[[5]][-(1:5)]
 caret_model <- train(iris_train, iris_lab, method = 'rf')
 
 # Create an explainer object
-caret_explainer <- lime(iris_train, caret_model)
+caret_explainer <- lime::lime(iris_train, caret_model)
 
 # Explain new observation
-caret_explanation <- explain(iris_test, caret_explainer, n_labels = 1, n_features = 4)
+caret_explanation <- lime::explain(iris_test, caret_explainer, n_labels = 1, n_features = 4)
 
 ## LIME with randomForest -------------------------------------------------------------
 
 rf_model <- randomForest(iris_train, iris_lab)
 
 # Create an explainer object
-rf_explainer <- lime(iris_train, model = as_classifier(rf_model))
+rf_explainer <- lime::lime(iris_train, model = as_classifier(rf_model))
 
 # Explain new observation
-rf_explanation <- explain(iris_test, rf_explainer, n_labels = 1, n_features = 4)
+rf_explanation <- lime::explain(iris_test, rf_explainer, n_labels = 1, n_features = 4)
 ```
 
 To compare the lime explanations from the two models, I extracted the $R^2$ value from the simple model, the simple model intercept, the simple model prediction, the feature values, and the feature weights from both explanation datasets. I computed the MSE between each of these values from the two models, and I plotted them on a scatterplot. Since lime is based on random permutations, I would not expect the values from the two models to be exact. However, I would like them to be close. The MSEs are all close to zero, and the plots suggest that the values do an okay job of following the 1-1 line. We decided this seems like the two versions of the explanations are reasonably exchangeable.
@@ -430,27 +544,65 @@ tictoc::toc()
 # 107.731 sec elapsed
 ```
 
+# Subsampled Bins
+
+One idea that I had to try to improve the lime explanations was to subsample from the training dataset before computing the quantiles. The proportion of observations with `samesource = FALSE` is very large in the training dataset, so that overwhelms the observations with `samesource = TRUE`. By subsampling, it might allow for better locations to bin the data. I wrote the code below to attempt to apply lime to a subsampled version of the training dataset.
+
+```{r eval = FALSE}
+# Code saved for future use for the sampling data
+
+# Create the data (with a set seed)
+set.seed(20181128)
+hamby173and252_train_sub <- hamby173and252_train %>%
+  filter(samesource == FALSE) %>%
+  slice(sample(1:length(hamby173and252_train$barrel1), 4500, replace = FALSE)) %>%
+  bind_rows(hamby173and252_train %>% filter(samesource == TRUE))
+
+# Save the subsampled data
+write.csv(hamby173and252_train_sub, "../data/hamby173and252_train_sub.csv", row.names = FALSE)
+
+# Apply lime to the subsampled training data with the specified input options
+hamby224_lime_explain_sub <- future_pmap(.l = as.list(hamby224_lime_inputs %>%
+                                                        select(-case)),
+                                         .f = run_lime, # run_lime is one of my helper functions
+                                         train = hamby173and252_train_sub %>% select(rf_features),
+                                         test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+                                         rfmodel = as_classifier(rtrees),
+                                         label = "TRUE",
+                                         nfeatures = 3,
+                                         seed = TRUE) %>%
+  mutate(training_data = factor("Subsampled"))
+
+# Separate the lime and explain function results from the subsampled data
+hamby224_lime_sub <- map(hamby224_lime_explain_sub, function(list) list$lime)
+hamby224_explain_sub <- map_df(hamby224_lime_explain_sub, function(list) list$explain)
+
+# Join the lime results from the full and subsampled training data
+hamby224_lime <- c(hamby224_lime_full, hamby224_lime_sub)
+hamby224_explain <- bind_rows(hamby224_explain_full, hamby224_explain_sub)
+```
+
 # Tree Based Bins
 
-## Functions
+Heike suggested the idea of using classification trees to choose the cutoffs for the lime bins. That is, the divisions in the tree could be used as the bin cuts. This would allow us to automate the process and to obtain a penalty parameter since the trees give us nesting. (MSE + lambda * p where p is the from the number of trees multiplied by the number of ...)
 
-Heike wrote the function `treebink` to take x and y variables for fitting a tree and returning the cuts for $k$ bins based on the splits from the tree. Here is an example using the function below with the predictor variable of ccf.
+Heike wrote the function `treebink` to take x and y variables for fitting a tree and returning the cuts for $k$ bins based on the splits from the tree. The function is stored in the file   `helper_functions.R`. Here is an example using the function below with the predictor variable of ccf.
 
 ```{r echo = TRUE}
 treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 5)
 ```
 
-I wrote the function `mylime`, which adds an option in the `lime` function from the LIME package to use Heike's function `treebink` to obtain tree based bins. The output from `mylime` can then be input into the `explain` function to obtain explanations. I was able to rerun all of the code for creating the `hamby224_test_explain` dataset with the explanations from the tree based bins included for 2 to 6 bins. I've been working on redoing code from earlier in this journal to work for the added binning method.
+However, there seems to be a problem with `treebink`. For certain variables, when a high number of bins is requessted, the function returns more than the desired number of bins. Heike is going to look into this.
 
-There seems to be a problem with `treebink` with certain variables with high enough bins. The function returns more than the desired number of bins. Heike is going to look into this.
+I wrote the function `mylime`, which adds an option in the `lime` function from the LIME package to use Heike's function `treebink` to obtain tree based bins. This function is also included in the file `helper_functions.R`. The output from `mylime` can then be input into the `explain` function to obtain explanations. I was able to rerun all of the code for creating the `hamby224_test_explain` dataset with the explanations from the tree based bins included for 2 to 6 bins.
 
 # Assessing Lime Explanations
 
-When we began looking at the explanations from `lime` with the default settings, we did not think that they made sense. This led me to try applying LIME with a handful of input values. However, since LIME is based on random permutations, I was curious to know how consistent the results were. This led me to try running each implementation for specific starting values a handful of times. The next two sections consider the results from these studies.
+When we began looking at the explanations from `lime` with the default settings, we did not think that they made sense. This led me to try applying LIME with a handful of input values. I also have tried running LIME with the tree based bins. Additionally, since LIME is based on random permutations, I was curious to know how consistent the results were. This led me to try running each implementation a handful of times. I have attempted to evaulate these results by both considering the accuracy and consistency of the results.
 
 ## Accuracy
 
-The figures in this section are created from the implementations of LIME on the set 1 from the training data for the input options of 2 to 6 quantile bins, 2 to 6 equally spaced bins, kernel density estimation, and normal distribution approximation. Each set of input values was only run once.
+The figures in this section are created from the implementations of LIME on set 1 from the training data for the input options of 2 to 6 quantile bins, 2 to 6 equally spaced bins, 2 to 6 tree based bins, kernel density estimation, and normal distribution approximation. Each set of input values was only run once.
 
 ```{r}
 # Read in the lime comparison data (the comparisons are run in the firearm examiner
@@ -460,7 +612,7 @@ hamby224_lime_comparisons <- readRDS("../data/hamby224_lime_comparisons.rds")
 
 ### Complex versus Simple Model Predictions
 
-The plot below compares the predictions from the "simple model" (the ridge regression model) and the "complex model" (the random forest `rtrees`) on the x-axis from the lime implementations with bin estimation (`bin_continuous == TRUE`). The simple model predictions are on the y-axis, and the complex model predictions are on the x-axis. The plot is faceted by number of bins and whether or not the bins are equally spaced or based on quantiles. The points are colored by the $R^2$ value from the fit of the simple model. The lines are linear regression lines fit to the data points within a facet. We would hope that there is a linear relationship between these two variables. None of the cases show strong linear trends, but some are more linear than others. The quantile bins show that the simple model never makes a prediction over 0.6, whereas the random forest model can have predictions of up to 1. The equally spaced bins do have probabilities that exceed 0.6, but only with 3 and 6 bins. I noticed that within the facets, the points are in mostly horizontal strips, and the number of strips is about the number of bins from the lime implementation.
+The plot below compares the predictions from the "simple model" (the ridge regression model) and the "complex model" (the random forest `rtrees`) on the x-axis from the lime implementations with bin estimation (`bin_continuous == TRUE`). The simple model predictions are on the y-axis, and the complex model predictions are on the x-axis. The plot is faceted by number of bins and the type of bin. The points are colored by the $R^2$ value from the fit of the simple model. The lines are linear regression lines fit to the data points within a facet. We would hope that there is a linear relationship between these two variables. None of the cases show strong linear trends, but some are more linear than others. The quantile bins show that the simple model never makes a prediction over 0.6, whereas the random forest model can have predictions of up to 1. The equally spaced bins do have probabilities that exceed 0.6, but only with 3 and 6 bins. The tree based bins do the best job with predictions above 0.6 for all number of bins. The tree bins also seem to group the simple model predictions into two categories (probably based on the samesource variable). I noticed that within the facets, the points are in mostly horizontal strips, and the number of strips is about the same as the number of bins from the lime implementation.
 
 ```{r}
 hamby224_lime_comparisons %>%
@@ -473,7 +625,7 @@ hamby224_lime_comparisons %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-The plot below shows the absolute value of the difference between the complex model prediction and the simple model prediction versus the complex model prediction. The points are faceted by number of bins and whether the bins are equally spaced or based on quantiles. Again, the points are colored by the $R^2$ values from the simple model. All cases show a v-shaped trend. The low part of the v occurs around a random forest score of about 0.25. That is, the simple model is most accurately portraying the complex model predictions around the random forest score of 0.25. It gets worse near the extremes. However, it is interesting to note that with the equally spaced bins, the absolute difference decreases near 1 for 3 to 6 bins. This is not the case with the quantile bins. It appears that the equally spaced bins are able to make slightly better predictions than the quantile bins when there is a high probability of a match.
+The plot below shows the absolute value of the difference between the complex model prediction and the simple model prediction versus the complex model prediction. The points are faceted by number of bins and bin type. Again, the points are colored by the $R^2$ values from the simple model. All cases show a v-shaped trend. The low part of the v occurs around a random forest score of about 0.25. That is, the simple model is most accurately portraying the complex model predictions around the random forest score of 0.25. It gets worse near the extremes. However, it is interesting to note that with the equally spaced bins and the tree based bins, the absolute difference decreases near 1. This is not the case with the quantile bins. It appears that the equally spaced bins and tree based bins are able to make slightly better predictions than the quantile bins when there is a high probability of a match.
 
 ```{r}
 hamby224_lime_comparisons %>%
@@ -542,9 +694,45 @@ hamby224_lime_results %>%
   labs(x = "Situation", y = "Average R2", color = "")
 ```
 
-## Variability
+## Consistency with One Implementation
 
-In order to assess how variable the LIME results are, I ran each of the 12 input situations 10 times. I wanted to look at the variability of the mse for each situation, and I wanted to see how consistent the choice of selected features is by LIME.
+```{r}
+# Selects only the top features for the cases where binning was used
+top_features <- hamby224_test_explain %>%
+  filter(bin_situation != "other") %>%
+  select(set, situation, bin_situation, nbins, case, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(situation, case, desc(feature_weight_abs)) %>%
+  group_by(situation, case) %>%
+  slice(1)
+```
+
+```{r}
+# Plots the top feature for each case for each bin situation
+ggplot(top_features, aes(x = situation, y = case, fill = feature)) + 
+  geom_tile() + 
+  facet_grid(set ~ bin_situation, scales = "free") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_brewer(palette = "Blues")
+```
+
+```{r}
+# Plots the proportions of number of top features chosen across number of bins for a case
+# within a binning method
+top_features %>%
+  group_by(set, case, bin_situation) %>%
+  summarise(nfeatures = length(levels(factor(feature)))) %>%
+  ggplot(aes(x = bin_situation, fill = factor(nfeatures))) + 
+  geom_bar(position = "stack") + 
+  facet_grid(set ~ .) + 
+  theme_bw() +
+  scale_fill_brewer(palette = "Blues")
+```
+
+## Consistency Across Implementations
+
+In order to assess how variable the LIME results are, I ran each of the 17 input situations 10 times. I wanted to look at the variability of the mse for each situation, and I wanted to see how consistent the choice of selected features is by LIME.
 
 ```{r}
 # Perform the sensitivity analysis if not already saved
@@ -552,29 +740,30 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
   
   # Specify the number of reps and input cases
   nreps = 10
-  noptions = 12
+  noptions = 17
   
   # Specify the inputs for the sensitivity analysis
-  hamby224_sensitivity_inputs <- data.frame(bin_continuous = c(rep(TRUE, nreps * 10), 
-                                                      rep(FALSE, nreps * 2)),
-                                   quantile_bins = c(rep(c(TRUE, FALSE), each = nreps * 5), 
-                                                     rep(TRUE, nreps * 2)),
-                                   nbins = c(rep(rep(2:6, each = nreps), 2), 
-                                             rep(4, nreps * 2)),
-                                   use_density = c(rep(TRUE, nreps * 11), 
-                                                   rep(FALSE, nreps))) %>%
-    mutate(case = 1:(nreps * noptions)) %>%
-    select(case, bin_continuous, nbins, quantile_bins, use_density)
-  
+  hamby224_sensitivity_inputs <- list(bin_continuous = c(rep(TRUE, nreps * 15),
+                                                         rep(FALSE, nreps * 2)),
+                                      quantile_bins = c(rep(c(TRUE, FALSE), each = nreps * 5), 
+                                                        rep(TRUE, nreps * 7)),
+                                      nbins = c(rep(rep(2:6, each = nreps), 3), 
+                                                rep(4, nreps * 2)),
+                                      use_density = c(rep(TRUE, nreps * 16), 
+                                                      rep(FALSE, nreps)),
+                                      bin_method = c(rep("quantile_bins", nreps * 5),
+                                                      rep("equally_spaced", nreps * 5),
+                                                      rep("tree", nreps * 5),
+                                                      rep("quantile_bins", nreps * 2)))
   # Tell R to run the upcoming code in parallel
   plan(multiprocess)
 
   # Run lime for the sensitivity analysis
-  hamby224_sensitivity_outputs <- future_pmap(.l = as.list(hamby224_sensitivity_inputs %>%
-                                                             select(-case)),
+  hamby224_sensitivity_outputs <- future_pmap(.l = hamby224_sensitivity_inputs,
              .f = run_lime, # run_lime is one of my helper functions
              train = hamby173and252_train %>% select(rf_features),
              test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+             response = hamby173and252_train$samesource,
              rfmodel = as_classifier(rtrees),
              label = "TRUE",
              nfeatures = 3,
@@ -587,6 +776,14 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
     mutate(case = factor(case)) %>%
     select(case, model_r2:feature_weight, bin_continuous:rep, set:land2, rfscore, samesource)
   
+  hamby224_sensitivity_inputs <- hamby224_sensitivity_inputs %>%
+    unlist() %>%
+    matrix(ncol = length(hamby224_sensitivity_inputs), 
+           dimnames = list(NULL, names(hamby224_sensitivity_inputs))) %>%
+    as.data.frame() %>%
+    mutate(case = 1:(nreps * noptions)) %>%
+    select(case, bin_continuous:bin_method)
+
   # Save the sensitivity inputs and outputs
   saveRDS(hamby224_sensitivity_inputs, "../data/hamby224_sensitivity_inputs.rds")
   saveRDS(hamby224_sensitivity_outputs, "../data/hamby224_sensitivity_outputs.rds")
@@ -760,20 +957,6 @@ Based on the MSEs from the single implementation of LIME, I will use 3 equally s
 
 ```{r}
 joined_results <- hamby224_lime_results %>%
-  ungroup() %>%
-  mutate(nbins = as.numeric(as.character(nbins))) %>%
-  mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
-                            sprintf("%.0f quantile bins", nbins),
-                            ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
-                                   sprintf("%.0f equally spaced bins", nbins),
-                                   ifelse(bin_continuous == FALSE & use_density == TRUE, 
-                                          "kernel density", "normal approximation")))) %>%
-  mutate(situation = fct_relevel(situation, 
-                                 "2 quantile bins", 
-                                 "3 quantile bins",
-                                 "4 quantile bins",
-                                 "5 quantile bins",
-                                 "6 quantile bins")) %>%
   select(set, situation, mse, ave_r2) %>%
   full_join(hamby224_sensitivity_mses %>%
               group_by(set, situation) %>%
@@ -813,226 +996,7 @@ joined_results %>%
                 caption = "Results from Set 11")
 ```
 
-## Heike's Suggestions
+# Heike's Suggestions
 
 * We talked about including the penalty for the number of parameters in the discussion of the paper.
-* We talked about using a tree to choose the bins. This would allow us to automate the process and to obtain a penalty parameter since the trees give us nesting. (MSE + lambda * p where p is the from the number of trees multiplied by the number of ...)
 * Look at the AUC after binning
-
-## Results from One Implementation
-
-```{r}
-# Selects only the top features for the cases where binning was used
-top_features <- hamby224_test_explain %>%
-  filter(bin_situation != "other") %>%
-  select(set, situation, bin_situation, case, feature, feature_weight) %>%
-  mutate(feature_weight_abs = abs(feature_weight)) %>%
-  arrange(situation, case, desc(feature_weight_abs)) %>%
-  group_by(situation, case) %>%
-  slice(1)
-
-# Plots the top feature for each case for each bin situation
-ggplot(top_features, aes(x = situation, y = case, fill = feature)) + 
-  geom_tile() + 
-  facet_grid(set ~ bin_situation, scales = "free") + 
-  theme_bw() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
-
-# Plots the proportions of number of top features chosen across number of bins for a case
-# within a binning method
-top_features %>%
-  group_by(set, case, bin_situation) %>%
-  summarise(nfeatures = length(levels(factor(feature)))) %>%
-  ggplot(aes(x = bin_situation, fill = factor(nfeatures))) + 
-  geom_bar(position = "stack") + 
-  facet_grid(set ~ .) + 
-  theme_bw() +
-  scale_fill_brewer(palette = "Blues")
-```
-
-## Assessing Variability
-
-In order to assess how variable the LIME results are, I ran each of the 12 input situations 10 times. I wanted to look at the variability of the mse for each situation, and I wanted to see how consistent the choice of selected features is by LIME.
-
-```{r}
-# Perform the sensitivity analysis if not already saved
-if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
-  
-  # Specify the number of reps and input cases
-  nreps = 10
-  noptions = 12
-  
-  # Specify the inputs for the sensitivity analysis
-  hamby224_sensitivity_inputs <- data.frame(bin_continuous = c(rep(TRUE, nreps * 10), 
-                                                      rep(FALSE, nreps * 2)),
-                                   quantile_bins = c(rep(c(TRUE, FALSE), each = nreps * 5), 
-                                                     rep(TRUE, nreps * 2)),
-                                   nbins = c(rep(rep(2:6, each = nreps), 2), 
-                                             rep(4, nreps * 2)),
-                                   use_density = c(rep(TRUE, nreps * 11), 
-                                                   rep(FALSE, nreps))) %>%
-    mutate(case = 1:(nreps * noptions)) %>%
-    select(case, bin_continuous, nbins, quantile_bins, use_density)
-  
-  # Tell R to run the upcoming code in parallel
-  plan(multiprocess)
-
-  # Run lime for the sensitivity analysis
-  hamby224_sensitivity_outputs <- future_pmap(.l = as.list(hamby224_sensitivity_inputs %>%
-                                                             select(-case)),
-             .f = run_lime, # run_lime is one of my helper functions
-             train = hamby173and252_train %>% select(rf_features),
-             test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
-             rfmodel = as_classifier(rtrees),
-             label = "TRUE",
-             nfeatures = 3,
-             seed = FALSE) %>%
-    map_df(function(list) list$explain) %>%
-    mutate(rep = factor(rep(rep(1:nreps, each = dim(hamby224_test %>% na.omit())[1] * 3),
-                            noptions))) %>%
-    full_join(hamby224_test %>% na.omit() %>% 
-                mutate(case = as.character(case)), by = "case") %>%
-    mutate(case = factor(case)) %>%
-    select(case, model_r2:feature_weight, bin_continuous:rep, set:land2, rfscore, samesource)
-  
-  # Save the sensitivity inputs and outputs
-  saveRDS(hamby224_sensitivity_inputs, "../data/hamby224_sensitivity_inputs.rds")
-  saveRDS(hamby224_sensitivity_outputs, "../data/hamby224_sensitivity_outputs.rds")
-  
-} else {
-  
-  # Load in the sensitivity inputs and outputs
-  hamby224_sensitivity_inputs <- readRDS("../data/hamby224_sensitivity_inputs.rds")
-  hamby224_sensitivity_outputs <- readRDS("../data/hamby224_sensitivity_outputs.rds")
-
-}
-```
-
-```{r}
-hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
-  mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
-                            sprintf("%.0f quantile bins", nbins),
-                            ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
-                                   sprintf("%.0f equally spaced bins", nbins),
-                                   ifelse(bin_continuous == FALSE & use_density == TRUE, 
-                                          "kernel density", "normal approximation"))),
-         diff = rfscore - model_prediction) %>%
-  mutate(situation = fct_relevel(situation, 
-                                 "2 quantile bins", 
-                                 "3 quantile bins",
-                                 "4 quantile bins",
-                                 "5 quantile bins",
-                                 "6 quantile bins")) %>%
-  mutate(bin_situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE,
-                                "quantile bins",
-                                ifelse(bin_continuous == TRUE & quantile_bins == FALSE,
-                                       "equally spaced bins", "other")))
-```
-
-```{r}
-hamby224_sensitivity_mses <- hamby224_sensitivity_results %>%
-  group_by(set, rep, situation, bin_situation) %>%
-  summarise(mse = sum((diff)^2) / length(diff))
-```
-
-The plot below shows boxplots of the 10 mean squared errors computed for each of the input situations for each set. There does not appear to be much variation for most of the cases. The largest amount of variation occurs with 4 and 5 equally spaced bins. There is moderate variability for 3 equally spaced bins, but all of the 10 runs resulted in much lower mses than any of the other situations. This still seems to support the choice of using 3 equally spaced quantile bins for both sets.
-
-```{r}
-hamby224_sensitivity_mses %>%
-  ggplot(aes(x = situation, y = mse)) + 
-  geom_boxplot(aes(color = bin_situation)) + 
-  geom_point() + 
-  facet_grid( ~ set) + 
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  labs(x = "", y = "MSE")
-```
-
-```{r}
-hamby224_consistency <- hamby224_sensitivity_results %>%
-  select(set, situation, bin_situation, case, rep, feature, feature_weight) %>%
-  mutate(feature_weight_abs = abs(feature_weight)) %>%
-  arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
-  group_by(set, situation, case, rep) %>%
-  slice(1) %>%
-  ungroup() %>%
-  group_by(set, situation, bin_situation, case) %>%
-  summarise(nlevels = length(levels(factor(feature))),
-            count = n()) %>%
-  ungroup() %>%
-  group_by(set, situation, bin_situation) %>%
-  summarise(mean_nlevels = mean(nlevels),
-            sd_nlevels = sd(nlevels),
-            upper = mean(nlevels) + sd(nlevels),
-            lower = mean(nlevels) - sd(nlevels),
-            max = max(nlevels),
-            min = min(nlevels))
-```
-
-To assess the consistency of the results, I determined the number of different features chosen by LIME as the top feature within a test case across the 10 replicates. I then computed the average number of different top features chosen by LIME within a input situations for each set. The plot below contains these values shown as the dots. The error bars represent one standard deviation above and below the mean. Note that the number of levels cannot go below 1, but the error bars go below 1. I have decided to ignore this for now, but I would need to come up with a better representation if I used this for something.
-
-There are a handful of situations with a mean near one and very little variation. However, the largest mean is around 2, which is not very high. This seems to suggest that LIME is relatively consistent across runs.
-
-```{r}
-hamby224_consistency %>%
-  ggplot(aes(x = situation, y = mean_nlevels)) + 
-  geom_point(aes(color = bin_situation)) + 
-  geom_errorbar(aes(ymin = lower, ymax = upper)) +
-  facet_grid(. ~ set) + 
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-The bar chart below shows the proportion of different number of top features chosen across all test cases within a set for each input situation. This shows that the most different features chosen was four. However, many of the cases only have one or two different features chosen, and usually, a larger proportion of the cases have only one top feature chosen across the 10 reps.
-
-```{r}
-hamby224_sensitivity_results %>%
-  select(set, situation, case, rep, feature, feature_weight) %>%
-  mutate(feature_weight_abs = abs(feature_weight)) %>%
-  arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
-  group_by(set, situation, case, rep) %>%
-  slice(1) %>%
-  ungroup() %>%
-  group_by(set, situation, case) %>%
-  summarise(nlevels = length(levels(factor(feature)))) %>%
-  ggplot(aes(x = situation, fill = factor(nlevels))) + 
-  geom_bar(position = "stack") +
-  facet_grid( ~ set) + 
-  theme(legend.position = "bottom", 
-        axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
-```
-
-The plot below needs some work, but it does contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases.
-
-The fact that different features get chosen as the top feature for different estimation techniques makes sense. You would expect that the number of bins would determine which features are better suited for predicting whether or not a comparison is a match. For example, if you look back at the feature distribution plots, you can see that ccf is the obvious choice for determining between matches and non-matches if you have to choose two equally spaced bins. This is the feature that lime most frequently chooses. You can make similar arguments for other cases as well. Even though different inputs select different variables, I would expect that some variables will be better at prediction than others. I think this is what leads some input values to better LIME explanations and lower MSEs than others.
-
-In the meeting with Heike, we talked about how this plot suggests that LIME is not doing a very good job of providing local explanations. Regardless of the case, it is often suggesting only one of two variables are important, and the variable importance depends on the number of bins. In this plot, I would like consistency in the x-direction, but I would like variability in the y-direction to better understand the variables that are important for a specific case.
-
-```{r fig.height = 8, fig.width = 10}
-hamby224_sensitivity_results %>%
-  filter(set == "Set 1") %>%
-  droplevels() %>%
-  select(situation, case, rep, feature, feature_weight) %>%
-  mutate(feature_weight_abs = abs(feature_weight)) %>%
-  arrange(situation, case, rep, desc(feature_weight_abs)) %>%
-  group_by(situation, case, rep) %>%
-  slice(1) %>%
-  ungroup() %>%
-  group_by(situation, case) %>%
-  mutate(nlevels = length(levels(factor(feature)))) %>%
-  ungroup() %>%
-  arrange(situation, desc(nlevels), case) %>%
-  mutate(order = rep(rep(1:length(levels(case)), each = 10), 12)) %>%
-  ggplot(aes(x = order, fill = feature)) + 
-  geom_bar(position = "stack", width = 1) + 
-  coord_flip() + 
-  facet_wrap(situation ~ ., ncol = 5) +
-  #facet_grid(nlevels ~ situation) +
-  theme(legend.position = "bottom",
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank()) + 
-  scale_fill_brewer(palette = "Blues") + 
-  labs(x = "cases")
-```
