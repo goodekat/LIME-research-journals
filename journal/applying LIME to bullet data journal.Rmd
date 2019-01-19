@@ -27,6 +27,7 @@ library(caret)
 library(cowplot)
 library(furrr)
 library(future)
+library(irr)
 library(lime)
 library(plotly)
 library(purrr)
@@ -432,9 +433,11 @@ For the prediction of interest,
 
 Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
 
-# Caret vs RandomForest
+# Computation Issues
 
-The `lime` function in lime is set up to work with specific packages. For example, `lime` works with a random forest model fit using the caret package, but it is not set up to work with a random forest fit using the randomForest package. I found a suggestion to apply the function `as_classifier` from the lime package to a model fit using randomForest in order for the `lime` function to accept the model. It seemed to work. However, I wanted to compare the lime results from a model fit using caret and the same model fit using randomForest. To do this, I used the iris data. The code below goes through the process of fiting the two models (`rf_model` and `caret_model`). Then the `lime` and `explain` functions are applied to both models.
+## Caret vs RandomForest
+
+The `lime` function in lime is set up to work with specific packages. For example, `lime` works with a random forest model fit using the caret package, but it is not set up to work with a random forest fit using the randomForest package. I found a suggestion to apply the function `as_classifier` from the lime package to a model fit using randomForest in order for the `lime` function to accept the model. It seemed to work. However, I wanted to compare the lime results from a model fit using caret and the same model fit using randomForest. To do this, I used the iris data. The code below goes through the process of fitting the two models (`rf_model` and `caret_model`). Then the `lime` and `explain` functions are applied to both models.
 
 ```{r}
 # Code for comparing the output from LIME when the model is 
@@ -502,9 +505,9 @@ ggplot(lime_numeric, aes(x = caret_value, y = rf_value)) +
   geom_abline(intercept = 0, slope = 1)
 ```
 
-# Comparing Furrr Times
+## Comparing Furrr Times
 
-The amount of time it took me to run the explain function with all of my input options was getting pretty long. Heike suggest that I use the furrr package, which implements the purrr functions using the speeed of the future package. I ran and timed the code below to see how much faster the code was. Using the multiprocess option, the code took about half the amount of time to run (from 218.188 seconds to 108.731 seconds)!
+The amount of time it took me to run the explain function with all of my input options was getting pretty long. Heike suggest that I use the furrr package, which implements the purrr functions using the speed of the future package. I ran and timed the code below to see how much faster the code was. Using the multiprocess option, the code took about half the amount of time to run (from 218.188 seconds to 108.731 seconds)!
 
 ```{r eval = FALSE}
 # It took about half the time when using the function from furrr!
@@ -544,7 +547,9 @@ tictoc::toc()
 # 107.731 sec elapsed
 ```
 
-# Subsampled Bins
+# New Binning Methods 
+
+## Subsampled Bins
 
 One idea that I had to try to improve the lime explanations was to subsample from the training dataset before computing the quantiles. The proportion of observations with `samesource = FALSE` is very large in the training dataset, so that overwhelms the observations with `samesource = TRUE`. By subsampling, it might allow for better locations to bin the data. I wrote the code below to attempt to apply lime to a subsampled version of the training dataset.
 
@@ -582,7 +587,7 @@ hamby224_lime <- c(hamby224_lime_full, hamby224_lime_sub)
 hamby224_explain <- bind_rows(hamby224_explain_full, hamby224_explain_sub)
 ```
 
-# Tree Based Bins
+## Tree Based Bins
 
 Heike suggested the idea of using classification trees to choose the cutoffs for the lime bins. That is, the divisions in the tree could be used as the bin cuts. This would allow us to automate the process and to obtain a penalty parameter since the trees give us nesting. (MSE + lambda * p where p is the from the number of trees multiplied by the number of ...)
 
@@ -592,13 +597,13 @@ Heike wrote the function `treebink` to take x and y variables for fitting a tree
 treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 5)
 ```
 
-However, there seems to be a problem with `treebink`. For certain variables, when a high number of bins is requessted, the function returns more than the desired number of bins. Heike is going to look into this.
+However, there seems to be a problem with `treebink`. For certain variables, when a high number of bins is requested, the function returns more than the desired number of bins. Heike is going to look into this.
 
 I wrote the function `mylime`, which adds an option in the `lime` function from the LIME package to use Heike's function `treebink` to obtain tree based bins. This function is also included in the file `helper_functions.R`. The output from `mylime` can then be input into the `explain` function to obtain explanations. I was able to rerun all of the code for creating the `hamby224_test_explain` dataset with the explanations from the tree based bins included for 2 to 6 bins.
 
 # Assessing Lime Explanations
 
-When we began looking at the explanations from `lime` with the default settings, we did not think that they made sense. This led me to try applying LIME with a handful of input values. I also have tried running LIME with the tree based bins. Additionally, since LIME is based on random permutations, I was curious to know how consistent the results were. This led me to try running each implementation a handful of times. I have attempted to evaulate these results by both considering the accuracy and consistency of the results.
+When we began looking at the explanations from `lime` with the default settings, we did not think that they made sense. This led me to try applying LIME with a handful of input values. I also have tried running LIME with the tree based bins. Additionally, since LIME is based on random permutations, I was curious to know how consistent the results were. This led me to try running each implementation a handful of times. I have attempted to evaluate these results by both considering the accuracy and consistency of the results.
 
 ## Accuracy
 
@@ -696,20 +701,68 @@ hamby224_lime_results %>%
 
 ## Consistency with One Implementation
 
+I wanted to look at the consistency of features chosen by lime across the number of bins within different bin types. I would like the features chosen to not depend on the number of bins used. Otherwise, it will be difficult to know how many bins to use. Additionally, it would be nice if the features chosen differed across cases, so that the explanations are based on the locality of the observation and not general across all locations. The code below creates a dataset that identifies the order in which the features are chosen by lime.
+
 ```{r}
-# Selects only the top features for the cases where binning was used
-top_features <- hamby224_test_explain %>%
+# Creates a dataset that identifies the top chosen features by lim in order of first to third
+chosen_features <- hamby224_test_explain %>%
   filter(bin_situation != "other") %>%
   select(set, situation, bin_situation, nbins, case, feature, feature_weight) %>%
   mutate(feature_weight_abs = abs(feature_weight)) %>%
   arrange(situation, case, desc(feature_weight_abs)) %>%
-  group_by(situation, case) %>%
-  slice(1)
+  mutate(explainer = rep(c("first", "second", "third"), length(situation) / 3)) %>%
+  select(-feature_weight, - feature_weight_abs) %>%
+  spread(explainer, feature)
 ```
+
+In order to access consistency, I have decided to compute Fleiss' kappa for each of the bin types. Fleiss' kappa is often used to assess the consistency across raters for any number of raters and with nominal ratings. It calculates the degree of agreement in classification over that which would be expected by chance. 
+
+Need to write how it is computed, so I can better understand it's use: https://en.wikipedia.org/wiki/Fleiss%27_kappa
+
+I computed kappa for each bin situation separately for the top three features chosen. These values are plotted below for each set. For both the first and second features chosen by lime, the values of kappa suggest that quantile bins are the most consistent across all the nubmer of bins followed by the tree based bins. The values of kappa for the quantile bins are slight to fair agreement. For the third chosen variable, the tree based bins have the highest value of kappa, but all the kappa values for the third chosen feature are low.
+
+```{r}
+# Computes and plots the values of kappa
+chosen_features %>%
+  ungroup() %>%
+  select(-situation) %>%
+  gather(key = chosen, value = feature, first:third) %>%
+  spread(nbins, feature) %>%
+  select(-case) %>%
+  rename(bins2 = "2", bins3 = "3", bins4 = "4", bins5 = "5", bins6 = "6") %>%
+  group_by(set, bin_situation, chosen) %>%
+  summarise(kappa = 
+              kappam.fleiss(matrix(c(bins2, bins3, bins4, bins5, bins6), ncol = 5))$value) %>%
+  arrange(chosen, set, bin_situation) %>%
+  ggplot(aes(x = bin_situation, y = kappa, color = chosen, group = chosen)) +
+  geom_point() + 
+  geom_line() +
+  facet_grid( ~ set) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below.
 
 ```{r}
 # Plots the top feature for each case for each bin situation
-ggplot(top_features, aes(x = situation, y = case, fill = feature)) + 
+ggplot(chosen_features, aes(x = situation, y = case, fill = first)) + 
+  geom_tile() + 
+  facet_grid(set ~ bin_situation, scales = "free") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_brewer(palette = "Blues")
+
+# Plots the second feature for each case for each bin situation
+ggplot(chosen_features, aes(x = situation, y = case, fill = second)) + 
+  geom_tile() + 
+  facet_grid(set ~ bin_situation, scales = "free") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_brewer(palette = "Blues")
+
+# Plots the third feature for each case for each bin situation
+ggplot(chosen_features, aes(x = situation, y = case, fill = third)) + 
   geom_tile() + 
   facet_grid(set ~ bin_situation, scales = "free") + 
   theme_bw() + 
@@ -717,15 +770,20 @@ ggplot(top_features, aes(x = situation, y = case, fill = feature)) +
   scale_fill_brewer(palette = "Blues")
 ```
 
+I also created the plot below to visually assess the proportions of cases within a bin situation and level of feature chosen by lime (first, second, or third) that have 1 to 5 chosen features. The plots are separated by set.
+
 ```{r}
 # Plots the proportions of number of top features chosen across number of bins for a case
 # within a binning method
-top_features %>%
+chosen_features %>%
   group_by(set, case, bin_situation) %>%
-  summarise(nfeatures = length(levels(factor(feature)))) %>%
+  summarise(first = length(levels(factor(first))),
+            second = length(levels(factor(second))),
+            third = length(levels(factor(third)))) %>%
+  gather(chosen, nfeatures, first:third) %>%
   ggplot(aes(x = bin_situation, fill = factor(nfeatures))) + 
   geom_bar(position = "stack") + 
-  facet_grid(set ~ .) + 
+  facet_grid(set ~ chosen) + 
   theme_bw() +
   scale_fill_brewer(palette = "Blues")
 ```
