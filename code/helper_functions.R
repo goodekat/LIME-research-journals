@@ -9,42 +9,37 @@
 # Outputs: k-1 values for breakpoints (does not include minimum and maximum)
 
 library(tidyverse)
-library(rpart)
-library(partykit)
+library(tree)
 
-treebink <- function (y, x, k, minsplit = 20) {
+treebink <- function (y, x, k, minsize = 10) {
   
-  cp <- 0.01
-  tree <- rpart::rpart(y ~ x, control = rpart.control(cp = cp, minsplit = minsplit))
-  while ((nrow(tree$cptable) < k) & (cp > 1e-9)) {
-    cp <- cp/10
-    tree <- rpart::rpart(y ~ x, control = rpart.control(cp = cp, minsplit = minsplit))
+  dev <- 0.01
+  tree <- tree::tree(y ~ x, control = tree::tree.control(nobs = length(y), mindev=dev, minsize = minsize))
+  while ((length(grep("<leaf>", tree$frame$var)) < k) & (dev > 1e-9)) {
+    dev <- dev/10
+    tree <- tree::tree(y ~ x, control = tree::tree.control(nobs = length(y), mindev=dev,  minsize = minsize))
   }
-  cpdf <- data.frame(tree$cptable)
-  cpdf$ksplits <- cpdf$nsplit-(k-1)
-  idx <- which.min(abs(cpdf$ksplits))
-   
-  cp <- cpdf$CP[idx]
-  tree <-  rpart::prune(tree, cp = cp)
+  tree <- tree::prune.tree(tree, best = k)
+  breaks <- na.omit(unique(parse_number(tree$frame$splits[,1])))
+  if (length(breaks) == k-1) return(sort(breaks)) # and we're happy because we got all the values we need
   
-  ###############
-  # now we have a tree with the right number of splits
   
-  nodes <- partykit:::.list.rules.party(as.party(tree))
-  dframe <- data.frame(rule = nodes)
-  dframe$split <- strsplit(as.character(dframe$rule), " & ")
-  dframe$id <- 1:nrow(dframe)
-  
-  dframe <- dframe %>% unnest(split)
-  dframe <- dframe %>% mutate(value = readr::parse_number(split)
-                              #  lower = stringr::str_detect(split, pattern = ">=")
-  )
-  # we could now do all sorts of fancy interval output, but we just need the breaks
-  breaks <- sort(unique(dframe$value))
-  if (length(breaks) != k-1) warning("Not enough intervals found, consider decreasing minsplit (default is 20)")
+  if (length(breaks) > k-1) {
+    # we have too many breaks, now reduce the number
+    tree$frame$id <- as.numeric(row.names(tree$frame))
+    # tree$frame %>%  ggplot(aes(x = id, y = dev, colour=var)) + geom_point()
+    
+    tree$frame$splits <- tree$frame$splits[,1]
+    subtree <- tree$frame %>% arrange(id) %>% filter(var=="x")
+    breaks <- sort(parse_number(subtree$splits[1:(k-1)]))
+  }
+  if (length(breaks) < k-1) {
+    warning("Not enough intervals found, consider decreasing minsize (default is 10)")
+  }
   breaks
   
 }
+
 
 # Examples:
 # treebink(car.test.frame$Mileage, car.test.frame$Weight, k = 5)
@@ -322,3 +317,4 @@ bin_labeller <- function(feature, feature_value, b_c, q_b, n_b, u_d, b_m, bin_da
   return(feature_bin)
   
 }
+
