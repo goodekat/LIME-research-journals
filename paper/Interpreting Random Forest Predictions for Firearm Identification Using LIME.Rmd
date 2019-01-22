@@ -14,14 +14,15 @@ knitr::opts_chunk$set(echo = FALSE, eval = TRUE, message = FALSE, warning = FALS
                       fig.pos = "center")
 
 # Load libraries
-library(tidyverse)
 library(bulletr)
-library(randomForest)
-library(lime)
 library(cowplot)
-library(purrr)
-library(future)
 library(furrr)
+library(future)
+library(lime)
+library(purrr)
+library(randomForest)
+library(tidyverse)
+library(tree)
 
 # Source functions
 source("../code/helper_functions.R")

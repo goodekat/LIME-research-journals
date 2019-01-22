@@ -599,6 +599,10 @@ treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 
 
 However, there seems to be a problem with `treebink`. For certain variables, when a high number of bins is requested, the function returns more than the desired number of bins. Heike is going to look into this.
 
+She recently updated the function `treebink` to run using the tree package. Here are some comments from her about the code: 
+
+"I've moved it from rpart to tree. I am not quite sure that the two packages are doing the exact same thing. They claim they do but they might be implemented a bit differently. What we are doing now is if there are too many splits, we look at the order in which the splits are made and roll back some of them. I haven't found a case that doesn't work, but obviously that doesn't show that there isn't any :)"
+
 I wrote the function `mylime`, which adds an option in the `lime` function from the LIME package to use Heike's function `treebink` to obtain tree based bins. This function is also included in the file `helper_functions.R`. The output from `mylime` can then be input into the `explain` function to obtain explanations. I was able to rerun all of the code for creating the `hamby224_test_explain` dataset with the explanations from the tree based bins included for 2 to 6 bins.
 
 # Assessing Lime Explanations
@@ -785,6 +789,7 @@ chosen_features %>%
   geom_bar(position = "stack") + 
   facet_grid(set ~ chosen) + 
   theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   scale_fill_brewer(palette = "Blues")
 ```
 
@@ -857,23 +862,29 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
 
 ```{r}
 hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
-  mutate(situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE, 
+  mutate(diff = rfscore - model_prediction,
+         nbins = as.numeric(as.character(nbins)),
+         situation = ifelse(bin_continuous == TRUE & bin_method == "quantile_bins", 
                             sprintf("%.0f quantile bins", nbins),
-                            ifelse(bin_continuous == TRUE & quantile_bins == FALSE, 
+                            ifelse(bin_continuous == TRUE & 
+                                   bin_method == "equally_spaced",
                                    sprintf("%.0f equally spaced bins", nbins),
-                                   ifelse(bin_continuous == FALSE & use_density == TRUE, 
-                                          "kernel density", "normal approximation"))),
-         diff = rfscore - model_prediction) %>%
-  mutate(situation = fct_relevel(situation, 
-                                 "2 quantile bins", 
-                                 "3 quantile bins",
-                                 "4 quantile bins",
-                                 "5 quantile bins",
-                                 "6 quantile bins")) %>%
-  mutate(bin_situation = ifelse(bin_continuous == TRUE & quantile_bins == TRUE,
+                                   ifelse(bin_continuous == TRUE & bin_method == "tree",
+                                          sprintf("%.0f tree based bins", nbins),
+                                          ifelse(bin_continuous == FALSE & 
+                                                 use_density == TRUE, "kernel density",
+                                                 "normal approximation")))) %>%
+           fct_relevel("2 quantile bins", "3 quantile bins", "4 quantile bins",
+                       "5 quantile bins", "6 quantile bins", "2 equally spaced bins",
+                       "3 equally spaced bins", "4 equally spaced bins",
+                       "5 equally spaced bins", "6 equally spaced bins")) %>%
+  mutate(bin_situation = ifelse(bin_method == "quantile_bins" & bin_continuous == TRUE,
                                 "quantile bins",
-                                ifelse(bin_continuous == TRUE & quantile_bins == FALSE,
-                                       "equally spaced bins", "other")))
+                                ifelse(bin_method == "equally_spaced" & 
+                                       bin_continuous == TRUE, "equally spaced bins", 
+                                       ifelse(bin_method == "tree" & bin_continuous == TRUE,
+                                              "tree based bins", "other")))) %>%
+    mutate(bin_situation = factor(bin_situation))
 ```
 
 ```{r}
@@ -888,7 +899,7 @@ The plot below shows boxplots of the 10 mean squared errors computed for each of
 hamby224_sensitivity_mses %>%
   ggplot(aes(x = situation, y = mse)) + 
   geom_boxplot(aes(color = bin_situation)) + 
-  geom_point() + 
+  #geom_point() + 
   facet_grid( ~ set) + 
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
@@ -923,8 +934,8 @@ There are a handful of situations with a mean near one and very little variation
 ```{r}
 hamby224_consistency %>%
   ggplot(aes(x = situation, y = mean_nlevels)) + 
+  geom_errorbar(aes(ymin = lower, ymax = upper), color = "grey80") +
   geom_point(aes(color = bin_situation)) + 
-  geom_errorbar(aes(ymin = lower, ymax = upper)) +
   facet_grid(. ~ set) + 
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -939,6 +950,38 @@ hamby224_sensitivity_results %>%
   arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
   group_by(set, situation, case, rep) %>%
   slice(1) %>%
+  ungroup() %>%
+  group_by(set, situation, case) %>%
+  summarise(nlevels = length(levels(factor(feature)))) %>%
+  ggplot(aes(x = situation, fill = factor(nlevels))) + 
+  geom_bar(position = "stack") +
+  facet_grid( ~ set) + 
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_brewer(palette = "Blues")
+
+hamby224_sensitivity_results %>%
+  select(set, situation, case, rep, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
+  group_by(set, situation, case, rep) %>%
+  slice(2) %>%
+  ungroup() %>%
+  group_by(set, situation, case) %>%
+  summarise(nlevels = length(levels(factor(feature)))) %>%
+  ggplot(aes(x = situation, fill = factor(nlevels))) + 
+  geom_bar(position = "stack") +
+  facet_grid( ~ set) + 
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_brewer(palette = "Blues")
+
+hamby224_sensitivity_results %>%
+  select(set, situation, case, rep, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
+  group_by(set, situation, case, rep) %>%
+  slice(3) %>%
   ungroup() %>%
   group_by(set, situation, case) %>%
   summarise(nlevels = length(levels(factor(feature)))) %>%
@@ -970,7 +1013,57 @@ hamby224_sensitivity_results %>%
   mutate(nlevels = length(levels(factor(feature)))) %>%
   ungroup() %>%
   arrange(situation, desc(nlevels), case) %>%
-  mutate(order = rep(rep(1:length(levels(case)), each = 10), 12)) %>%
+  mutate(order = rep(rep(1:length(levels(case)), each = 10), 17)) %>%
+  ggplot(aes(x = order, fill = feature)) + 
+  geom_bar(position = "stack", width = 1) + 
+  coord_flip() + 
+  facet_wrap(situation ~ ., ncol = 5) +
+  #facet_grid(nlevels ~ situation) +
+  theme(legend.position = "bottom",
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_brewer(palette = "Blues") + 
+  labs(x = "cases")
+
+hamby224_sensitivity_results %>%
+  filter(set == "Set 1") %>%
+  droplevels() %>%
+  select(situation, case, rep, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(situation, case, rep, desc(feature_weight_abs)) %>%
+  group_by(situation, case, rep) %>%
+  slice(2) %>%
+  ungroup() %>%
+  group_by(situation, case) %>%
+  mutate(nlevels = length(levels(factor(feature)))) %>%
+  ungroup() %>%
+  arrange(situation, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(levels(case)), each = 10), 17)) %>%
+  ggplot(aes(x = order, fill = feature)) + 
+  geom_bar(position = "stack", width = 1) + 
+  coord_flip() + 
+  facet_wrap(situation ~ ., ncol = 5) +
+  #facet_grid(nlevels ~ situation) +
+  theme(legend.position = "bottom",
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_brewer(palette = "Blues") + 
+  labs(x = "cases")
+
+hamby224_sensitivity_results %>%
+  filter(set == "Set 1") %>%
+  droplevels() %>%
+  select(situation, case, rep, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(situation, case, rep, desc(feature_weight_abs)) %>%
+  group_by(situation, case, rep) %>%
+  slice(3) %>%
+  ungroup() %>%
+  group_by(situation, case) %>%
+  mutate(nlevels = length(levels(factor(feature)))) %>%
+  ungroup() %>%
+  arrange(situation, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(levels(case)), each = 10), 17)) %>%
   ggplot(aes(x = order, fill = feature)) + 
   geom_bar(position = "stack", width = 1) + 
   coord_flip() + 

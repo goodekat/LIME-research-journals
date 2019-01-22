@@ -18,6 +18,7 @@ Completed:
 - finished reorganizing journal
 - updated code in journal to account for tree based bins
 - think of a way to measure the consistency of variables chosen within in one implementation
+- rerun all code in paper and journal
 
 Current:
 - better understand Fleiss's kappa
@@ -25,7 +26,6 @@ Current:
 - once Heike fixes the binning function:
   - update interpretations of best MSE and R^2
   - edit code for results from sensativity analysis to account for tree method
-  - rerun all code in paper and journal
 - look into submitting a JSM proposal
 
 Later:
