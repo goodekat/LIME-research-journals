@@ -435,6 +435,58 @@ Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all
 
 # Computation Issues
 
+## Plotly Dead Space Issue
+
+I found an issue with plotly. Below is the reproducible example that I sent to Carson. He was able to fix the issue, so the example below no longer has the problem.
+
+```{r eval = FALSE}
+# Example with Plotly to show dead space in heatmap
+
+# System information
+# R version 3.5.1 (2018-07-02)
+# Platform: x86_64-apple-darwin15.6.0 (64-bit)
+# Running under: macOS  10.14
+
+# Load libraries
+# library(plotly) # version 4.8.0
+# library(ggplot2) # version 3.1.0
+# library(tidyr) # version 0.8.2
+
+# Example from: https://plot.ly/r/heatmaps/ -------------------------------------------
+
+# Create dataset
+m <- matrix(rnorm(9), nrow = 3, ncol = 3)
+
+# Create plotly heatmap - no dead space to be found
+plot_ly(x = c("a", "b", "c"), y = c("d", "e", "f"), z = m, type = "heatmap")
+
+# Example using ggplotly function -----------------------------------------------------
+
+# Reshape the data for ggplot
+m_gathered <- data.frame(m) %>%
+  gather(key = column) %>%
+  mutate(row = factor(rep(c("X1", "X2", "X3"), 3))) %>%
+  select(column, row, value)
+
+# Create ggplot heatmap
+p <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
+  geom_tile()
+
+# Apply plotly to ggplot heatmap - dead space in the middle of (X1, X1)
+ggplotly(p)
+
+# Carson's suggested fix for now
+style(ggplotly(p), hoverinfo = "skip", traces = 2)
+
+# Create ggplot heatmap without a legend
+p_nolegend <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
+  geom_tile() +
+  theme(legend.position = "none") 
+
+# Apply plotly to ggplot heatmap - the dead space is gone!
+ggplotly(p_nolegend)
+```
+
 ## Caret vs RandomForest
 
 The `lime` function in lime is set up to work with specific packages. For example, `lime` works with a random forest model fit using the caret package, but it is not set up to work with a random forest fit using the randomForest package. I found a suggestion to apply the function `as_classifier` from the lime package to a model fit using randomForest in order for the `lime` function to accept the model. It seemed to work. However, I wanted to compare the lime results from a model fit using caret and the same model fit using randomForest. To do this, I used the iris data. The code below goes through the process of fitting the two models (`rf_model` and `caret_model`). Then the `lime` and `explain` functions are applied to both models.
@@ -628,7 +680,7 @@ hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 1", bin_continuous == TRUE) %>%
   ggplot(aes(x = rfscore, y = model_prediction)) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid(bin_method ~ nbins) + 
+  facet_grid(bin_situation ~ nbins) + 
   theme_bw() + 
   stat_smooth(method = "lm", se = FALSE, size = 0.5) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -641,7 +693,7 @@ hamby224_lime_comparisons %>%
   filter(!is.na(rfscore), set == "Set 1", bin_continuous == TRUE) %>%
   ggplot(aes(x = rfscore, y = abs(diff))) + 
   geom_point(aes(color = model_r2)) + 
-  facet_grid(bin_method ~ nbins) + 
+  facet_grid(bin_situation ~ nbins) + 
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -670,37 +722,41 @@ where $n$ is the number of observations in the testing dataset (within a set). A
 hamby224_lime_results <- hamby224_lime_comparisons %>%
   filter(!is.na(rfscore)) %>%
   group_by(situation, bin_situation, bin_continuous, quantile_bins, nbins, use_density, 
-           bin_method, set) %>%
+           bin_method, response, set) %>%
   summarise(mse = (sum(diff^2)) / length(diff),
             ave_r2 = mean(model_r2)) %>%
   arrange(set) %>%
   ungroup()
 ```
 
-The plot below shows the mean squared errors for each of the input situations faceted by set. In both cases, the lowest mean squared error occurs with 3 equally spaced bins. This seems to suggest that using 3 equally spaced bins should provide better explanations.
+The plot below shows the mean squared errors for each of the input situations faceted by set. In both cases, the mean squared error with 3 equally spaced bins is low, and the MSE for the tree binning cases are also low.
 
 ```{r}
 hamby224_lime_results %>%
+  mutate(bins = ifelse(nbins == 4 & bin_continuous == FALSE, "other", nbins)) %>%
   ggplot(aes(x = situation, y = mse, color = bin_situation)) +
   geom_point() + 
-  facet_grid( ~ set) + 
+  facet_grid(set ~ bins, scales = "free_x", space = "free_x") + 
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
         legend.position = "bottom") + 
-  labs(x = "Situation", y = "MSE", color = "")
+  labs(x = "Situation", y = "MSE", color = "") + 
+  scale_color_brewer(palette = "RdYlBu")
 ```
 
-The plot below shows the average $R^2$ value for each of the input situations faceted by set. The results are very similar for each set, and the highest $R^2$ values occur for 2 quantile bins. The $R^2$ values for 3 equally spaced bins are in the middle.
+The plot below shows the average $R^2$ value for each of the input situations faceted by set. The results are very similar for each set, and the highest $R^2$ values occur for 2 quantile bins. The $R^2$ values for 3 equally spaced bins are in the middle, and the $R^2$ values for all of the tree based bins are the lowest.
 
 ```{r}
 hamby224_lime_results %>%
+  mutate(bins = ifelse(nbins == 4 & bin_continuous == FALSE, "other", nbins)) %>%
   ggplot(aes(x = situation, y = ave_r2, color = bin_situation)) +
   geom_point() + 
-  facet_grid( ~ set) + 
+  facet_grid(set ~ bins, scales = "free_x", space = "free_x") + 
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "bottom") + 
-  labs(x = "Situation", y = "Average R2", color = "")
+  labs(x = "Situation", y = "Average R2", color = "") + 
+  scale_color_brewer(palette = "RdYlBu")
 ```
 
 ## Consistency with One Implementation
@@ -711,7 +767,7 @@ I wanted to look at the consistency of features chosen by lime across the number
 # Creates a dataset that identifies the top chosen features by lim in order of first to third
 chosen_features <- hamby224_test_explain %>%
   filter(bin_situation != "other") %>%
-  select(set, situation, bin_situation, nbins, case, feature, feature_weight) %>%
+  select(set, situation, bin_situation, nbins, case, samesource, feature, feature_weight) %>%
   mutate(feature_weight_abs = abs(feature_weight)) %>%
   arrange(situation, case, desc(feature_weight_abs)) %>%
   mutate(explainer = rep(c("first", "second", "third"), length(situation) / 3)) %>%
@@ -719,9 +775,7 @@ chosen_features <- hamby224_test_explain %>%
   spread(explainer, feature)
 ```
 
-In order to access consistency, I have decided to compute Fleiss' kappa for each of the bin types. Fleiss' kappa is often used to assess the consistency across raters for any number of raters and with nominal ratings. It calculates the degree of agreement in classification over that which would be expected by chance. 
-
-Need to write how it is computed, so I can better understand it's use: https://en.wikipedia.org/wiki/Fleiss%27_kappa
+In order to access consistency, I have decided to compute Fleiss' kappa for each of the bin types. Fleiss' kappa is often used to assess the consistency across raters for any number of raters and with nominal ratings. It calculates the degree of agreement in classification over that which would be expected by chance. A description of how it is computed can be found on the wikipedia site: https://en.wikipedia.org/wiki/Fleiss%27_kappa
 
 I computed kappa for each bin situation separately for the top three features chosen. These values are plotted below for each set. For both the first and second features chosen by lime, the values of kappa suggest that quantile bins are the most consistent across all the nubmer of bins followed by the tree based bins. The values of kappa for the quantile bins are slight to fair agreement. For the third chosen variable, the tree based bins have the highest value of kappa, but all the kappa values for the third chosen feature are low.
 
@@ -736,42 +790,43 @@ chosen_features %>%
   rename(bins2 = "2", bins3 = "3", bins4 = "4", bins5 = "5", bins6 = "6") %>%
   group_by(set, bin_situation, chosen) %>%
   summarise(kappa = 
-              kappam.fleiss(matrix(c(bins2, bins3, bins4, bins5, bins6), ncol = 5))$value) %>%
+              irr::kappam.fleiss(matrix(c(bins2, bins3, bins4, bins5, bins6), ncol = 5))$value) %>%
   arrange(chosen, set, bin_situation) %>%
   ggplot(aes(x = bin_situation, y = kappa, color = chosen, group = chosen)) +
   geom_point() + 
   geom_line() +
   facet_grid( ~ set) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_color_brewer(palette = "Paired")
 ```
 
 I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below.
 
-```{r}
+```{r fig.height = 8, fig.width = 8}
 # Plots the top feature for each case for each bin situation
 ggplot(chosen_features, aes(x = situation, y = case, fill = first)) + 
   geom_tile() + 
-  facet_grid(set ~ bin_situation, scales = "free") + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
+  scale_fill_brewer(palette = "Spectral")
 
 # Plots the second feature for each case for each bin situation
 ggplot(chosen_features, aes(x = situation, y = case, fill = second)) + 
   geom_tile() + 
-  facet_grid(set ~ bin_situation, scales = "free") + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") +
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
+  scale_fill_brewer(palette = "Spectral")
 
 # Plots the third feature for each case for each bin situation
 ggplot(chosen_features, aes(x = situation, y = case, fill = third)) + 
   geom_tile() + 
-  facet_grid(set ~ bin_situation, scales = "free") + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") +
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
+  scale_fill_brewer(palette = "Spectral")
 ```
 
 I also created the plot below to visually assess the proportions of cases within a bin situation and level of feature chosen by lime (first, second, or third) that have 1 to 5 chosen features. The plots are separated by set.
@@ -788,9 +843,10 @@ chosen_features %>%
   ggplot(aes(x = bin_situation, fill = factor(nfeatures))) + 
   geom_bar(position = "stack") + 
   facet_grid(set ~ chosen) + 
+  labs(x = "Bin Situation", y = "Count", fill = "Number of Features") + 
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") + 
+  scale_fill_brewer(palette = "RdYlBu")
 ```
 
 ## Consistency Across Implementations
@@ -889,7 +945,7 @@ hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
 
 ```{r}
 hamby224_sensitivity_mses <- hamby224_sensitivity_results %>%
-  group_by(set, rep, situation, bin_situation) %>%
+  group_by(set, rep, situation, bin_situation, nbins) %>%
   summarise(mse = sum((diff)^2) / length(diff))
 ```
 
@@ -897,28 +953,29 @@ The plot below shows boxplots of the 10 mean squared errors computed for each of
 
 ```{r}
 hamby224_sensitivity_mses %>%
+  mutate(bins = ifelse(nbins == 4 & bin_situation == "other", "other", as.character(nbins))) %>%
   ggplot(aes(x = situation, y = mse)) + 
-  geom_boxplot(aes(color = bin_situation)) + 
-  #geom_point() + 
-  facet_grid( ~ set) + 
+  geom_boxplot(aes(color = bin_situation)) +
+  facet_grid(set ~ bins, scales = "free_x") + 
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  labs(x = "", y = "MSE")
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") + 
+  labs(x = "Situation", y = "MSE", color = "") + 
+  scale_color_brewer(palette = "RdYlBu")
 ```
 
 ```{r}
 hamby224_consistency <- hamby224_sensitivity_results %>%
-  select(set, situation, bin_situation, case, rep, feature, feature_weight) %>%
+  select(set, situation, bin_situation, nbins, case, rep, feature, feature_weight) %>%
   mutate(feature_weight_abs = abs(feature_weight)) %>%
   arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
-  group_by(set, situation, case, rep) %>%
+  group_by(set, situation, nbins, case, rep) %>%
   slice(1) %>%
   ungroup() %>%
-  group_by(set, situation, bin_situation, case) %>%
+  group_by(set, situation, bin_situation, nbins, case) %>%
   summarise(nlevels = length(levels(factor(feature))),
             count = n()) %>%
   ungroup() %>%
-  group_by(set, situation, bin_situation) %>%
+  group_by(set, situation, bin_situation, nbins) %>%
   summarise(mean_nlevels = mean(nlevels),
             sd_nlevels = sd(nlevels),
             upper = mean(nlevels) + sd(nlevels),
@@ -933,12 +990,15 @@ There are a handful of situations with a mean near one and very little variation
 
 ```{r}
 hamby224_consistency %>%
+  mutate(bins = ifelse(nbins == 4 & bin_situation == "other", "other", as.character(nbins))) %>%
   ggplot(aes(x = situation, y = mean_nlevels)) + 
   geom_errorbar(aes(ymin = lower, ymax = upper), color = "grey80") +
   geom_point(aes(color = bin_situation)) + 
-  facet_grid(. ~ set) + 
+  facet_grid(set ~ bins, scales = "free_x") + 
+  labs(x = "Situation", y = "Mean Number of Features", color = "") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") + 
+  scale_color_brewer(palette = "RdYlBu")
 ```
 
 The bar chart below shows the proportion of different number of top features chosen across all test cases within a set for each input situation. This shows that the most different features chosen was four. However, many of the cases only have one or two different features chosen, and usually, a larger proportion of the cases have only one top feature chosen across the 10 reps.
@@ -953,12 +1013,14 @@ hamby224_sensitivity_results %>%
   ungroup() %>%
   group_by(set, situation, case) %>%
   summarise(nlevels = length(levels(factor(feature)))) %>%
-  ggplot(aes(x = situation, fill = factor(nlevels))) + 
+  mutate(nlevels = factor(nlevels, levels = c(1:5))) %>%
+  ggplot(aes(x = situation, fill = nlevels)) + 
   geom_bar(position = "stack") +
   facet_grid( ~ set) + 
   theme(legend.position = "bottom", 
         axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
+  scale_fill_brewer(palette = "RdYlBu") + 
+  labs(x = "Situation", y = "Count", fill = "Number of Features")
 
 hamby224_sensitivity_results %>%
   select(set, situation, case, rep, feature, feature_weight) %>%
@@ -969,12 +1031,14 @@ hamby224_sensitivity_results %>%
   ungroup() %>%
   group_by(set, situation, case) %>%
   summarise(nlevels = length(levels(factor(feature)))) %>%
-  ggplot(aes(x = situation, fill = factor(nlevels))) + 
+  mutate(nlevels = factor(nlevels, levels = c(1:5))) %>%
+  ggplot(aes(x = situation, fill = nlevels)) + 
   geom_bar(position = "stack") +
   facet_grid( ~ set) + 
   theme(legend.position = "bottom", 
         axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
+  scale_fill_brewer(palette = "RdYlBu") + 
+  labs(x = "Situation", y = "Count", fill = "Number of Features")
 
 hamby224_sensitivity_results %>%
   select(set, situation, case, rep, feature, feature_weight) %>%
@@ -985,12 +1049,14 @@ hamby224_sensitivity_results %>%
   ungroup() %>%
   group_by(set, situation, case) %>%
   summarise(nlevels = length(levels(factor(feature)))) %>%
-  ggplot(aes(x = situation, fill = factor(nlevels))) + 
+  mutate(nlevels = factor(nlevels, levels = c(1:5))) %>%
+  ggplot(aes(x = situation, fill = nlevels)) + 
   geom_bar(position = "stack") +
   facet_grid( ~ set) + 
   theme(legend.position = "bottom", 
         axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_fill_brewer(palette = "Blues")
+  scale_fill_brewer(palette = "RdYlBu") + 
+  labs(x = "Situation", y = "Count", fill = "Number of Features")
 ```
 
 The plot below needs some work, but it does contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases.
@@ -1022,7 +1088,7 @@ hamby224_sensitivity_results %>%
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
-  scale_fill_brewer(palette = "Blues") + 
+  scale_fill_brewer(palette = "Spectral") + 
   labs(x = "cases")
 
 hamby224_sensitivity_results %>%
@@ -1047,7 +1113,7 @@ hamby224_sensitivity_results %>%
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
-  scale_fill_brewer(palette = "Blues") + 
+  scale_fill_brewer(palette = "Spectral") + 
   labs(x = "cases")
 
 hamby224_sensitivity_results %>%
@@ -1072,7 +1138,7 @@ hamby224_sensitivity_results %>%
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
-  scale_fill_brewer(palette = "Blues") + 
+  scale_fill_brewer(palette = "Spectral") + 
   labs(x = "cases")
 ```
 
@@ -1147,7 +1213,10 @@ joined_results %>%
                 caption = "Results from Set 11")
 ```
 
-# Heike's Suggestions
+# Future Ideas to Implement
 
-* We talked about including the penalty for the number of parameters in the discussion of the paper.
+* Include a penalty for the number of parameters when choosing bins
 * Look at the AUC after binning
+* Compare the simple models based on different number of bins using an F-test
+* Determine the best number of bins to use for each variable
+

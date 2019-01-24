@@ -56,6 +56,11 @@ hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 ```{r}
 # Obtain features used when fitting the rtrees random forest
 rf_features <- rownames(rtrees$importance)
+
+# Add the random forest score to the training set
+hamby173and252_train$rfscore = predict(rtrees, 
+                                       hamby173and252_train %>% select(rf_features), 
+                                       type = "prob")[,2]
 ```
 
 ## Testing Data: The Hamby 224 Clone
@@ -172,15 +177,17 @@ The developers of LIME wrote a Python package to implement LIME, and Thomas Lin 
 if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   
   # Specify the options to use with lime
-  hamby224_lime_inputs <- list(bin_continuous = c(rep(TRUE, 15), rep(FALSE, 2)),
+  hamby224_lime_inputs <- list(bin_continuous = c(rep(TRUE, 20), rep(FALSE, 2)),
                                quantile_bins = c(rep(TRUE, 5), rep(FALSE, 5), 
-                                                 rep(TRUE, 5), rep(TRUE, 2)),
-                               nbins = c(rep(2:6, 3), rep(4, 2)),
-                               use_density = c(rep(TRUE, 15), TRUE, FALSE),
+                                                 rep(TRUE, 10), rep(TRUE, 2)),
+                               nbins = c(rep(2:6, 4), rep(4, 2)),
+                               use_density = c(rep(TRUE, 20), TRUE, FALSE),
                                bin_method = c(rep("quantile_bins", 5),
                                               rep("equally_spaced", 5),
-                                              rep("tree", 5),
-                                              rep("quantile_bins", 2)))
+                                              rep("tree", 10),
+                                              rep("quantile_bins", 2)),
+                               response = c(rep(NA, 10), rep("samesource", 5), 
+                                            rep("rfscore", 5), rep(NA, 2)))
   
   # Tell R to run the upcoming code in parallel
   plan(multiprocess)
@@ -188,9 +195,9 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   # Apply lime to the full training data with the specified input options
   hamby224_lime_explain <- future_pmap(.l = hamby224_lime_inputs,
              .f = run_lime, # run_lime is one of my helper functions
-             train = hamby173and252_train %>% select(rf_features),
+             features = rf_features,
+             train = hamby173and252_train,
              test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
-             response = hamby173and252_train$samesource,
              rfmodel = as_classifier(rtrees),
              label = "TRUE",
              nfeatures = 3,
@@ -202,12 +209,13 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   
   # Name the items in the lime list
   names(hamby224_lime) <- map_chr(1:length(hamby224_lime_inputs), function(case) 
-      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s, bin_method = %s",
+      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s, bin_method = %s, response = %s",
               hamby224_lime_inputs$bin_continuous[case],
               hamby224_lime_inputs$quantile_bins[case],
               hamby224_lime_inputs$nbins[case],
               hamby224_lime_inputs$use_density[case],
-              hamby224_lime_inputs$bin_method[case]))
+              hamby224_lime_inputs$bin_method[case],
+              hamby224_lime_inputs$response[case]))
 
   hamby224_lime_inputs <- hamby224_lime_inputs %>%
     unlist() %>%
@@ -215,7 +223,7 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
            dimnames = list(NULL, names(hamby224_lime_inputs))) %>%
     as.data.frame() %>%
     mutate(case = 1:length(hamby224_lime_inputs$quantile_bins)) %>%
-    select(case, bin_continuous:bin_method)
+    select(case, bin_continuous:response)
   
   # Save the lime objects
   saveRDS(hamby224_lime_inputs, "../data/hamby224_lime_inputs.rds")
@@ -274,7 +282,8 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
                                   q_b = quantile_bins,
                                   n_b = nbins,
                                   u_d = use_density,
-                                  b_m = bin_method),
+                                  b_m = bin_method,
+                                  r_v = response),
                             .f = bin_labeller, # bin_labeller is one of my helper functions
                             bin_data = hamby224_bin_boundaries,
                             case_info = hamby224_lime_inputs)) %>%
@@ -298,23 +307,34 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
                               sprintf("%.0f quantile bins", nbins),
                               ifelse(bin_continuous == TRUE & bin_method == "equally_spaced",
                                      sprintf("%.0f equally spaced bins", nbins),
-                                     ifelse(bin_continuous == TRUE & bin_method == "tree",
-                                            sprintf("%.0f tree based bins", nbins),
-                                            ifelse(bin_continuous == FALSE & use_density == TRUE, 
-                                                   "kernel density", 
-                                                   "normal approximation")))) %>%
+                                     ifelse(bin_continuous == TRUE & bin_method == "tree" &
+                                              response == "samesource",
+                                            sprintf("%.0f samesource tree based bins", nbins),
+                                            ifelse(bin_continuous == TRUE & bin_method == "tree" &
+                                              response == "rfscore",
+                                              sprintf("%.0f rfscore tree based bins", nbins),
+                                              ifelse(bin_continuous == FALSE & 
+                                                       use_density == TRUE, 
+                                                     "kernel density", "normal approximation"))))) %>%
              fct_relevel("2 quantile bins", "3 quantile bins", "4 quantile bins",
                          "5 quantile bins", "6 quantile bins", "2 equally spaced bins",
                          "3 equally spaced bins", "4 equally spaced bins",
-                         "5 equally spaced bins", "6 equally spaced bins")) %>%
+                         "5 equally spaced bins", "6 equally spaced bins",
+                         "2 samesource tree based bins", "3 samesource tree based bins",
+                         "4 samesource tree based bins", "5 samesource tree based bins",
+                         "6 samesource tree based bins")) %>%
     mutate(bin_situation = ifelse(bin_method == "quantile_bins" & bin_continuous == TRUE,
                                 "quantile bins",
                                 ifelse(bin_method == "equally_spaced" & bin_continuous == TRUE,
                                        "equally spaced bins", 
-                                       ifelse(bin_method == "tree" & bin_continuous == TRUE,
-                                              "tree based bins", "other")))) %>%
+                                       ifelse(bin_method == "tree" & bin_continuous == TRUE & 
+                                                response == "samesource",
+                                              "samesource tree based bins", 
+                                              ifelse(bin_method == "tree" & bin_continuous == TRUE & 
+                                                response == "rfscore",
+                                                "rfscore tree based bins", "other"))))) %>%
     mutate(bin_situation = factor(bin_situation)) %>%
-    select(situation, bin_situation, bin_continuous:bin_method, case:feature_desc,
+    select(situation, bin_situation, bin_continuous:response, case:feature_desc,
            feature_bin:strictly_less, data, prediction)
 
   # Save the combined test and explain data
@@ -337,11 +357,11 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
   # model predictions
   hamby224_lime_comparisons <- hamby224_test_explain %>%
     select(-data, -prediction) %>%
-    group_by(case, bin_continuous, quantile_bins, nbins, use_density, bin_method) %>%
+    group_by(case, bin_continuous, quantile_bins, nbins, use_density, bin_method, response) %>%
     slice(1) %>%
     ungroup() %>%
-    select(situation, bin_situation, bin_method, bin_continuous, quantile_bins, nbins, use_density, 
-           set, case, rf_features, rfscore, model_prediction, model_r2) %>%
+    select(situation, bin_situation, bin_method, bin_continuous, quantile_bins, response, 
+           nbins, use_density, set, case, rf_features, rfscore, model_prediction, model_r2) %>%
     mutate(diff = rfscore - model_prediction,
            mean = (rfscore + model_prediction) / 2)
     

@@ -10,31 +10,28 @@ Goals for spring semester:
 - make plans for the statistical paper
 
 Questions:
-
-To Show Heike:
-- tree bins seem better with simple model predictions near one (see plots in accuracy section)
+- which type of presentation to do at JSM?
 
 Completed:
-- finished reorganizing journal
-- updated code in journal to account for tree based bins
-- think of a way to measure the consistency of variables chosen within in one implementation
-- rerun all code in paper and journal
+- sorted by same source in the plots
+- switch to using rfscore instead of samesource with the trees
+- switch color scheme
 
 Current:
-- better understand Fleiss's kappa
-- better understand trees and Heike's function to see if I can help
-- once Heike fixes the binning function:
-  - update interpretations of best MSE and R^2
-  - edit code for results from sensativity analysis to account for tree method
-- look into submitting a JSM proposal
+- go through code, check for errors, and clean up
+- write an abstract draft for JSM
+- better understand trees and Heike's function
+- look into using the seration package to bring things into a nice order in plots
+- look into literature on binning methods
+- think about why R^2 would be better for some binning methods
+- look into computing a diversity or consistency measure for the sensitivity analysis
+- create distribution visualizations bins
 
 Later:
 - write a draft of the examiners paper
 - try out different weights
-- look into computing a diversity measure for the sensitivity analysis
 - read through LIME papers again
 - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
-- add distribution visualizations to the app with the chosen bins
 - try out logistic regression idea for bins (write own bin list to put in explain)
 - try out subsampling idea
 - read new paper on Anchor
