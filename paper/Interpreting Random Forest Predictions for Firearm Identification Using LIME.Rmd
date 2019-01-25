@@ -176,18 +176,23 @@ The developers of LIME wrote a Python package to implement LIME, and Thomas Lin 
 # Apply the run_lime function if the lime results file does not already exist
 if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   
-  # Specify the options to use with lime
-  hamby224_lime_inputs <- list(bin_continuous = c(rep(TRUE, 20), rep(FALSE, 2)),
-                               quantile_bins = c(rep(TRUE, 5), rep(FALSE, 5), 
-                                                 rep(TRUE, 10), rep(TRUE, 2)),
-                               nbins = c(rep(2:6, 4), rep(4, 2)),
+  # Specify the input options to use with lime
+  hamby224_lime_inputs <- list(bin_continuous = c(rep(TRUE, 20), 
+                                                  rep(FALSE, 2)),
+                               quantile_bins = c(rep(TRUE, 5), 
+                                                 rep(FALSE, 5), 
+                                                 rep(TRUE, 12)),
+                               nbins = c(rep(2:6, 4), 
+                                         rep(4, 2)),
                                use_density = c(rep(TRUE, 20), TRUE, FALSE),
                                bin_method = c(rep("quantile_bins", 5),
                                               rep("equally_spaced", 5),
                                               rep("tree", 10),
                                               rep("quantile_bins", 2)),
-                               response = c(rep(NA, 10), rep("samesource", 5), 
-                                            rep("rfscore", 5), rep(NA, 2)))
+                               response = c(rep(NA, 10), 
+                                            rep("samesource", 5), 
+                                            rep("rfscore", 5), 
+                                            rep(NA, 2)))
   
   # Tell R to run the upcoming code in parallel
   plan(multiprocess)
@@ -197,7 +202,10 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
              .f = run_lime, # run_lime is one of my helper functions
              features = rf_features,
              train = hamby173and252_train,
-             test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+             test = hamby224_test %>% 
+               arrange(case) %>% 
+               select(rf_features) %>% 
+               na.omit(),
              rfmodel = as_classifier(rtrees),
              label = "TRUE",
              nfeatures = 3,
@@ -209,7 +217,8 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   
   # Name the items in the lime list
   names(hamby224_lime) <- map_chr(1:length(hamby224_lime_inputs), function(case) 
-      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s, bin_method = %s, response = %s",
+      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, 
+              use_density = %s, bin_method = %s, response = %s",
               hamby224_lime_inputs$bin_continuous[case],
               hamby224_lime_inputs$quantile_bins[case],
               hamby224_lime_inputs$nbins[case],
@@ -217,6 +226,7 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
               hamby224_lime_inputs$bin_method[case],
               hamby224_lime_inputs$response[case]))
 
+  # Turn the lime input options into a dataframe before saving it
   hamby224_lime_inputs <- hamby224_lime_inputs %>%
     unlist() %>%
     matrix(ncol = length(hamby224_lime_inputs), 
@@ -304,35 +314,44 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
            feature_desc = reorder(feature_desc, as.numeric(feature))) %>%
     mutate(nbins = as.numeric(as.character(nbins)),
            situation = ifelse(bin_continuous == TRUE & bin_method == "quantile_bins", 
-                              sprintf("%.0f quantile bins", nbins),
+                              sprintf("%.0f quantile", nbins),
                               ifelse(bin_continuous == TRUE & bin_method == "equally_spaced",
-                                     sprintf("%.0f equally spaced bins", nbins),
+                                     sprintf("%.0f equally spaced", nbins),
                                      ifelse(bin_continuous == TRUE & bin_method == "tree" &
                                               response == "samesource",
-                                            sprintf("%.0f samesource tree based bins", nbins),
+                                            sprintf("%.0f samesource tree", nbins),
                                             ifelse(bin_continuous == TRUE & bin_method == "tree" &
                                               response == "rfscore",
-                                              sprintf("%.0f rfscore tree based bins", nbins),
+                                              sprintf("%.0f rfscore tree", nbins),
                                               ifelse(bin_continuous == FALSE & 
-                                                       use_density == TRUE, 
-                                                     "kernel density", "normal approximation"))))) %>%
-             fct_relevel("2 quantile bins", "3 quantile bins", "4 quantile bins",
-                         "5 quantile bins", "6 quantile bins", "2 equally spaced bins",
-                         "3 equally spaced bins", "4 equally spaced bins",
-                         "5 equally spaced bins", "6 equally spaced bins",
-                         "2 samesource tree based bins", "3 samesource tree based bins",
-                         "4 samesource tree based bins", "5 samesource tree based bins",
-                         "6 samesource tree based bins")) %>%
-    mutate(bin_situation = ifelse(bin_method == "quantile_bins" & bin_continuous == TRUE,
-                                "quantile bins",
-                                ifelse(bin_method == "equally_spaced" & bin_continuous == TRUE,
-                                       "equally spaced bins", 
-                                       ifelse(bin_method == "tree" & bin_continuous == TRUE & 
+                                                     use_density == TRUE, 
+                                                     "kernel density", 
+                                                     "normal approximation"))))) %>%
+             fct_relevel("2 quantile", "3 quantile", "4 quantile",
+                         "5 quantile", "6 quantile", "2 equally spaced",
+                         "3 equally spaced", "4 equally spaced",
+                         "5 equally spaced", "6 equally spaced",
+                         "2 samesource tree", "3 samesource tree",
+                         "4 samesource tree", "5 samesource tree",
+                         "6 samesource tree")) %>%
+    mutate(bin_situation = ifelse(bin_method == "quantile_bins" & 
+                                  bin_continuous == TRUE,
+                                  "quantile",
+                                  ifelse(bin_method == "equally_spaced" & 
+                                         bin_continuous == TRUE,
+                                         "equally spaced", 
+                                         ifelse(bin_method == "tree" & 
+                                                bin_continuous == TRUE & 
                                                 response == "samesource",
-                                              "samesource tree based bins", 
-                                              ifelse(bin_method == "tree" & bin_continuous == TRUE & 
-                                                response == "rfscore",
-                                                "rfscore tree based bins", "other"))))) %>%
+                                                "samesource tree", 
+                                                ifelse(bin_method == "tree" & 
+                                                       bin_continuous == TRUE & 
+                                                       response == "rfscore",
+                                                       "rfscore tree", 
+                                                       ifelse(bin_continuous == FALSE & 
+                                                       use_density == TRUE, 
+                                                       "kernel density", 
+                                                       "normal approximation")))))) %>%
     mutate(bin_situation = factor(bin_situation)) %>%
     select(situation, bin_situation, bin_continuous:response, case:feature_desc,
            feature_bin:strictly_less, data, prediction)
