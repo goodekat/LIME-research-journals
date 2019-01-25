@@ -16,12 +16,16 @@ Completed:
 - sorted by same source in the plots
 - switch to using rfscore instead of samesource with the trees
 - switch color scheme
+- go through code before sensativity analysis, check for errors, and clean up
+- finish writing and running code with rfscore based bins (before sensativity analysis)
 
 Current:
-- go through code, check for errors, and clean up
+- read through Heike's new function
+- think of a way to compute consistency across top two features
+- seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
+- run sensativity analysis with rfscore
+- clean up code after sensativity analysis
 - write an abstract draft for JSM
-- better understand trees and Heike's function
-- look into using the seration package to bring things into a nice order in plots
 - look into literature on binning methods
 - think about why R^2 would be better for some binning methods
 - look into computing a diversity or consistency measure for the sensitivity analysis
