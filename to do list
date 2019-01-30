@@ -13,25 +13,24 @@ Questions:
 - which type of presentation to do at JSM?
 
 Completed:
-- sorted by same source in the plots
-- switch to using rfscore instead of samesource with the trees
-- switch color scheme
-- go through code before sensativity analysis, check for errors, and clean up
-- finish writing and running code with rfscore based bins (before sensativity analysis)
+- run sensativity analysis with rfscore
+- clean up code after sensativity analysis
 
 Current:
+- write an abstract draft for JSM
 - read through Heike's new function
 - think of a way to compute consistency across top two features
 - seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
-- run sensativity analysis with rfscore
-- clean up code after sensativity analysis
-- write an abstract draft for JSM
+- compare the simple models based on different number of bins using an F-test
 - look into literature on binning methods
 - think about why R^2 would be better for some binning methods
 - look into computing a diversity or consistency measure for the sensitivity analysis
 - create distribution visualizations bins
+- include a penalty for the number of parameters when choosing bins
 
 Later:
+- determine the best number of bins to use for each variable
+- look at the AUC after binning
 - write a draft of the examiners paper
 - try out different weights
 - read through LIME papers again
