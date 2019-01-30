@@ -21,18 +21,19 @@ Paper, speed, or poster (*Which should I list as the perferred session?*)
 
 #### Abstract Title
 
-An Assessment of LIME Input Options when Interpreting Random Forest Predictions for Bullet Matching Data
+An Assessment of the Application of LIME to Interpret Random Forest Predictions from Bullet Matching Data
+
 (*This seems too long and wordy...*)
 
 #### Abstract Text (1200 character limit)
 
-Random forests are known for their accurate predictive abilities, but they are a part of the family of machine learning models that lack interpretability. Recently, a technique called LIME was developed to provide local interpretations for predictive models. The technique fits a linear regression model to perturbations created from the observed data in a localized region around a prediction of interest and the predicted values associated with the perturbations computed using the complex model. The coefficients from the linear model are used to determine the influential variables. We apply LIME to a random forest fit to a bullet matching dataset using the lime package currently available in R. The LIME algorithm requires several input options that affect the way that the perturbations are created and how the model is interpreted. We assess the current options available in the package and propose some new methods.
+Random forests are known for their accurate predictive abilities, but they are a part of the family of machine learning models that lack interpretability. Recently, a technique called LIME was developed to provide local interpretations for predictive models. The technique fits a linear regression model to perturbations created from the observed data in a localized region around a prediction of interest and the predicted values associated with the perturbations computed using the complex model. The coefficients from the linear model are used to determine the influential variables. We apply LIME to a random forest fit to a forensics bullet matching dataset using the lime package currently available in R. The LIME algorithm requires several input options that affect the way that the perturbations are created and how the model is interpreted. We assess the current options available in the package and propose some new methods.
 
-(*What are your thoughts aobut this? Is the focus of this abstract apporpriate for the talk?*)
+(*What are your thoughts about this? Is the focus of this abstract apporpriate for the talk?*)
 
 #### Abstract Keywords
 
-Key Words: random forest, LIME, interpretability
+random forest, LIME, interpretability
 
 (*Are these okay?*)
 
