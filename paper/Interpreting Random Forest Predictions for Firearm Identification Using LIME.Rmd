@@ -58,9 +58,13 @@ hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 rf_features <- rownames(rtrees$importance)
 
 # Add the random forest score to the training set
-hamby173and252_train$rfscore = predict(rtrees, 
-                                       hamby173and252_train %>% select(rf_features), 
-                                       type = "prob")[,2]
+# hamby173and252_train$rfscore = predict(rtrees,
+#                                        hamby173and252_train %>% select(rf_features),
+#                                        type = "prob")[,2]
+# 
+# Save the adjusted training data
+# write.csv(hamby173and252_train %>% select(-X), "../data/hamby173and252_train.csv",
+#           row.names = FALSE)
 ```
 
 ## Testing Data: The Hamby 224 Clone

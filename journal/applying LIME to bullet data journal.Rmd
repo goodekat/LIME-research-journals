@@ -807,7 +807,7 @@ ggplot(chosen_features, aes(x = situation, y = case, fill = first)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
-  labs(x = "Bin Type", y = "Case", fill = "Feature")
+  labs(x = "Bin Type", y = "Case", fill = "Feature", title = "First Feature")
 
 # Plots the second feature for each case for each bin situation
 ggplot(chosen_features, aes(x = situation, y = case, fill = second)) + 
@@ -818,7 +818,7 @@ ggplot(chosen_features, aes(x = situation, y = case, fill = second)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
-  labs(x = "Bin Type", y = "Case", fill = "Feature")
+  labs(x = "Bin Type", y = "Case", fill = "Feature", title = "Second Feature")
 
 # Plots the third feature for each case for each bin situation
 ggplot(chosen_features, aes(x = situation, y = case, fill = third)) + 
@@ -829,7 +829,7 @@ ggplot(chosen_features, aes(x = situation, y = case, fill = third)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
-  labs(x = "Bin Type", y = "Case", fill = "Feature")
+  labs(x = "Bin Type", y = "Case", fill = "Feature", title = "Third Feature")
 ```
 
 I also created the plot below to visually assess the proportions of cases within a bin situation and level of feature chosen by lime (first, second, or third) that have 1 to 5 chosen features. The plots are separated by set.
@@ -893,15 +893,39 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
                arrange(case) %>% 
                select(rf_features) %>% 
                na.omit(),
-             response = hamby173and252_train$samesource,
              rfmodel = as_classifier(rtrees),
              label = "TRUE",
              nfeatures = 3,
              seed = FALSE) %>%
     map_df(function(list) list$explain) %>%
     mutate(rep = factor(rep(rep(1:nreps, each = dim(hamby224_test %>% na.omit())[1] * 3),
-                            noptions))) %>%
-    full_join(hamby224_test %>% na.omit() %>% 
+                            noptions)))
+  
+  # Turn the input options into a dataframe to be saved
+  hamby224_sensitivity_inputs <- hamby224_sensitivity_inputs %>%
+    unlist() %>%
+    matrix(ncol = length(hamby224_sensitivity_inputs), 
+           dimnames = list(NULL, names(hamby224_sensitivity_inputs))) %>%
+    as.data.frame() %>%
+    mutate(case = 1:(nreps * noptions)) %>%
+    select(case, bin_continuous:bin_method)
+
+  # Save the sensitivity inputs and outputs
+  saveRDS(hamby224_sensitivity_inputs, "../data/hamby224_sensitivity_inputs.rds")
+  saveRDS(hamby224_sensitivity_outputs, "../data/hamby224_sensitivity_outputs.rds")
+  
+} else {
+  
+  # Load in the sensitivity inputs and outputs
+  hamby224_sensitivity_inputs <- readRDS("../data/hamby224_sensitivity_inputs.rds")
+  hamby224_sensitivity_outputs <- readRDS("../data/hamby224_sensitivity_outputs.rds")
+
+}
+```
+
+```{r eval = FALSE}
+hamby224_sensitivity <- hamby224_sensitivity_outputs %>%
+  full_join(hamby224_test %>% na.omit() %>% 
                 mutate(case = as.character(case)), by = "case") %>%
     mutate(case = factor(case)) %>%
     select(case, model_r2:feature_weight, bin_continuous:rep, set:land2, rfscore, samesource) %>%
@@ -947,32 +971,9 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
                                                        "kernel density", 
                                                        "normal approximation")))))) %>%
     mutate(bin_situation = factor(bin_situation))
-  
-  # Turn the input options into a dataframe to be saved
-  hamby224_sensitivity_inputs <- hamby224_sensitivity_inputs %>%
-    unlist() %>%
-    matrix(ncol = length(hamby224_sensitivity_inputs), 
-           dimnames = list(NULL, names(hamby224_sensitivity_inputs))) %>%
-    as.data.frame() %>%
-    mutate(case = 1:(nreps * noptions)) %>%
-    select(case, bin_continuous:bin_method)
 
-  # Save the sensitivity inputs and outputs
-  saveRDS(hamby224_sensitivity_inputs, "../data/hamby224_sensitivity_inputs.rds")
-  saveRDS(hamby224_sensitivity_outputs, "../data/hamby224_sensitivity_outputs.rds")
-  
-} else {
-  
-  # Load in the sensitivity inputs and outputs
-  hamby224_sensitivity_inputs <- readRDS("../data/hamby224_sensitivity_inputs.rds")
-  hamby224_sensitivity_outputs <- readRDS("../data/hamby224_sensitivity_outputs.rds")
-
-}
-```
-
-```{r eval = FALSE}
 # Code for organizing the sensitivity analysis results
-hamby224_sensitivity_results <- hamby224_sensitivity_outputs %>%
+hamby224_sensitivity_results <- hamby224_sensitivity %>%
   group_by(set, rep, situation, bin_situation, nbins) %>%
   summarise(mse = sum((diff)^2) / length(diff),
             ave_r2 = mean(model_r2))
@@ -982,7 +983,7 @@ The plot below shows boxplots of the 10 mean squared errors computed for each of
 
 ```{r eval = FALSE}
 # Plots the MSEs from the sensativity analysis
-hamby224_sensitivity_mses %>%
+hamby224_sensitivity_results %>%
   mutate(bins = ifelse(nbins == 4 & bin_situation == "other", "other", as.character(nbins))) %>%
   ggplot(aes(x = situation, y = mse)) + 
   geom_boxplot(aes(color = bin_situation)) +
