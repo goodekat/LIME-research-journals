@@ -15,9 +15,9 @@ Questions:
 Completed:
 - run sensativity analysis with rfscore
 - clean up code after sensativity analysis
+- write an abstract draft for JSM
 
 Current:
-- write an abstract draft for JSM
 - read through Heike's new function
 - think of a way to compute consistency across top two features
 - seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
