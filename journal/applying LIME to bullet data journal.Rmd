@@ -799,7 +799,7 @@ I also attempted to plot the features chosen by lime in order to visually assess
 
 ```{r fig.height = 8, fig.width = 8}
 # Plots the top feature for each case for each bin situation
-ggplot(chosen_features, aes(x = situation, y = case, fill = first)) + 
+p <- ggplot(chosen_features, aes(x = situation, y = case, fill = first)) + 
   geom_tile() + 
   facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
   theme_bw() + 
@@ -1060,7 +1060,7 @@ The bar chart below shows the proportion of different number of first, second, a
 # Determine the order that the features are chosen within a case and 
 # set of input options
 sensitivity_chosen <- hamby224_sensitivity_joined %>%
-  select(set, situation, case, rep, feature, feature_weight) %>%
+  select(set, situation, bin_situation, nbins, case, rep, feature, feature_weight) %>%
   mutate(feature_weight_abs = abs(feature_weight)) %>%
   arrange(set, situation, case, rep, desc(feature_weight_abs)) %>%
   mutate(explainer = rep(c("first", "second", "third"), length(situation) / 3)) %>%
@@ -1068,7 +1068,7 @@ sensitivity_chosen <- hamby224_sensitivity_joined %>%
   spread(explainer, feature)
 ```
 
-```{r}
+```{r fig.width = 10}
 # Determine and plot the number of features chosen across the 10 reps within 
 # a set, input options, and feature level
 sensitivity_chosen %>%
@@ -1083,7 +1083,36 @@ sensitivity_chosen %>%
   labs(x = "Bin Type", y = "Count", fill = "Number of Features") + 
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") + 
-  scale_fill_gretchenalbrecht(palette = "winter_light", discrete = TRUE)
+  scale_fill_gretchenalbrecht(palette = "flood_tide", discrete = TRUE, reverse = FALSE)
+```
+
+I computed Fleiss's kappa for each sampling technique within a set across the 10 reps. These values are plotted below. Right now, the quantile methods and rfscore tree based bins seem to be the most consistent. However, I am not happy with some of the kappa values for cases where the next set of plots would suggest a high kappa, but the value is very low. I wonder if this a flaw in the Fleiss's kappa and would suggest that I use a different metric.
+
+```{r fig.width = 10}
+sensitivity_chosen %>%
+  mutate(bins = ifelse(bin_situation %in% c("kernel density", "normal approximation"), 
+                       "other", 
+                       nbins)) %>%
+  gather(key = chosen, value = feature, first:third) %>%
+  spread(rep, feature) %>%
+  rename(rep1 = "1", rep2 = "2", rep3 = "3", rep4 = "4", rep5 = "5", 
+         rep6 = "6", rep7 = "7", rep8 = "8", rep9 = "9", rep10 = "10") %>%
+  group_by(set, situation, bin_situation, bins, chosen) %>%
+  summarise(kappa = 
+              irr::kappam.fleiss(matrix(c(rep1, rep2, rep3, rep4, rep5,
+                                          rep6, rep7, rep8, rep9, rep10), 
+                                        ncol = 10))$value,
+            nunique = length(unique(c(rep1, rep2, rep3, rep4, rep5, 
+                                      rep6, rep7, rep8, rep9, rep10)))) %>%
+  mutate(kappa = ifelse(is.nan(kappa), 1, kappa)) %>%
+  ggplot(aes(x = bin_situation, y = kappa, color = chosen, group = chosen)) + 
+  geom_point() + 
+  geom_line(aes(linetype = chosen)) +
+  facet_grid(set ~ bins, scales = "free_x", space = "free_x") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_color_gretchenalbrecht(palette = "pink_cloud", discrete = TRUE) +
+  labs(x = "Sampling Technique", y = "Kappa", color = "Feature", linetype = "Feature")
 ```
 
 The plots below need some work, but they contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases.

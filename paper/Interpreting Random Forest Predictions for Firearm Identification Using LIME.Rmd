@@ -220,9 +220,8 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
   hamby224_explain <- map_df(hamby224_lime_explain, function(list) list$explain)
   
   # Name the items in the lime list
-  names(hamby224_lime) <- map_chr(1:length(hamby224_lime_inputs), function(case) 
-      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, 
-              use_density = %s, bin_method = %s, response = %s",
+  names(hamby224_lime) <- map_chr(1:22, function(case) 
+      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s, bin_method = %s, response = %s",
               hamby224_lime_inputs$bin_continuous[case],
               hamby224_lime_inputs$quantile_bins[case],
               hamby224_lime_inputs$nbins[case],

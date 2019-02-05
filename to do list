@@ -10,17 +10,23 @@ Goals for spring semester:
 - make plans for the statistical paper
 
 Questions:
-- which type of presentation to do at JSM?
+- I've been thinking about how to know if lime is really grasping the nature 
+  of the random forest. Should I try implementing Urbanek's visualizations to 
+  "see" if the lime results make sense, or is there something else I could do 
+  to really know if lime is doing a good job?
 
 Completed:
 - run sensativity analysis with rfscore
 - clean up code after sensativity analysis
 - write an abstract draft for JSM
+- computed kappa for sensativity analysis
 
 Current:
+- add rfscore to code where I create the training data and add this code to this project
+- seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
+- write up paragraph of 
 - read through Heike's new function
 - think of a way to compute consistency across top two features
-- seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
 - compare the simple models based on different number of bins using an F-test
 - look into literature on binning methods
 - think about why R^2 would be better for some binning methods
