@@ -411,6 +411,40 @@ For the prediction of interest,
 
 Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
 
+## Notation
+
+I need to install math jax to get this to work...
+
+\begin{itemize}
+\item $x\in\mathbb{R}^d$: original representation of an instance being explained
+\begin{itemize}
+\item e.g. feature vector containing word embeddings
+\end{itemize}
+\item $x'\in\mathbb{R}^{d'}$: vector for the interpretable representation of the instance being explained
+\begin{itemize}
+\item e.g. bag of words
+\end{itemize}
+\item $G$: class of potentially interpretable models
+\begin{itemize}
+\item e.g. linear models, decision trees, rule lists
+\end{itemize}
+\item $g$: explanation model where $g:\mathbb{R}^{d'}\rightarrow\mathbb{R}$ and $g\in G$
+\item $\Omega(g)$: measure of complexity of $g$
+\begin{itemize}
+\item e.g. depth of a tree, number of non-zeros in a linear model
+\end{itemize}
+\item $f$: model that is being explained where $f:\mathbb{R}^d\rightarrow\mathbb{R}$
+\begin{itemize}
+\item note: in classification $f(x)$ is the probability that $x$ belongs to a certain class
+\end{itemize}
+\item $\Pi_x(z)$: proximity measure between an instance $z$ to $x$ which defines a locality around $x$
+\item $\mathcal{L}(f, g, \Pi_x)$: a measure of how unfaithful $g$ is in approximating $f$ in the locality defined by $\Pi_x$
+\end{itemize}
+
+## Step by Step Procedure
+
+Step 1: 
+
 # Computation Issues
 
 ## Plotly Dead Space Issue

@@ -1,0 +1,125 @@
+---
+title: "01-cleaning training data"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+```
+
+# Overview 
+
+This was originally a part of a journal entry that I wrote in my 'Case Studies with LIME' repository. I took the code that I used to clean the training dataset from that entry and updated it in this entry. It should still produce essentially the same dataset. The dataset that gets saved from this journal is the one that I am using for this research project.
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(plotly)
+library(randomForest)
+```
+
+# The Raw Data
+
+The dataset loaded in below is the original Hamby 172 and 252 dataset that Heike gave to me. Note that when the `hamby173and252` dataset is read in, the studies called "Cary" are excluded. The data file contains rows based on bullet scans from a different study. These rows are no longer being included since Heike has found the study they came from to be poorly executed. 
+
+```{r}
+# Load in the Hamby 173 and 252 dataset
+hamby173and252 <- read.csv("../data/features-hamby173and252.csv") %>%
+  filter(study1 != "Cary", study2 != "Cary") %>%
+  mutate(study1 = factor(study1), 
+         study2 = factor(study2))
+```
+
+## Considering the Number of Rows in the Data
+
+If we include symmetric comparisons, each set of test bullets should result in a dataset with
+  $$(35 \mbox{ bullets} \times 6 \mbox{ lands})^2=44100 \mbox{ rows},$$
+where a row would contain information on a pair of lands. If we do not include the symmetric comparisons, then the dataset should have
+  $$\frac{(44100 \mbox{ rows} - (35 \mbox{ bullets} \times 6))}{2} + (35 \mbox{ bullets} \times 6) = 22155 \mbox{ rows}.$$
+However, when I looked at the dimension of the datasets, neither of these seem to be the case. See the R code and output below. Note that `hamby173` is currently incorrectly labelled as `hamby44`. Both test sets have less than but close to 22,155 rows. This suggests that these do not include symmetric comparisons. When I checked with Heike, she confirmed that this is the case. This table also shows that there are comparisons across `hamby173` and `hamby252`. These missing observations will be explored more in the next section.
+
+```{r}
+# Summary of the number of observations in the Hamby173and252 datase
+table(hamby173and252$study1, hamby173and252$study2)
+```
+
+## Understanding the Missing Observations
+
+The plot below considers the number of observations within a barrel and bullet comparison from all known cases in the Hamby 173 and 252 data. We can see that the observations on the lower diagonals are missing in all cases which confirms that the symmetric comparisons were not included in the data. Additionally, a handful of cases have less than 36 observations. For the comparisons within the Hamby 173 or Hamby 252 study, the cells on the diagonals are less than 36, because none of the repeats from the symmetric comparisons of lands are included. The cells above the diagonal with less than 36 observations are missing some observations due to tank rash. For the comparisons across studies, the cases with less than expected are also due to tank rash. For some reason, the comparisons between bullets 1 from Hamby 173 and Hamby 252, the cells are being colored grey even though they have 36 observations. I am not sure why this is...
+
+```{r}
+# Create the plot to look at number of comparisons within the known bullets
+countplot <- hamby173and252 %>%
+  filter(barrel1 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+         barrel2 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")) %>%
+  group_by(study1, study2, barrel1, barrel2, bullet1, bullet2) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = barrel1, y = barrel2)) +
+  geom_tile(aes(fill = count)) + 
+  facet_grid(study1 + bullet1 ~ study2 + bullet2, scales = "free") +
+  theme_minimal() + 
+  labs(title = "Number of Observations per Barrel-Bullet Pair in Hamby 173")
+
+# Make the plot interactive
+ggplotly(countplot, width = 800, height = 700) %>%
+  shiny::div(align = "center")
+```
+
+# Cleaning the Data
+
+The code below cleans the training data. The cleaned data is saved and used as the training dataset for the rest of this research project.
+
+```{r}
+# Determine the letters associated with the unknown bullets
+letters <- levels(hamby173and252$barrel1)[11:length(levels(hamby173and252$barrel1))]
+
+# Cleaning the data:
+#   - corrects the study 173 labels
+#   - adjusts the bullet and barrel values for the unknowns
+#   - renames the match variable as samesource
+#   - selects the desired variables
+hamby173and252_cleaned <- hamby173and252 %>%
+  mutate(study1 = fct_recode(study1, "Hamby173" = "Hamby44"),
+         study2 = fct_recode(study2, "Hamby173" = "Hamby44"),
+         bullet1 = factor(ifelse(barrel1 %in% letters,
+                                 as.character(barrel1),
+                                 as.character(bullet1))),
+         barrel1 = factor(ifelse(barrel1 %in% letters, 
+                                 as.character("Unknown"), 
+                                 as.character(barrel1))),
+         bullet2 = factor(ifelse(barrel2 %in% letters,
+                                 as.character(barrel2),
+                                 as.character(bullet2))),
+         barrel2 = factor(ifelse(barrel2 %in% letters, 
+                                 as.character("Unknown"), 
+                                 as.character(barrel2))),
+         land1 = factor(land1),
+         land2 = factor(land2),
+         rfscore = predict(bulletr::rtrees, hamby173and252 %>%
+                             select(rownames(bulletr::rtrees$importance)), 
+                           type = "prob")[,2]) %>%
+  rename(samesource = match) %>%
+  select(study1, barrel1, bullet1, land1, study2, barrel2, bullet2, land2,
+         rownames(bulletr::rtrees$importance), samesource, rfscore)
+
+# Save the datasets and response variables as .csv files
+write.csv(hamby173and252_cleaned, 
+          "../data/hamby173and252_cleaned.csv", 
+          row.names = FALSE)
+```
+
+## Issue
+
+The number of rtrees predictions does not match the length of my training data...
+
+```{r}
+dim(predict(bulletr::rtrees, type = "prob"))
+dim(hamby173and252_cleaned)
+```
+

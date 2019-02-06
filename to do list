@@ -10,21 +10,18 @@ Goals for spring semester:
 - make plans for the statistical paper
 
 Questions:
-- I've been thinking about how to know if lime is really grasping the nature 
-  of the random forest. Should I try implementing Urbanek's visualizations to 
-  "see" if the lime results make sense, or is there something else I could do 
-  to really know if lime is doing a good job?
+- my training predictions do not have the same length as the predictions from rtrees?
 
 Completed:
-- run sensativity analysis with rfscore
-- clean up code after sensativity analysis
-- write an abstract draft for JSM
-- computed kappa for sensativity analysis
 
 Current:
-- add rfscore to code where I create the training data and add this code to this project
+- transfer work to multiple journals and add in all data cleaning steps
+- add rfscore to code where I create the training data
 - seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
-- write up paragraph of 
+- write up paragraph of issues with LIME
+- look into R2 bug
+
+Later:
 - read through Heike's new function
 - think of a way to compute consistency across top two features
 - compare the simple models based on different number of bins using an F-test
@@ -33,8 +30,6 @@ Current:
 - look into computing a diversity or consistency measure for the sensitivity analysis
 - create distribution visualizations bins
 - include a penalty for the number of parameters when choosing bins
-
-Later:
 - determine the best number of bins to use for each variable
 - look at the AUC after binning
 - write a draft of the examiners paper
