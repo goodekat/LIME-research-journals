@@ -1,0 +1,356 @@
+---
+title: "02-plotting_features"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+```
+
+# Overview
+
+This journal contains plots created from the training and testing datasets.
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(cowplot)
+library(plotly)
+```
+
+# The Data
+
+The cleaning training and testing datasets are loaded in below.
+
+```{r}
+# Load in the training data (Hamby Data 173 and 252) and testing data (Hamby Data 224 Sets 1 and 11)
+hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
+hamby224_test <- read.csv("../data/hamby224_test.csv")
+```
+
+A vector containing the features used in the random forest `rtrees` is created below that will be used when creating some of the plots in this journal.
+
+```{r}
+# Obtain features used when fitting the rtrees random forest
+rf_features <- rownames(bulletr::rtrees$importance)
+```
+
+# Plots of Features
+
+### Distributions by `samesource`
+
+I created the following two plots of the training data as suggested by Heike. The histograms below show the distributions of the features used in the random forest `rtrees`. The histograms are filled by the `samesource` variable, which is the truth of whether or not the comparison is from the same barrel and land. The default histograms make it hard to compare the distributions of the matches and non-matches since there are many more comparisons that have `samesource == FALSE`.
+
+```{r}
+# Create plots of the feature distributions colored by samesource for the training data
+hamby173and252_train %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Frequency", fill = "Same Source?",
+       title = "Hamby 173 and 252 Training Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+By setting `position = "fill"` in the `geom_histogram` function, it is easier to compare the matches and non-matches. <span style="color:teal"> These plots could be used in the future to hand select the bins for lime. Additionally, fitting a logistic regression to this data could also be used to determine the LC50, LC10, ad LC90, which could be used as the bins for lime. </span>
+
+```{r}
+# Create plots of the feature distributions colored by samesource for the training data
+# using the position = "fill" option
+hamby173and252_train %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(position = "fill", bins = 30) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Proportion", fill = "Same Source?",
+       title = "Hamby 173 and 252 Training Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+The plots below have the same structure, but they are created with the Hamby 224 testing data. I chose to not separate the testing data by sets, but this is something that could be done later if necessary.
+
+```{r}
+# Create plots of the feature distributions colored by samesource for the testing data
+hamby224_test %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(bins = 15) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Frequency", fill = "Same Source?",
+       title = "Hamby 224 Testing Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+# Create plots of the feature distributions colored by samesource for the testing 
+# data using the position = "fill" option
+hamby224_test %>% 
+  select(rf_features, samesource) %>%
+  gather(key = feature, value = value, 1:9) %>%
+  select(feature, value, samesource) %>%
+  ggplot(aes(x = value, fill = samesource)) + 
+  geom_histogram(position = "fill", bins = 15) + 
+  facet_wrap( ~ feature, scales = "free") +
+  labs(x = "Variable Value", y = "Proportion", fill = "Same Source?",
+       title = "Hamby 224 Testing Data") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+### Correlations
+
+I made these plots to look at the correlation between features in the training data within the TRUE and FALSE cases of samesource. The features are highly correlated for the match comparisons. It is clear that the variables are more correlated with the match comparisons than the non-match comparisons. However, there are still some variables that are relatively highly correlation with the non-match comparisons.
+
+```{r fig.height = 4, fig.width = 9}
+# Create a correlation heatmap of the match comparisons in the training data
+cor_match <- hamby173and252_train %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == TRUE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Match Comparisons")
+
+# Create a correlation heatmap of the non-match comparisons in the training data
+cor_nonmatch <- hamby173and252_train %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == FALSE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Non-Match Comparisons")
+
+# Create a title for the panel of plots
+cor_title <- ggdraw() +
+  draw_label("Correlation of Feature Variables in the Training Data", 
+             fontface = "bold", 
+             size = 16,
+             x = 0.5,
+             hjust = 0.5)
+
+# Create a joined legend for the panel of plots
+cor_legend <- get_legend(cor_match + theme(legend.position = "right"))
+
+# Create the panel of plots
+plot_grid(cor_title, 
+          plot_grid(cor_match, cor_nonmatch, cor_legend, ncol = 3, rel_widths = c(2, 2, 0.5)),
+          ncol = 1,
+          rel_heights = c(0.25, 3))
+```
+
+The plots below show the correlations for the testing data. The patterns in the plots look really similar to ones of the training data.
+
+```{r fig.height = 4, fig.width = 9}
+# Create a correlation heatmap of the match comparisons in the training data
+cor_match_test <- hamby224_test %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == TRUE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Match Comparisons")
+
+# Create a correlation heatmap of the non-match comparisons in the training data
+cor_nonmatch_test <- hamby224_test %>%
+  select(rf_features, samesource) %>%
+  filter(samesource == FALSE) %>%
+  select(-samesource) %>%
+  cor() %>%
+  reshape2::melt() %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms"))) %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(limits = c(-1, 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Non-Match Comparisons")
+
+# Create a title for the panel of plots
+cor_title_test <- ggdraw() +
+  draw_label("Correlation of Feature Variables in the Testing Data", 
+             fontface = "bold", 
+             size = 16,
+             x = 0.5,
+             hjust = 0.5)
+
+# Create a joined legend for the panel of plots
+cor_legend_test <- get_legend(cor_match_test + theme(legend.position = "right"))
+
+# Create the panel of plots
+plot_grid(cor_title_test, 
+          plot_grid(cor_match_test, cor_nonmatch_test, cor_legend_test, 
+                    ncol = 3, rel_widths = c(2, 2, 0.5)),
+          ncol = 1,
+          rel_heights = c(0.25, 3))
+```
+
+# Random Forest Scores
+
+### Facet Version
+
+The plot below is the model for the one that will be used in the app for exploring the `lime` explanations from the bullet matching data. This is the data from set 1 of the testing dataset.
+
+```{r}
+# Heatmap of rfscore for each comparison in set 1
+hamby224_test %>%
+  filter(set == "Set 1") %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2,
+             text = paste('Bullets Compared: ', bullet1, "-", land1, 
+                          "vs", bullet2, "-", land2,
+                          '\nRandom Forest Score: ', 
+                          ifelse(is.na(rfscore), "Missing due to tank rash", rfscore)))) +
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(bullet2 ~ bullet1, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  labs(x = "", y = "", fill = "RF Score")
+```
+
+### Individual Plots Version
+
+I also wrote some code to create the above plot using individual plots instead of facets. This is included below. (It is a bit outdated compared to my newer version of the plot.)
+
+```{r}
+# Code for creating the heatmap plots using individual plots
+p1 <- hamby224_test %>%
+  filter(set == "Set 1", bullet1 == "Known 1", bullet2 == "Known 1") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p2 <- hamby224_test %>%
+  filter(set == "Set 1", bullet1 == "Known 1", bullet2 == "Known 2") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p3 <- hamby224_test %>%
+  filter(set == "Set 1", bullet1 == "Known 1", bullet2 == "Questioned") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  #facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p4 <- ggplot() + geom_blank() + theme_classic()
+
+p5 <- hamby224_test %>%
+  filter(set == "Set 1", bullet1 == "Known 2", bullet2 == "Known 2") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  #facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p6 <- hamby224_test %>%
+  filter(set == "Set 1", bullet1 == "Known 2", bullet2 == "Questioned") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  #facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score") + 
+  theme(legend.position = "none")
+
+p7 <- ggplot() + geom_blank() + theme_classic()
+
+p8 <- ggplot() + geom_blank() + theme_classic()
+
+p9 <- hamby224_test %>%
+  filter(set == "Set 1", bullet1 == "Questioned", bullet2 == "Questioned") %>%
+  select(case, bullet1, bullet2, land1, land2, rfscore) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2, label = bullet1, label2 = bullet2)) +
+  geom_tile(aes(fill = rfscore)) +
+  #facet_grid(bullet1 ~ bullet2, scales = "free") +
+  theme_minimal() +
+  scale_fill_gradient2(low = "grey", high = "orange", midpoint = 0.5, limits = c(0,1)) +
+  labs(x = "Land 1", y = "Land 2", fill = "RF Score")
+
+style(subplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, 
+              nrows = 3, 
+              titleX = TRUE, 
+              titleY = TRUE, 
+              margin = 0.03),
+      hoverinfo = "skip",
+      traces = 7)
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
