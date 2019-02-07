@@ -9,7 +9,7 @@ output:
     toc_float: true
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
 ```
 
@@ -87,7 +87,7 @@ ggplotly(countplot, width = 800, height = 700) %>%
 The code below cleans the training data. The cleaning involves:
 
 - correcting the study 173 labels
-- adjustiing the bullet and barrel values for the unknowns
+- adjusting the bullet and barrel values for the unknowns
 - renaming the match variable as samesource
 - selecting the desired variables
 
@@ -156,7 +156,7 @@ The code below cleans the data from both sets 1 and 11. This involves:
 - selecting the desired variables
 - renaming the bullet and land variables
 - creating study and set variables
-- recoding the bullet and land names
+- re-coding the bullet and land names
 
 ```{r}
 # Clean the Hamby 224 set 1 data
