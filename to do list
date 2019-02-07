@@ -13,10 +13,11 @@ Questions:
 - my training predictions do not have the same length as the predictions from rtrees?
 
 Completed:
+- add in all data cleaning steps to journal
+- add rfscore to code where I create the training data
 
 Current:
-- transfer work to multiple journals and add in all data cleaning steps
-- add rfscore to code where I create the training data
+- transfer remaining work to multiple journals
 - seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
 - write up paragraph of issues with LIME
 - look into R2 bug

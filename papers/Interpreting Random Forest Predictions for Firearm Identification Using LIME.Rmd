@@ -53,113 +53,24 @@ This paper provides an example of the application of LIME to a bullet matching p
 hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 ```
 
-```{r}
-# Obtain features used when fitting the rtrees random forest
-rf_features <- rownames(rtrees$importance)
-
-# Add the random forest score to the training set
-# hamby173and252_train$rfscore = predict(rtrees,
-#                                        hamby173and252_train %>% select(rf_features),
-#                                        type = "prob")[,2]
-# 
-# Save the adjusted training data
-# write.csv(hamby173and252_train %>% select(-X), "../data/hamby173and252_train.csv",
-#           row.names = FALSE)
-```
-
 ## Testing Data: The Hamby 224 Clone
 
 The Hamby 224 Clone is organized as a test set of a cloned (sub-)set of the Hamby 224 bullets. As with all Hamby sets [@hamby], Hamby set 224, is a collection of 35 bullets, organized as 20 known bullets and 15 questioned bullets. The known bullets are fired in pairs of two through one of ten consecutively manufactures P-85 barrels.
 Clone set 224 is arranged as a test set of fifteen tests, one for each questioned bullet. Each test set is arranged as a combination of three bullets: two known bullets and a questioned bullet. The test asks for a decision on whether the questioned bullet comes from the same source as the two known bullets  or from a different source. This situation is similar to what a firearms and toolmarks examiner might encounter in case work. 
 
 ```{r}
-# Load in the Hamby 224 datasets
-hamby224_set1 <- readRDS("../data/h224-set1-features.rds")
-hamby224_set11 <- readRDS("../data/h224-set11-features.rds")
-```
-
-```{r}
-# If the test data does not exist, clean the data, create the test data, and save it
-# Otherwise, load in the test data
-if(!file.exists("../data/hamby224_test.csv")) {
-  
-  # Clean the Hamby 224 set 1 data
-  hamby224_set1_cleaned <- hamby224_set1 %>%
-    select(-bullet_score, -land1, -land2, -aligned, -striae, -features) %>%
-    rename(bullet1 = bulletA,
-           bullet2 = bulletB, 
-           land1 = landA,
-           land2 = landB) %>%
-    mutate(study = factor("Hamby 224"), 
-           set = factor("Set 1"),
-           bullet1 = recode(factor(bullet1), 
-                            "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
-           bullet2 = recode(factor(bullet2), 
-                            "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
-           land1 = recode(factor(land1), 
-                          "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
-                          "4" = "Land 4", "5" = "Land 5", "6" = "Land 6"),
-           land2 = recode(factor(land2), 
-                          "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
-                          "4" = "Land 4", "5" = "Land 5", "6" = "Land 6")) %>%
-    select(study, set, bullet1:land2, rf_features, rfscore, samesource)
-
-  # Clean the Hamby 224 set 11 data
-  hamby224_set11_cleaned <- hamby224_set11 %>%
-    select(-bullet_score, -land1, -land2, -aligned, -striae, -features) %>%
-    rename(bullet1 = bulletA,
-           bullet2 = bulletB, 
-           land1 = landA,
-           land2 = landB) %>%
-    mutate(study = factor("Hamby 224"), 
-           set = factor("Set 11"),
-           bullet1 = recode(factor(bullet1), 
-                            "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
-                            "Bullet I" = "Questioned"),
-           bullet2 = recode(factor(bullet2), 
-                            "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
-                            "Bullet I" = "Questioned")) %>%
-    select(study, set, bullet1:land2, rf_features, rfscore, samesource)
-
-  # Create a dataset with all combinations of lands and bullets comparisons for each set
-  combinations <- data.frame(set = factor(rep(c("Set 1", "Set 11"), each = 324)),
-                      expand.grid(land1 = factor(c("Land 1", "Land 2", "Land 3", 
-                                                   "Land 4", "Land 5", "Land 6")),
-                                  land2 = factor(c("Land 1", "Land 2", "Land 3", 
-                                                   "Land 4", "Land 5", "Land 6")),
-                                  bullet1 = factor(c("Known 1", "Known 2", "Questioned")),
-                                  bullet2 = factor(c("Known 1", "Known 2", "Questioned"))))
-  
-  # Join the two cleaned Hamby 224 sets into one testing set
-  hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
-                                              hamby224_set11_cleaned)) %>%
-    mutate(set = factor(set),
-           bullet1 = factor(bullet1),
-           bullet2 = factor(bullet2),
-           land1 = factor(land1),
-           land2 = factor(land2)) %>%
-    right_join(combinations, by = c("set", "land1", "land2", "bullet1", "bullet2")) %>%
-    filter(!(bullet1 == "Questioned" & bullet2 == "Known 1"),
-           !(bullet1 == "Questioned" & bullet2 == "Known 2"),
-           !(bullet1 == "Known 2" & bullet2 == "Known 1")) %>%
-    arrange(rfscore) %>%
-    mutate(case = factor(1:length(study))) %>%
-    select(case, study:samesource)
-    
-  # Save the test data as a .csv file
-  write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
-
-} else {
- 
-  # Read in the test data
-  hamby224_test <- read.csv("../data/hamby224_test.csv")
-  
-}
+# Read in the test data
+hamby224_test <- read.csv("../data/hamby224_test.csv")
 ```
 
 #  Methods
 
 ## Random Forest Model
+
+```{r}
+# Obtain features used when fitting the rtrees random forest
+rf_features <- rownames(rtrees$importance)
+```
 
 ## Overview of LIME
 
