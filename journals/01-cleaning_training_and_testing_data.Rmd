@@ -125,7 +125,7 @@ The cleaned data is saved and used as the training dataset for the rest of this 
 
 ```{r}
 # Save the datasets and response variables as .csv files
-write_csv(hamby173and252_train, "../data/hamby173and252_train.csv")
+write.csv(hamby173and252_train, "../data/hamby173and252_train.csv", row.names = FALSE)
 ```
 
 ### Issue

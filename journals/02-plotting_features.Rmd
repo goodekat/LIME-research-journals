@@ -1,33 +1,48 @@
 ---
 title: "02-plotting_features"
 author: "Katherine Goode"
-date: "2/7/2019"
-output: html_document
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
 ```
 
 # Overview
 
-This 
+This journal contains plots of the random forest features from both the training and testing datasets.
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(cowplot)
+```
+
+# The Data
+
+The cleaning training and testing datasets are loaded in below.
 
 ```{r}
 # Load in the training data (Hamby Data 173 and 252) and testing data (Hamby Data 224 Sets 1 and 11)
 hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
-hamby224_test <- read.csv("../data/hamby224_test.csv") # created in the paper
+hamby224_test <- read.csv("../data/hamby224_test.csv")
+```
 
-# Read in the test_explain data
-hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+A vector containing the features used in the random forest `rtrees` is created below that will be used when creating some of the plots in this journal.
 
+```{r}
 # Obtain features used when fitting the rtrees random forest
-rf_features <- rownames(rtrees$importance)
+rf_features <- rownames(bulletr::rtrees$importance)
 ```
 
 # Plots of Features
 
-## Distributions by `samesource`
+### Distributions by `samesource`
 
 I created the following two plots of the training data as suggested by Heike. The histograms below show the distributions of the features used in the random forest `rtrees`. The histograms are filled by the `samesource` variable, which is the truth of whether or not the comparison is from the same barrel and land. The default histograms make it hard to compare the distributions of the matches and non-matches since there are many more comparisons that have `samesource == FALSE`.
 
@@ -79,7 +94,9 @@ hamby224_test %>%
        title = "Hamby 224 Testing Data") +
   theme_bw() +
   theme(legend.position = "bottom")
+```
 
+```{r}
 # Create plots of the feature distributions colored by samesource for the testing 
 # data using the position = "fill" option
 hamby224_test %>% 
@@ -95,7 +112,7 @@ hamby224_test %>%
   theme(legend.position = "bottom")
 ```
 
-## Correlations
+### Correlations
 
 I made these plots to look at the correlation between features in the training data within the TRUE and FALSE cases of samesource. The features are highly correlated for the match comparisons. It is clear that the variables are more correlated with the match comparisons than the non-match comparisons. However, there are still some variables that are relatively highly correlation with the non-match comparisons.
 
@@ -214,4 +231,10 @@ plot_grid(cor_title_test,
                     ncol = 3, rel_widths = c(2, 2, 0.5)),
           ncol = 1,
           rel_heights = c(0.25, 3))
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
 ```
