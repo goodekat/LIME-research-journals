@@ -369,3 +369,9 @@ hamby224_test_explain %>%
   facet_grid(set ~ .)
 ```
 
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
