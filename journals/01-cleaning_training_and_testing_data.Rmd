@@ -233,3 +233,9 @@ The testing data file is saved below.
 # Save the test data as a .csv file
 write.csv(hamby224_test, "../data/hamby224_test.csv", row.names = FALSE)
 ```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
