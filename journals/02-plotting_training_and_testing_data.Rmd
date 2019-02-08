@@ -26,7 +26,7 @@ library(plotly)
 
 # The Data
 
-The cleaning training and testing datasets are loaded in below.
+The cleaned training and testing datasets are loaded in below.
 
 ```{r}
 # Load in the training data (Hamby Data 173 and 252) and testing data (Hamby Data 224 Sets 1 and 11)

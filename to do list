@@ -11,6 +11,7 @@ Goals for spring semester:
 
 Questions:
 - my training predictions do not have the same length as the predictions from rtrees?
+- should I do some simulations to better understand lime?
 
 Completed:
 - add in all data cleaning steps to journal

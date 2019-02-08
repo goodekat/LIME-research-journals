@@ -1,0 +1,197 @@
+---
+title: "03-computation_issues"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+```
+
+# Overview
+
+This journal documents some of the computation issues I have run into and my "solutions" or "conclusions". 
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(plotly)
+library(caret)
+library(randomForest)
+library(lime)
+```
+
+# Plotly Dead Space Issue
+
+I found an issue with plotly. Below is the reproducible example that I sent to Carson. He was able to fix the issue, so the example below no longer has the problem.
+
+```{r eval = FALSE}
+# Example with Plotly to show dead space in heatmap
+
+# System information
+# R version 3.5.1 (2018-07-02)
+# Platform: x86_64-apple-darwin15.6.0 (64-bit)
+# Running under: macOS  10.14
+
+# Load libraries
+# library(plotly) # version 4.8.0
+# library(ggplot2) # version 3.1.0
+# library(tidyr) # version 0.8.2
+
+# Example from: https://plot.ly/r/heatmaps/ -------------------------------------------
+
+# Create dataset
+m <- matrix(rnorm(9), nrow = 3, ncol = 3)
+
+# Create plotly heatmap - no dead space to be found
+plot_ly(x = c("a", "b", "c"), y = c("d", "e", "f"), z = m, type = "heatmap")
+
+# Example using ggplotly function -----------------------------------------------------
+
+# Reshape the data for ggplot
+m_gathered <- data.frame(m) %>%
+  gather(key = column) %>%
+  mutate(row = factor(rep(c("X1", "X2", "X3"), 3))) %>%
+  select(column, row, value)
+
+# Create ggplot heatmap
+p <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
+  geom_tile()
+
+# Apply plotly to ggplot heatmap - dead space in the middle of (X1, X1)
+ggplotly(p)
+
+# Carson's suggested fix for now
+style(ggplotly(p), hoverinfo = "skip", traces = 2)
+
+# Create ggplot heatmap without a legend
+p_nolegend <- ggplot(m_gathered, aes(x = column, y = row, fill = value)) +
+  geom_tile() +
+  theme(legend.position = "none") 
+
+# Apply plotly to ggplot heatmap - the dead space is gone!
+ggplotly(p_nolegend)
+```
+
+# Caret vs RandomForest
+
+The `lime` function in lime is set up to work with specific packages. For example, `lime` works with a random forest model fit using the caret package, but it is not set up to work with a random forest fit using the randomForest package. I found a suggestion to apply the function `as_classifier` from the lime package to a model fit using randomForest in order for the `lime` function to accept the model. It seemed to work. However, I wanted to compare the lime results from a model fit using caret and the same model fit using randomForest. To do this, I used the iris data. The code below goes through the process of fitting the two models (`rf_model` and `caret_model`). Then the `lime` and `explain` functions are applied to both models.
+
+```{r}
+# Code for comparing the output from LIME when the model is 
+# fit with caret and randomForest
+# Last Updated: 2018/11/13
+
+## Set up -----------------------------------------------------------------------------
+
+# Split up the data set
+iris_test <- iris[1:5, 1:4]
+iris_train <- iris[-(1:5), 1:4]
+iris_lab <- iris[[5]][-(1:5)]
+
+## LIME with caret --------------------------------------------------------------------
+
+# Create Random Forest model on iris data
+caret_model <- train(iris_train, iris_lab, method = 'rf')
+
+# Create an explainer object
+caret_explainer <- lime::lime(iris_train, caret_model)
+
+# Explain new observation
+caret_explanation <- lime::explain(iris_test, caret_explainer, n_labels = 1, n_features = 4)
+
+## LIME with randomForest -------------------------------------------------------------
+
+rf_model <- randomForest(iris_train, iris_lab)
+
+# Create an explainer object
+rf_explainer <- lime::lime(iris_train, model = as_classifier(rf_model))
+
+# Explain new observation
+rf_explanation <- lime::explain(iris_test, rf_explainer, n_labels = 1, n_features = 4)
+```
+
+To compare the lime explanations from the two models, I extracted the $R^2$ value from the simple model, the simple model intercept, the simple model prediction, the feature values, and the feature weights from both explanation datasets. I computed the MSE between each of these values from the two models, and I plotted them on a scatterplot. Since lime is based on random permutations, I would not expect the values from the two models to be exact. However, I would like them to be close. The MSEs are all close to zero, and the plots suggest that the values do an okay job of following the 1-1 line. We decided this seems like the two versions of the explanations are reasonably exchangeable.
+
+```{r}
+## Comparisons -----------------------------------------------------------------------
+
+# Grab the numeric caret explanation variables of interest
+caret_numeric <- caret_explanation %>%
+  select(model_r2, model_intercept, model_prediction, feature_value, feature_weight) %>%
+  gather(key = "variable", value = "caret_value")
+
+# Grab the numeric randomForest explanation variables of interest
+rf_numeric <- rf_explanation %>%
+  select(model_r2, model_intercept, model_prediction, feature_value, feature_weight) %>%
+  gather(key = "variable", value = "rf_value")
+
+# Join the two
+lime_numeric <- caret_numeric %>%
+  mutate(rf_value = rf_numeric$rf_value, 
+         variable = factor(variable))
+
+# Look at the MSEs for the variables
+lime_numeric %>%
+  group_by(variable) %>%
+  summarise(MSE = sum((caret_value - rf_value)^2) / dim(lime_numeric)[1])
+
+# Scatterplots of the randomForest versus caret variable values
+ggplot(lime_numeric, aes(x = caret_value, y = rf_value)) + 
+  geom_point() + 
+  facet_wrap( ~ variable, scales = "free") + 
+  geom_abline(intercept = 0, slope = 1)
+```
+
+# Comparing Furrr Times
+
+The amount of time it took me to run the explain function with all of my input options was getting pretty long. Heike suggest that I use the furrr package, which implements the purrr functions using the speed of the future package. I ran and timed the code below to see how much faster the code was. Using the multiprocess option, the code took about half the amount of time to run (from 218.188 seconds to 108.731 seconds)!
+
+```{r eval = FALSE}
+# It took about half the time when using the function from furrr!
+
+library(tictoc)
+library(future)
+library(furrr)
+
+# Slow way
+plan(sequential)
+tictoc::tic()
+sensitivity_explain <- future_pmap(.l = as.list(sensitivity_inputs %>% 
+                                                         select(-case)),
+                                          .f = run_lime, # run_lime is one of my helper functions
+                                          train = hamby173and252_train %>% select(rf_features),
+                                          test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+                                          rfmodel = as_classifier(rtrees),
+                                          label = "TRUE",
+                                          nfeatures = 3,
+                                          seed = FALSE)
+tictoc::toc()
+# 218.188 sec elapsed
+
+# Fast way
+plan(multiprocess)
+tictoc::tic()
+sensitivity_explain <- future_pmap(.l = as.list(sensitivity_inputs %>% 
+                                                         select(-case)),
+                                          .f = run_lime, # run_lime is one of my helper functions
+                                          train = hamby173and252_train %>% select(rf_features),
+                                          test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+                                          rfmodel = as_classifier(rtrees),
+                                          label = "TRUE",
+                                          nfeatures = 3,
+                                          seed = FALSE)
+tictoc::toc()
+# 107.731 sec elapsed
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

@@ -1,0 +1,98 @@
+---
+title: "04-new_binning_methods"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+```
+
+# Overview
+
+This journal contains the ideas for different binning methods that may be better than the ones currently implemented in the LIME package.
+
+```{r}
+# Load libraries
+
+# Source functions
+source("../code/helper_functions.R")
+```
+
+
+# The Data
+
+The cleaning training and testing datasets are loaded in below.
+
+```{r}
+# Load in the training data (Hamby Data 173 and 252)
+hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
+```
+
+# Subsampled Bins
+
+One idea that I had to try to improve the lime explanations was to subsample from the training dataset before computing the quantiles. The proportion of observations with `samesource = FALSE` is very large in the training dataset, so that overwhelms the observations with `samesource = TRUE`. By subsampling, it might allow for better locations to bin the data. I wrote the code below to attempt to apply lime to a subsampled version of the training dataset.
+
+```{r eval = FALSE}
+# Code saved for future use for the sampling data
+
+# Create the data (with a set seed)
+set.seed(20181128)
+hamby173and252_train_sub <- hamby173and252_train %>%
+  filter(samesource == FALSE) %>%
+  slice(sample(1:length(hamby173and252_train$barrel1), 4500, replace = FALSE)) %>%
+  bind_rows(hamby173and252_train %>% filter(samesource == TRUE))
+
+# Save the subsampled data
+write.csv(hamby173and252_train_sub, "../data/hamby173and252_train_sub.csv", row.names = FALSE)
+
+# Apply lime to the subsampled training data with the specified input options
+hamby224_lime_explain_sub <- future_pmap(.l = as.list(hamby224_lime_inputs %>%
+                                                        select(-case)),
+                                         .f = run_lime, # run_lime is one of my helper functions
+                                         train = hamby173and252_train_sub %>% select(rf_features),
+                                         test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+                                         rfmodel = as_classifier(rtrees),
+                                         label = "TRUE",
+                                         nfeatures = 3,
+                                         seed = TRUE) %>%
+  mutate(training_data = factor("Subsampled"))
+
+# Separate the lime and explain function results from the subsampled data
+hamby224_lime_sub <- map(hamby224_lime_explain_sub, function(list) list$lime)
+hamby224_explain_sub <- map_df(hamby224_lime_explain_sub, function(list) list$explain)
+
+# Join the lime results from the full and subsampled training data
+hamby224_lime <- c(hamby224_lime_full, hamby224_lime_sub)
+hamby224_explain <- bind_rows(hamby224_explain_full, hamby224_explain_sub)
+```
+
+# Tree Based Bins
+
+Heike suggested the idea of using classification trees to choose the cutoffs for the lime bins. That is, the divisions in the tree could be used as the bin cuts. This would allow us to automate the process and to obtain a penalty parameter since the trees give us nesting. (MSE + lambda * p where p is the from the number of trees multiplied by the number of ...)
+
+Heike wrote the function `treebink` to take x and y variables for fitting a tree and returning the cuts for $k$ bins based on the splits from the tree. The function is stored in the file   `helper_functions.R`. Here is an example using the function below with the predictor variable of ccf.
+
+```{r}
+# Example using treebink
+treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 5)
+```
+
+However, there seems to be a problem with `treebink`. For certain variables, when a high number of bins is requested, the function returns more than the desired number of bins. Heike is going to look into this.
+
+She recently updated the function `treebink` to run using the tree package. Here are some comments from her about the code: 
+
+"I've moved it from rpart to tree. I am not quite sure that the two packages are doing the exact same thing. They claim they do but they might be implemented a bit differently. What we are doing now is if there are too many splits, we look at the order in which the splits are made and roll back some of them. I haven't found a case that doesn't work, but obviously that doesn't show that there isn't any :)"
+
+I wrote the function `mylime`, which adds an option in the `lime` function from the LIME package to use Heike's function `treebink` to obtain tree based bins. This function is also included in the file `helper_functions.R`. The output from `mylime` can then be input into the `explain` function to obtain explanations. I was able to rerun all of the code for creating the `hamby224_test_explain` dataset with the explanations from the tree based bins included for 2 to 6 bins.
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
