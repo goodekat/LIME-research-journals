@@ -365,20 +365,6 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
 }
 ```
 
-##### Plot of Bin Frequencies
-
-Heike made a plot with the structure of the one below when we began with the default settings of `lime`. This one has been created from the lime explanations with 2 quantile bins. It includes all three of the chosen features for each case in the testing dataset. For both sets, the cutoff of 0.275 < ccf occurs the most frequently.
-
-```{r fig.height = 10}
-# Plot of fequency for each bin division for 2 quantile bins
-hamby224_test_explain %>%
-  filter(situation == "2 quantile") %>%
-  ggplot(aes(x = feature_desc)) +
-  geom_bar() +
-  coord_flip() + 
-  facet_grid(set ~ .)
-```
-
 ### Multiple Implementations
 
 ```{r}
@@ -498,6 +484,9 @@ hamby224_sensitivity_joined <- hamby224_sensitivity_outputs %>%
                                                        "kernel density", 
                                                        "normal approximation")))))) %>%
     mutate(bin_situation = factor(bin_situation))
+
+write.csv(hamby224_sensitivity_joined, "../data/hamby224_sensitivity_joined.csv",
+          row.names = FALSE)
 ```
 
 # Session Info

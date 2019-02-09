@@ -5,12 +5,13 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
   html_document:
     toc: true
-    toc_depth: 2
+    toc_depth: 3
     toc_float: true
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, 
+                      cache = TRUE)
 ```
 
 # Overview
@@ -26,12 +27,28 @@ hamby224_test <- read.csv("../data/hamby224_test.csv") # created in the paper
 
 # Read in the test_explain data
 hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
- 
+
+hamby224_sensitivity_joined <- read.csv("../data/hamby224_sensitivity_joined.csv")
+
 # Obtain features used when fitting the rtrees random forest
 rf_features <- rownames(bulletr::rtrees$importance)
 ```
 
 When we began looking at the explanations from `lime` with the default settings, we did not think that they made sense. This led me to try applying LIME with a handful of input values. I also have tried running LIME with the tree based bins. Additionally, since LIME is based on random permutations, I was curious to know how consistent the results were. This led me to try running each implementation a handful of times. I have attempted to evaluate these results by both considering the accuracy and consistency of the results.
+
+# Visualization Ideas
+
+Heike made a plot with the structure of the one below when we began with the default settings of `lime`. This one has been created from the lime explanations with 2 quantile bins. It includes all three of the chosen features for each case in the testing dataset. For both sets, the cutoff of 0.275 < ccf occurs the most frequently.
+
+```{r fig.height = 10}
+# Plot of fequency for each bin division for 2 quantile bins
+hamby224_test_explain %>%
+  filter(situation == "2 quantile") %>%
+  ggplot(aes(x = feature_desc)) +
+  geom_bar() +
+  coord_flip() + 
+  facet_grid(set ~ .)
+```
 
 # Accuracy
 
@@ -395,7 +412,7 @@ The fact that different features get chosen as the top feature for different est
 
 In the meeting with Heike, we talked about how this plot suggests that LIME is not doing a very good job of providing local explanations. Regardless of the case, it is often suggesting only one of two variables are important, and the variable importance depends on the number of bins. In this plot, I would like consistency in the x-direction, but I would like variability in the y-direction to better understand the variables that are important for a specific case.
 
-```{r fig.height = 8, fig.width = 10}
+```{r fig.height = 8, fig.width = 10, eval = FALSE}
 hamby224_sensitivity_joined %>%
   filter(set == "Set 1") %>%
   droplevels() %>%
@@ -542,3 +559,8 @@ joined_results %>%
                 caption = "Results from Set 11")
 ```
 
+# Session Info
+
+```{r}
+sessionInfo()
+```

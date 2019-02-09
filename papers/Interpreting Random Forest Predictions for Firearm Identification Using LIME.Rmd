@@ -12,20 +12,6 @@ bibliography: references.bib
 # Set knitr options
 knitr::opts_chunk$set(echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE, 
                       fig.pos = "center")
-
-# Load libraries
-library(bulletr)
-library(cowplot)
-library(furrr)
-library(future)
-library(lime)
-library(purrr)
-library(randomForest)
-library(tidyverse)
-library(tree)
-
-# Source functions
-source("../code/helper_functions.R")
 ```
 
 # Introduction

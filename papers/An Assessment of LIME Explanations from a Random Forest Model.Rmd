@@ -1,0 +1,14 @@
+---
+title: "An Assessment of LIME Explanations from a Random Forest Models"
+author: "Katherine Goode and Heike Hofmann"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  pdf_document:
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+# Set knitr options
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE, 
+                      fig.pos = "center")
+```
