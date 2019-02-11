@@ -12,15 +12,18 @@ Goals for spring semester:
 Questions:
 - my training predictions do not have the same length as the predictions from rtrees?
 - should I do some simulations to better understand lime?
+- drop = FALSE for gretchen albrecht?
 
 Completed:
 - add in all data cleaning steps to journal
 - add rfscore to code where I create the training data
-
-Current:
 - transfer remaining work to multiple journals
-- seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
+- fix bug with sensativity analysis code
+
+Current Week:
 - write up paragraph of issues with LIME
+- work on ordering tile plots and make sure they are correct
+  - seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
 - look into R2 bug
 
 Later:

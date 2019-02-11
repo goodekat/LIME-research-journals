@@ -209,7 +209,7 @@ I also attempted to plot the features chosen by lime in order to visually assess
 
 ```{r fig.height = 8, fig.width = 8}
 # Plots the top feature for each case for each bin situation
-p <- ggplot(chosen_features, aes(x = situation, y = case, fill = first)) + 
+ggplot(chosen_features, aes(x = situation, y = case, fill = first)) + 
   geom_tile() + 
   facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
   theme_bw() + 
@@ -412,7 +412,7 @@ The fact that different features get chosen as the top feature for different est
 
 In the meeting with Heike, we talked about how this plot suggests that LIME is not doing a very good job of providing local explanations. Regardless of the case, it is often suggesting only one of two variables are important, and the variable importance depends on the number of bins. In this plot, I would like consistency in the x-direction, but I would like variability in the y-direction to better understand the variables that are important for a specific case.
 
-```{r fig.height = 8, fig.width = 10, eval = FALSE}
+```{r fig.height = 12, fig.width = 10}
 hamby224_sensitivity_joined %>%
   filter(set == "Set 1") %>%
   droplevels() %>%
@@ -425,13 +425,12 @@ hamby224_sensitivity_joined %>%
   group_by(situation, case) %>%
   mutate(nlevels = length(levels(factor(feature)))) %>%
   ungroup() %>%
-  arrange(situation, desc(nlevels), case) %>%
-  mutate(order = rep(rep(1:length(levels(case)), each = 10), 22)) %>%
+  arrange(situation, desc(nlevels), case, feature) %>%
+  mutate(order = rep(rep(1:length(levels(factor(case))), each = 10), 22)) %>%
   ggplot(aes(x = order, fill = feature)) + 
   geom_bar(position = "stack", width = 1) + 
   coord_flip() + 
-  facet_wrap(situation ~ ., ncol = 5) +
-  #facet_grid(nlevels ~ situation) +
+  facet_wrap(situation ~ ., ncol = 4, scales = "free_y") +
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
@@ -450,13 +449,12 @@ hamby224_sensitivity_joined %>%
   group_by(situation, case) %>%
   mutate(nlevels = length(levels(factor(feature)))) %>%
   ungroup() %>%
-  arrange(situation, desc(nlevels), case) %>%
-  mutate(order = rep(rep(1:length(levels(case)), each = 10), 22)) %>%
+  arrange(situation, desc(nlevels), case, feature) %>%
+  mutate(order = rep(rep(1:length(levels(factor(case))), each = 10), 22)) %>%
   ggplot(aes(x = order, fill = feature)) + 
   geom_bar(position = "stack", width = 1) + 
   coord_flip() + 
-  facet_wrap(situation ~ ., ncol = 5) +
-  #facet_grid(nlevels ~ situation) +
+  facet_wrap(situation ~ ., ncol = 4, scales = "free_y") +
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
@@ -475,13 +473,12 @@ hamby224_sensitivity_joined %>%
   group_by(situation, case) %>%
   mutate(nlevels = length(levels(factor(feature)))) %>%
   ungroup() %>%
-  arrange(situation, desc(nlevels), case) %>%
-  mutate(order = rep(rep(1:length(levels(case)), each = 10), 22)) %>%
+  arrange(situation, desc(nlevels), case, feature) %>%
+  mutate(order = rep(rep(1:length(levels(factor(case))), each = 10), 22)) %>%
   ggplot(aes(x = order, fill = feature)) + 
   geom_bar(position = "stack", width = 1) + 
   coord_flip() + 
-  facet_wrap(situation ~ ., ncol = 5) +
-  #facet_grid(nlevels ~ situation) +
+  facet_wrap(situation ~ ., ncol = 4, scales = "free_y") +
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
