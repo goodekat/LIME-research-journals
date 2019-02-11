@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE
 
 # Overview
 
-This journal contains a draft of the the lime procedure, the application of lime to the bullet data, and a plot created by Heike to visualize the lime explanations.
+This journal the applications of lime to the bullet data.
 
 ```{r}
 # Load libraries
@@ -44,95 +44,7 @@ A vector containing the features used in the random forest `rtrees` is created b
 rf_features <- rownames(bulletr::rtrees$importance)
 ```
 
-# Draft of LIME Procedure
-
-### Less Detailed Version
-
-I wrote this up to start thinking about how to describe the procedure that the `lime` R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner's paper will be much simpler...
-
-The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.
-
-Let
-  $$Y_{jk} = \begin{cases} 
-  1 & \mbox{ if bullets } j \mbox{ and } k \mbox{ were fired from the same gun barrel }\\
-  0 & \mbox{otherwise}
-  \end{cases}$$
-be the response variable in the training dataset, and $X_1,...,X_9$ correspond to the nine features in the training dataset. Let $X'_1,...,X'_9$ be the 
-
-1. Distributions for each of the features in the training data are obtained. 
-    + The method that `lime` uses to obtain the distribution differs based on the feature type. All of the features in the Hamby datasets are numeric. For numeric features, the default option in `lime` (`quantile_bins = TRUE`) computes the quantiles of each feature based on the number of bins selected. The default number of bins is 4 (`n_bins = 4`).
-
-2. Many ($n$) samples from each of the feature distributions are drawn.
-     + To do this, `lime` has several options (mostly quoted from `lime` package for now):
-      * bin\_continuous = TRUE should continuous variables be binned?
-      * quantile\_bins = TRUE should the ins for n\_bins be based on quantiles or spread evenly
-      * n\_bins = 4 number of bins if bin\_continuous is TRUE
-      * use\_density = TRUE if bin\_continuous is FALSE, should continuous data be sampled using kernel density estimation (if not, then will assume normal for continuous variable)
-
-3. Predictions for the testing data using the random forest model are computed.
-     + The random forest model `rtrees` is used to make a prediction for the observation from the test dataset and each of the $n=5000$ samples as to whether or not the comparison of the two bullets in the test case are a match. Since the random forest is a classification model, `lime` is set to return the prediction probabilities.
-
-4. Similarity score between the observation in the testing data and each of the $n=5000$ sampled values are obtained.
-    + The way that the similarity score is computed depends on the type of feature. Since all of the features in the Hamby 224 test dataset are continuous, the simulated values are first converted into 0-1 features where a 1 indicates that the feature from the simulated value falls in the same bin as the observed data point and a 0 indicates that the feature is not in the same bin as the observed data point. Then, by default, the Gower distance is used to compute the similarity score. (using the `gower` package in R)
-
-5. Feature selection is performed by fitting some type of regression model weighted by the similarity scores is to the simulated data and the observed value. The 0-1 versions of the features are used.
-    + The user can specify the number of features, $m$, they would like to select to explain the prediction. `lime` supports the following options for feature selection
-      * forward selection with ridge regression
-      * highest weight with ridge regression
-      * LASSO model
-      * tree model
-      * default: forward selection if $m\le6$ with a ridge regression model, highest weight with ridge regression otherwise
-
-6. A ridge regression model is fit as the simple model by regressing the prediction probabilities on the $m$ selected predictor variables and weighted by the similarity scores. If the response is categorical, the user can select how many categories and which categories they want to explain.
-  $$P(Match = TRUE) = \beta_0 + 
-  \beta_1 \cdot I\left[X_1 \in \mbox{obs bin}\right] + 
-  \beta_2 \cdot I\left[X_2 \in \mbox{obs bin}\right] + 
-  \beta_3 \cdot I\left[X_3 \in \mbox{obs bin}\right]$$
-For the prediction of interest, 
-  $$P(Match = TRUE) = \beta_0 + \beta_1 + \beta_2 + \beta_3.$$
-7. The feature weights are extracted and used as the explanations.
-
-Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
-
-### More Detailed Version
-
-I need to install math jax to get this to work...
-
-##### Notation
-
-\begin{itemize}
-\item $x\in\mathbb{R}^d$: original representation of an instance being explained
-\begin{itemize}
-\item e.g. feature vector containing word embeddings
-\end{itemize}
-\item $x'\in\mathbb{R}^{d'}$: vector for the interpretable representation of the instance being explained
-\begin{itemize}
-\item e.g. bag of words
-\end{itemize}
-\item $G$: class of potentially interpretable models
-\begin{itemize}
-\item e.g. linear models, decision trees, rule lists
-\end{itemize}
-\item $g$: explanation model where $g:\mathbb{R}^{d'}\rightarrow\mathbb{R}$ and $g\in G$
-\item $\Omega(g)$: measure of complexity of $g$
-\begin{itemize}
-\item e.g. depth of a tree, number of non-zeros in a linear model
-\end{itemize}
-\item $f$: model that is being explained where $f:\mathbb{R}^d\rightarrow\mathbb{R}$
-\begin{itemize}
-\item note: in classification $f(x)$ is the probability that $x$ belongs to a certain class
-\end{itemize}
-\item $\Pi_x(z)$: proximity measure between an instance $z$ to $x$ which defines a locality around $x$
-\item $\mathcal{L}(f, g, \Pi_x)$: a measure of how unfaithful $g$ is in approximating $f$ in the locality defined by $\Pi_x$
-\end{itemize}
-
-##### Step by Step Procedure
-
-Step 1: 
-
-# Application of LIME
-
-### One Implementation
+# One Implementation
 
 The code below applies the LIME algorithm to the bullet data for multiple different input cases. 
 
@@ -365,7 +277,7 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
 }
 ```
 
-### Multiple Implementations
+# Multiple Implementations
 
 ```{r}
 # Perform the sensitivity analysis if not already saved

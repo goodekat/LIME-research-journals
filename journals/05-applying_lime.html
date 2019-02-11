@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2019-02-08" />
+<meta name="date" content="2019-02-11" />
 
 <title>05-applying_lime</title>
 
@@ -222,14 +222,14 @@ div.tocify {
 
 <h1 class="title toc-ignore">05-applying_lime</h1>
 <h4 class="author"><em>Katherine Goode</em></h4>
-<h4 class="date"><em>February 08, 2019</em></h4>
+<h4 class="date"><em>February 11, 2019</em></h4>
 
 </div>
 
 
 <div id="overview" class="section level1">
 <h1>Overview</h1>
-<p>This journal contains a draft of the the lime procedure, the application of lime to the bullet data, and a plot created by Heike to visualize the lime explanations.</p>
+<p>This journal the applications of lime to the bullet data.</p>
 <pre class="r"><code># Load libraries
 library(tidyverse)
 
@@ -248,71 +248,8 @@ hamby224_test_explain &lt;- readRDS(&quot;../data/hamby224_test_explain.rds&quot
 <pre class="r"><code># Obtain features used when fitting the rtrees random forest
 rf_features &lt;- rownames(bulletr::rtrees$importance)</code></pre>
 </div>
-<div id="draft-of-lime-procedure" class="section level1">
-<h1>Draft of LIME Procedure</h1>
-<div id="less-detailed-version" class="section level3">
-<h3>Less Detailed Version</h3>
-<p>I wrote this up to start thinking about how to describe the procedure that the <code>lime</code> R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner’s paper will be much simpler…</p>
-<p>The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.</p>
-<p>Let <span class="math display">\[Y_{jk} = \begin{cases} 
-  1 &amp; \mbox{ if bullets } j \mbox{ and } k \mbox{ were fired from the same gun barrel }\\
-  0 &amp; \mbox{otherwise}
-  \end{cases}\]</span> be the response variable in the training dataset, and <span class="math inline">\(X_1,...,X_9\)</span> correspond to the nine features in the training dataset. Let <span class="math inline">\(X'_1,...,X'_9\)</span> be the</p>
-<ol style="list-style-type: decimal">
-<li>Distributions for each of the features in the training data are obtained.
-<ul>
-<li>The method that <code>lime</code> uses to obtain the distribution differs based on the feature type. All of the features in the Hamby datasets are numeric. For numeric features, the default option in <code>lime</code> (<code>quantile_bins = TRUE</code>) computes the quantiles of each feature based on the number of bins selected. The default number of bins is 4 (<code>n_bins = 4</code>).</li>
-</ul></li>
-<li>Many (<span class="math inline">\(n\)</span>) samples from each of the feature distributions are drawn.
-<ul>
-<li>To do this, <code>lime</code> has several options (mostly quoted from <code>lime</code> package for now):</li>
-<li>bin_continuous = TRUE should continuous variables be binned?</li>
-<li>quantile_bins = TRUE should the ins for n_bins be based on quantiles or spread evenly</li>
-<li>n_bins = 4 number of bins if bin_continuous is TRUE</li>
-<li>use_density = TRUE if bin_continuous is FALSE, should continuous data be sampled using kernel density estimation (if not, then will assume normal for continuous variable)</li>
-</ul></li>
-<li>Predictions for the testing data using the random forest model are computed.
-<ul>
-<li>The random forest model <code>rtrees</code> is used to make a prediction for the observation from the test dataset and each of the <span class="math inline">\(n=5000\)</span> samples as to whether or not the comparison of the two bullets in the test case are a match. Since the random forest is a classification model, <code>lime</code> is set to return the prediction probabilities.</li>
-</ul></li>
-<li>Similarity score between the observation in the testing data and each of the <span class="math inline">\(n=5000\)</span> sampled values are obtained.
-<ul>
-<li>The way that the similarity score is computed depends on the type of feature. Since all of the features in the Hamby 224 test dataset are continuous, the simulated values are first converted into 0-1 features where a 1 indicates that the feature from the simulated value falls in the same bin as the observed data point and a 0 indicates that the feature is not in the same bin as the observed data point. Then, by default, the Gower distance is used to compute the similarity score. (using the <code>gower</code> package in R)</li>
-</ul></li>
-<li>Feature selection is performed by fitting some type of regression model weighted by the similarity scores is to the simulated data and the observed value. The 0-1 versions of the features are used.
-<ul>
-<li>The user can specify the number of features, <span class="math inline">\(m\)</span>, they would like to select to explain the prediction. <code>lime</code> supports the following options for feature selection</li>
-<li>forward selection with ridge regression</li>
-<li>highest weight with ridge regression</li>
-<li>LASSO model</li>
-<li>tree model</li>
-<li>default: forward selection if <span class="math inline">\(m\le6\)</span> with a ridge regression model, highest weight with ridge regression otherwise</li>
-</ul></li>
-<li>A ridge regression model is fit as the simple model by regressing the prediction probabilities on the <span class="math inline">\(m\)</span> selected predictor variables and weighted by the similarity scores. If the response is categorical, the user can select how many categories and which categories they want to explain. <span class="math display">\[P(Match = TRUE) = \beta_0 + 
-  \beta_1 \cdot I\left[X_1 \in \mbox{obs bin}\right] + 
-  \beta_2 \cdot I\left[X_2 \in \mbox{obs bin}\right] + 
-  \beta_3 \cdot I\left[X_3 \in \mbox{obs bin}\right]\]</span> For the prediction of interest, <span class="math display">\[P(Match = TRUE) = \beta_0 + \beta_1 + \beta_2 + \beta_3.\]</span></li>
-<li>The feature weights are extracted and used as the explanations.</li>
-</ol>
-<p>Note: I realized that if <code>bin_continuous = FALSE</code>, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without “numerified” values.</p>
-</div>
-<div id="more-detailed-version" class="section level3">
-<h3>More Detailed Version</h3>
-<p>I need to install math jax to get this to work…</p>
-<div id="notation" class="section level5">
-<h5>Notation</h5>
-
-</div>
-<div id="step-by-step-procedure" class="section level5">
-<h5>Step by Step Procedure</h5>
-<p>Step 1:</p>
-</div>
-</div>
-</div>
-<div id="application-of-lime" class="section level1">
-<h1>Application of LIME</h1>
-<div id="one-implementation" class="section level3">
-<h3>One Implementation</h3>
+<div id="one-implementation" class="section level1">
+<h1>One Implementation</h1>
 <p>The code below applies the LIME algorithm to the bullet data for multiple different input cases.</p>
 <pre class="r"><code># Apply the run_lime function if the lime results file does not already exist
 if(!file.exists(&quot;../data/hamby224_lime_inputs.rds&quot;)) {
@@ -529,8 +466,8 @@ if(!file.exists(&quot;../data/hamby224_lime_comparisons.rds&quot;)) {
   
 }</code></pre>
 </div>
-<div id="multiple-implementations" class="section level3">
-<h3>Multiple Implementations</h3>
+<div id="multiple-implementations" class="section level1">
+<h1>Multiple Implementations</h1>
 <pre class="r"><code># Perform the sensitivity analysis if not already saved
 if(!file.exists(&quot;../data/hamby224_sensitivity_inputs.rds&quot;)) {
   
@@ -648,13 +585,12 @@ hamby224_sensitivity_joined &lt;- hamby224_sensitivity_outputs %&gt;%
 write.csv(hamby224_sensitivity_joined, &quot;../data/hamby224_sensitivity_joined.csv&quot;,
           row.names = FALSE)</code></pre>
 </div>
-</div>
 <div id="session-info" class="section level1">
 <h1>Session Info</h1>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.5.2 (2018-12-20)
 ## Platform: x86_64-apple-darwin15.6.0 (64-bit)
-## Running under: macOS Mojave 10.14.2
+## Running under: macOS Mojave 10.14.3
 ## 
 ## Matrix products: default
 ## BLAS: /Library/Frameworks/R.framework/Versions/3.5/Resources/lib/libRblas.0.dylib
