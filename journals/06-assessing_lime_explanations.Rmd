@@ -559,5 +559,5 @@ joined_results %>%
 # Session Info
 
 ```{r}
-sessionInfo()
+devtools::session_info()
 ```

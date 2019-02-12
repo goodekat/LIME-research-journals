@@ -21,7 +21,7 @@ Completed:
 - fix bug with sensativity analysis code
 
 Current Week:
-- write up paragraph of issues with LIME
+- write paragraph of issues with LIME
 - work on ordering tile plots and make sure they are correct
   - seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
 - look into R2 bug
