@@ -5,7 +5,7 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
   html_document:
     toc: true
-    toc_depth: 3
+    toc_depth: 2
     toc_float: true
 ---
 
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE
 
 # Overview
 
-This journal compares the results from the different LIME implementations.
+This journal visualizes and compares the results from the different LIME implementations.
 
 ```{r}
 library(gretchenalbrecht)
@@ -50,7 +50,9 @@ hamby224_test_explain %>%
   facet_grid(set ~ .)
 ```
 
-# Accuracy
+# One Implementation
+
+## Accuracy
 
 The figures in this section are created from the implementations of LIME on set 1 from the training data for the input options of 2 to 6 quantile bins, 2 to 6 equally spaced bins, 2 to 6 tree based bins, kernel density estimation, and normal distribution approximation. Each set of input values was only run once.
 
@@ -160,7 +162,7 @@ hamby224_lime_results %>%
   scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
 ```
 
-# Consistency with One Implementation
+## Consistency
 
 I wanted to look at the consistency of features chosen by lime across the number of bins within different bin types. I would like the features chosen to not depend on the number of bins used. Otherwise, it will be difficult to know how many bins to use. Additionally, it would be nice if the features chosen differed across cases, so that the explanations are based on the locality of the observation and not general across all locations. The code below creates a dataset that identifies the order in which the features are chosen by lime.
 
@@ -177,7 +179,7 @@ chosen_features <- hamby224_test_explain %>%
   spread(explainer, feature)
 ```
 
-## Fleiss's Kappa
+### Fleiss's Kappa
 
 In order to access consistency, I have decided to compute Fleiss' kappa for each of the bin types. Fleiss' kappa is often used to assess the consistency across raters for any number of raters and with nominal ratings. It calculates the degree of agreement in classification over that which would be expected by chance. A description of how it is computed can be found on the wikipedia site: https://en.wikipedia.org/wiki/Fleiss%27_kappa
 
@@ -207,7 +209,7 @@ chosen_features %>%
   labs(x = "Bin Type", y = "Kappa", color = "Feature")
 ```
 
-## Tile Plots of Features Chosen
+### Tile Plots of Features Chosen
 
 I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below.
 
@@ -264,7 +266,7 @@ chosen_features %>%
   labs(x = "Bin Type", y = "", fill = "Feature", title = "Third Feature")
 ```
 
-## Attempts at Arranging the Tile Plots
+### Attempts at Arranging the Tile Plots
 
 I tried three different arrangements...
 
@@ -316,7 +318,7 @@ chosen_features %>%
   labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
 ```
 
-## Plot of Number of Features Chosen
+### Plot of Number of Features Chosen
 
 I also created the plot below to visually assess the proportions of cases within a bin situation and level of feature chosen by lime (first, second, or third) that have 1 to 5 chosen features. The plots are separated by set.
 
@@ -338,7 +340,9 @@ chosen_features %>%
   scale_fill_gretchenalbrecht(palette = "winter_light", discrete = TRUE)
 ```
 
-# Consistency Across Implementations
+# Multiple Implementations
+
+## Accuracy
 
 In order to assess how variable the LIME results are, I ran each of the input situations 10 times. I wanted to look at the variability of the MSE for each situation, and I wanted to see how consistent the choice of selected features is by LIME.
 
@@ -349,6 +353,8 @@ hamby224_sensitivity_results <- hamby224_sensitivity_joined %>%
   summarise(mse = sum((diff)^2) / length(diff),
             ave_r2 = mean(model_r2))
 ```
+
+### Comparing MSE and $R^2$
 
 The plot below shows boxplots of the mean squared errors computed for each of the input situations for each set. There does not appear to be much variation for most of the cases. The largest amount of variation occurs with 4 and 5 equally spaced bins. There is moderate variability for 3 equally spaced bins. The lowest MSEs occur for the samesource tree based bins followed by the rfscore tree based bins for most cases.
 
@@ -381,6 +387,10 @@ hamby224_sensitivity_results %>%
   labs(x = "Bin Type", y = "MSE", color = "") + 
   scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
 ```
+
+## Consistency
+
+### Plots of Number of Features Chosen
 
 To assess the consistency of the results, I determined the number of different features chosen by LIME as the top feature within a test case across the 10 replicates. I then computed the average number of different top features chosen by LIME within a input situations for each set. The plot below contains these values shown as the dots. The error bars represent one standard deviation above and below the mean. Note that the number of levels cannot go below 1, but the error bars go below 1. I have decided to ignore this for now, but I would need to come up with a better representation if I used this for something.
 
@@ -453,6 +463,8 @@ sensitivity_chosen %>%
   scale_fill_gretchenalbrecht(palette = "flood_tide", discrete = TRUE, reverse = FALSE)
 ```
 
+### Fleiss's Kappa
+
 I computed Fleiss's kappa for each sampling technique within a set across the 10 reps. These values are plotted below. Right now, the quantile methods and rfscore tree based bins seem to be the most consistent. However, I am not happy with some of the kappa values for cases where the next set of plots would suggest a high kappa, but the value is very low. I wonder if this a flaw in the Fleiss's kappa and would suggest that I use a different metric.
 
 ```{r fig.width = 10}
@@ -481,6 +493,8 @@ sensitivity_chosen %>%
   scale_color_gretchenalbrecht(palette = "pink_cloud", discrete = TRUE) +
   labs(x = "Sampling Technique", y = "Kappa", color = "Feature", linetype = "Feature")
 ```
+
+### Tile Plots of Features Chosen
 
 The plots below need some work, but they contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases.
 
@@ -635,5 +649,5 @@ joined_results %>%
 # Session Info
 
 ```{r}
-devtools::session_info()
+sessionInfo()
 ```
