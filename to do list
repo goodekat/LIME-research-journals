@@ -3,6 +3,8 @@
 TO DO LIST
 -------------
 
+https://isu-csafe.stat.iastate.edu/rstudio/
+
 Goals for spring semester:
 - implement ideas for better binning methods
 - find an idea that leads to better LIME explanations
@@ -10,22 +12,15 @@ Goals for spring semester:
 - make plans for the statistical paper
 
 Questions:
-- my training predictions do not have the same length as the predictions from rtrees?
-- should I do some simulations to better understand lime?
-- drop = FALSE for gretchen albrecht?
-- three equally spaced is really not that bad...
-- I'm trying to reorder plots but the cases do not match up then...
 
 Completed:
-- add in all data cleaning steps to journal
-- add rfscore to code where I create the training data
-- transfer remaining work to multiple journals
-- fix bug with sensativity analysis code
-- wrote about issues with LIME
-- work on ordering tile plots
-- looked into R2 bug
 
 Current Week:
+- remove rows from training data so it matches with rtrees
+- fit logistic regression model and run it through lime
+- think about how to implement a simulation with a random forest
+- keep working on seriation (sort within rfscore)
+- look at 'removing the blindfold' for ideas
 
 Later:
 - read through Heike's new function
