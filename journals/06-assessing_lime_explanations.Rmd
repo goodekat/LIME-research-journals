@@ -177,6 +177,8 @@ chosen_features <- hamby224_test_explain %>%
   spread(explainer, feature)
 ```
 
+## Fleiss's Kappa
+
 In order to access consistency, I have decided to compute Fleiss' kappa for each of the bin types. Fleiss' kappa is often used to assess the consistency across raters for any number of raters and with nominal ratings. It calculates the degree of agreement in classification over that which would be expected by chance. A description of how it is computed can be found on the wikipedia site: https://en.wikipedia.org/wiki/Fleiss%27_kappa
 
 I computed kappa for each bin situation separately for the top three features chosen. These values are plotted below for each set. For both the first and second features chosen by lime, the values of kappa suggest that quantile bins are the most consistent across all the number of bins followed by the tree based bins. The values of kappa for the quantile bins are slight to fair agreement. For the third chosen variable, the tree based bins have the highest value of kappa, but all the kappa values for the third chosen feature are low.
@@ -204,6 +206,8 @@ chosen_features %>%
   scale_color_gretchenalbrecht(palette = "pink_cloud", discrete = TRUE) +
   labs(x = "Bin Type", y = "Kappa", color = "Feature")
 ```
+
+## Tile Plots of Features Chosen
 
 I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below.
 
@@ -259,6 +263,60 @@ chosen_features %>%
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
   labs(x = "Bin Type", y = "", fill = "Feature", title = "Third Feature")
 ```
+
+## Attempts at Arranging the Tile Plots
+
+I tried three different arrangements...
+
+```{r fig.height = 8, fig.width = 8}
+# Arranged by number of levels
+chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(first)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = situation, y = order, fill = first)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
+
+# Arranged by case and then number of levels
+chosen_features %>%
+  group_by(case) %>%
+  mutate(nlevels = length(levels(factor(first)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = situation, y = order, fill = first)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
+
+# No arrangement
+chosen_features %>%
+  ggplot(aes(x = situation, y = case, fill = first)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
+```
+
+## Plot of Number of Features Chosen
 
 I also created the plot below to visually assess the proportions of cases within a bin situation and level of feature chosen by lime (first, second, or third) that have 1 to 5 chosen features. The plots are separated by set.
 

@@ -21,11 +21,10 @@ Completed:
 - add rfscore to code where I create the training data
 - transfer remaining work to multiple journals
 - fix bug with sensativity analysis code
-
+- wrote about issues with LIME
+- work on ordering tile plots
+  
 Current Week:
-- write paragraph of issues with LIME
-- work on ordering tile plots and make sure they are correct
-  - seriation: https://cran.r-project.org/web/packages/seriation/vignettes/seriation.pdf
 - look into R2 bug
 
 Later:
