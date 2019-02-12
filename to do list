@@ -13,6 +13,8 @@ Questions:
 - my training predictions do not have the same length as the predictions from rtrees?
 - should I do some simulations to better understand lime?
 - drop = FALSE for gretchen albrecht?
+- three equally spaced is really not that bad...
+- I'm trying to reorder plots but the cases do not match up then...
 
 Completed:
 - add in all data cleaning steps to journal

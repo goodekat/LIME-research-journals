@@ -209,7 +209,13 @@ I also attempted to plot the features chosen by lime in order to visually assess
 
 ```{r fig.height = 8, fig.width = 8}
 # Plots the top feature for each case for each bin situation
-ggplot(chosen_features, aes(x = situation, y = case, fill = first)) + 
+chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(first)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = situation, y = order, fill = first)) + 
   geom_tile() + 
   facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
   theme_bw() + 
@@ -217,10 +223,16 @@ ggplot(chosen_features, aes(x = situation, y = case, fill = first)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
-  labs(x = "Bin Type", y = "Case", fill = "Feature", title = "First Feature")
+  labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
 
 # Plots the second feature for each case for each bin situation
-ggplot(chosen_features, aes(x = situation, y = case, fill = second)) + 
+chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(second)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = situation, y = order, fill = second)) + 
   geom_tile() + 
   facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
   theme_bw() + 
@@ -228,10 +240,16 @@ ggplot(chosen_features, aes(x = situation, y = case, fill = second)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
-  labs(x = "Bin Type", y = "Case", fill = "Feature", title = "Second Feature")
+  labs(x = "Bin Type", y = "", fill = "Feature", title = "Second Feature")
 
 # Plots the third feature for each case for each bin situation
-ggplot(chosen_features, aes(x = situation, y = case, fill = third)) + 
+chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(third)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = situation, y = order, fill = third)) + 
   geom_tile() + 
   facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
   theme_bw() + 
@@ -239,7 +257,7 @@ ggplot(chosen_features, aes(x = situation, y = case, fill = third)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
-  labs(x = "Bin Type", y = "Case", fill = "Feature", title = "Third Feature")
+  labs(x = "Bin Type", y = "", fill = "Feature", title = "Third Feature")
 ```
 
 I also created the plot below to visually assess the proportions of cases within a bin situation and level of feature chosen by lime (first, second, or third) that have 1 to 5 chosen features. The plots are separated by set.
