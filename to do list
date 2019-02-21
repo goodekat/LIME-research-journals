@@ -12,11 +12,15 @@ Goals for spring semester:
 - make plans for the statistical paper
 
 Questions:
+- Can we go through the data together to make sure I am using the correct data? Did Eric save the testing data somewhere?
+- His paper discusses using 10,384 matches, but the rftrees model only has 8000ish comparisons?
+- Where is his code for fitting the random forest? His GitHub is very confusing...
 
 Completed:
+- remove rows from training data so it matches with rtrees
 
 Current Week:
-- remove rows from training data so it matches with rtrees
+- rerun all of lime results
 - fit logistic regression model and run it through lime
 - think about how to implement a simulation with a random forest
 - keep working on seriation (sort within rfscore)

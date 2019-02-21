@@ -29,8 +29,10 @@ library(plotly)
 The cleaned training and testing datasets are loaded in below.
 
 ```{r}
-# Load in the training data (Hamby Data 173 and 252) and testing data (Hamby Data 224 Sets 1 and 11)
+# Load in the training data (Hamby Data 173 and 252)
 hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
+
+# Load in the testing data (Hamby Data 224 Sets 1 and 11)
 hamby224_test <- read.csv("../data/hamby224_test.csv")
 ```
 
