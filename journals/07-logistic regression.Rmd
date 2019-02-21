@@ -1,0 +1,63 @@
+---
+title: "07-logistic_regression"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+```
+
+# Overview
+
+I have been thinking a lot about it is difficult to determine whether LIME is providing reasonable explanations, because we cannot know what the random forest is doing. That is the point of LIME. Heike suggested that we fit a logistic regression model to the training bullet data. We can then apply LIME to the logistic regression and determine if the explanations match what we would expect based on the coefficients of the logistic regression that we can interpret. She also suggested including interactions in the logistic regression model. This journal goes through the process of fitting several logisitic regression models, applying LIME to them, and comparing the results.
+
+```{r}
+# Load libraries
+library(lime)
+```
+
+# The Data
+
+The cleaned training and testing datasets are loaded in below.
+
+```{r}
+# Load in the training data (Hamby Data 173 and 252)
+hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
+
+# Load in the testing data (Hamby Data 224 Sets 1 and 11)
+hamby224_test <- read.csv("../data/hamby224_test.csv")
+```
+
+A vector containing the features used in the random forest `rtrees` is created below that will be used when creating some of the plots in this journal.
+
+```{r}
+# Obtain features used when fitting the rtrees random forest
+rf_features <- rownames(bulletr::rtrees$importance)
+```
+
+# Logistic Regression Model
+
+```{r}
+# Fit a logistic regression model with only main effects
+logit_main <- glm(samesource ~ ccf + rough_cor + D + sd_D + matches + mismatches + 
+                    cms + non_cms + sum_peaks,
+                  family = binomial(link = "logit"),
+                  data = hamby173and252_train)
+
+coef(logit_main)
+
+logit_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
+                   model = logit_main)
+
+logit_explain <- explain(x = hamby224_test %>% select(rf_features) %>% na.omit(), 
+                         explainer = logit_lime, 
+                         n_labels = 1,
+                         n_features = 3)
+```
+
