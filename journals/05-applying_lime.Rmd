@@ -19,7 +19,15 @@ This journal the applications of lime to the bullet data.
 
 ```{r}
 # Load libraries
+library(bulletr)
+library(lime)
+library(furrr)
+library(future)
+library(randomForest)
 library(tidyverse)
+
+# Load rtrees into session
+data("rtrees")
 
 # Source functions
 source("../code/helper_functions.R")
@@ -30,18 +38,18 @@ source("../code/helper_functions.R")
 The training and testing datasets are loaded in below.
 
 ```{r}
-# Read in the Hamby 224 test data
-hamby224_test <- read.csv("../data/hamby224_test.csv") 
+# Load in the training data (Hamby Data 173 and 252)
+hamby173and252_train <- read.csv("../data/hamby173and252_train.csv")
 
-# Read in the test_explain data
-hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
+# Load in the testing data (Hamby Data 224 Sets 1 and 11)
+hamby224_test <- read.csv("../data/hamby224_test.csv")
 ```
 
 A vector containing the features used in the random forest `rtrees` is created below.
 
 ```{r}
 # Obtain features used when fitting the rtrees random forest
-rf_features <- rownames(bulletr::rtrees$importance)
+rf_features <- rownames(rtrees$importance)
 ```
 
 # One Implementation
