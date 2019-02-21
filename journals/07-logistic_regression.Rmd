@@ -19,6 +19,7 @@ I have been thinking a lot about it is difficult to determine whether LIME is pr
 
 ```{r}
 # Load libraries
+library(tidyverse)
 library(lime)
 ```
 
@@ -45,19 +46,22 @@ rf_features <- rownames(bulletr::rtrees$importance)
 
 ```{r}
 # Fit a logistic regression model with only main effects
-logit_main <- glm(samesource ~ ccf + rough_cor + D + sd_D + matches + mismatches + 
-                    cms + non_cms + sum_peaks,
-                  family = binomial(link = "logit"),
-                  data = hamby173and252_train)
+logit <- caret::train(as.factor(samesource) ~ ccf + rough_cor + D + sd_D + matches + 
+                        mismatches + cms + non_cms + sum_peaks,
+            data = hamby173and252_train, 
+            method = "glm", 
+            family = "binomial")
 
-coef(logit_main)
+summary(logit)
 
 logit_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
-                   model = logit_main)
+                    model = logit)
 
 logit_explain <- explain(x = hamby224_test %>% select(rf_features) %>% na.omit(), 
-                         explainer = logit_lime, 
-                         n_labels = 1,
-                         n_features = 3)
+                          explainer = logit_lime, 
+                          n_labels = 1,
+                          n_features = 3)
+
+plot_features(logit_explain[1:12,])
 ```
 
