@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE
 
 # Overview
 
-This journal the applications of lime to the bullet data.
+This journal includes the code for applying lime to the random forest fit to the bullet data.
 
 ```{r}
 # Load libraries
@@ -54,7 +54,16 @@ rf_features <- rownames(rtrees$importance)
 
 # One Implementation
 
-The code below applies the LIME algorithm to the bullet data for multiple different input cases. 
+The code below applies the LIME algorithm to the bullet data one time for the following different input cases:
+
+- 2 to 6 quantile bins
+- 2 to 6 equally spaced bins
+- 2 to 6 tree based bins with `samesource` as the response variable
+- 2 to 6 tree based bins with `rfscore` as the response variable
+- kernel density estimation
+- normal density approximation
+
+It applies LIME using my function `run_lime` specify the different input values and save the output from the `lime` function and the `explain` function in two lists. The `lime` and `explain` outputs and the input settings are saved as .rds files.
 
 ```{r}
 # Apply the run_lime function if the lime results file does not already exist
@@ -133,7 +142,7 @@ if(!file.exists("../data/hamby224_lime_inputs.rds")) {
 }
 ```
 
-This code creates a dataframe of the bins to use in the app.
+This code creates a dataframe of the bins to use in the app based on the output from the `lime` function for each of the input settings. The object `hamby224_bin_boundaries` contains the boundaries for the bins, and `hamby224_bins` contains nice forms of the bin intervals (i.e. [lower, upper)).
 
 ```{r}
 # Create a dataframe with the bins
@@ -186,10 +195,10 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
                             case_info = hamby224_lime_inputs)) %>%
     mutate(feature = factor(feature),
            nbins = factor(nbins),
-           feature_number = readr::parse_number(feature_desc),
+           feature_number = readr::parse_number(as.character(feature_desc)),
            strictly_less = FALSE) %>%
     arrange(nbins)
-  
+
   # Finish creating the strictly less than variable
   hamby224_test_explain$strictly_less[grep("< ", hamby224_test_explain$feature_desc)] <- TRUE
   
@@ -286,6 +295,17 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
 ```
 
 # Multiple Implementations
+
+The code below applies the LIME algorithm to the bullet data one time for the following different input cases:
+
+- 2 to 6 quantile bins
+- 2 to 6 equally spaced bins
+- 2 to 6 tree based bins with `samesource` as the response variable
+- 2 to 6 tree based bins with `rfscore` as the response variable
+- kernel density estimation
+- normal density approximation
+
+It applies LIME using my function `run_lime` specify the different input values and save the output from the `lime` function and the `explain` function in two lists. The `lime` and `explain` outputs and the input settings are saved as .rds files.
 
 ```{r}
 # Perform the sensitivity analysis if not already saved
