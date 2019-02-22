@@ -35,12 +35,12 @@ This folder is a location for storing raw and created data for the project:
 
 This folder contains research journals with my work. Some of this will eventually end up in one of the papers:
 
-- **00-background_and_ideas.Rmd (& .html)**: background of the research project, goals of the project, concerns with LIME, and ideas to try
+- **00-objectives_and_ideas.Rmd (& .html)**: background of the research project, goals of the project, concerns with LIME, and ideas to try
 - **01-training_and_testing_data.Rmd (& .html)**: information on the Hamby data, understanding the raw data, and cleaning of the training and testing data
 - **02-plotting_training_and_testing_data.Rmd (& .html)**: exploratory plots of the training and testing data
 - **03-computation_issues.Rmd (& .html)**: documentation of some of the computation issues I ran into during the project
 - **04-lime_algorithm_and_proposed_methods.Rmd (& .html)**: rough draft of the lime algorithm as implemented in the lime R package and proposed methods for improving the lime algorithm
-- **05-applying_lime.Rmd (& .html)**: application of lime and sensativity analysis for many different input options
+- **05-applying_lime_to_rtrees.Rmd (& .html)**: application of lime and sensativity analysis for many different input options
 - **06-assessing_lime_explanations.Rmd (& .html & cache files)**: assessment of the lime explanations
 - **07-logistic_regression.Rmd (& .html)**: logistic regressions fit to the bullet data and application of lime to the logistic regression
 
