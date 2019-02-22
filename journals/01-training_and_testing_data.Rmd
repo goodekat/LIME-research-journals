@@ -109,7 +109,7 @@ The code below cleans the training data. The cleaning involves:
 letters <- levels(hamby173and252_raw$barrel1)[11:length(levels(hamby173and252_raw$barrel1))]
 
 # Cleaning the testing data
-hamby173and252_train <- hamby173and252_raw %>%
+hamby173and252_train_cleaning <- hamby173and252_raw %>%
   mutate(study1 = fct_recode(study1, "Hamby173" = "Hamby44"),
          study2 = fct_recode(study2, "Hamby173" = "Hamby44"),
          bullet1 = factor(ifelse(barrel1 %in% letters,
@@ -132,8 +132,6 @@ hamby173and252_train <- hamby173and252_raw %>%
   rename(samesource = match) %>%
   select(study1, barrel1, bullet1, land1, study2, barrel2, bullet2, land2,
          rf_features, samesource, rfscore)
-
-
 ```
 
 ### Removing Bullets with Tank Rash
@@ -142,7 +140,7 @@ I discovered that rhe number of rtrees predictions does not match the length of 
 
 ```{r}
 # Compare the dimensions of my training data and the number of predictions from rtrees
-dim(hamby173and252_train)
+dim(hamby173and252_train_cleaning)
 dim(predict(bulletr::rtrees, type = "prob"))
 ```
 
@@ -157,7 +155,7 @@ The code below removes any comparisons from the testing data that include one of
 
 ```{r}
 # Remove the comparisons involving the four lands with tank rash
-hamby173and252_train <- hamby173and252_train %>%
+hamby173and252_train <- hamby173and252_train_cleaning %>%
   mutate(bbl1 = barrel1:bullet1:land1,
          bbl2 = barrel2:bullet2:land2) %>%
   filter(!(bbl1 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4") | 
