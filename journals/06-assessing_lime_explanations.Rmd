@@ -11,7 +11,7 @@ output:
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, 
-                      cache = TRUE)
+                      error = FALSE, cache = TRUE)
 ```
 
 # Overview
@@ -19,6 +19,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE
 This journal visualizes and compares the results from the different LIME implementations.
 
 ```{r}
+# Load libraries
 library(gretchenalbrecht)
 library(tidyverse)
 
@@ -28,7 +29,7 @@ hamby224_test <- read.csv("../data/hamby224_test.csv") # created in the paper
 # Read in the test_explain data
 hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
 
-hamby224_sensitivity_joined <- read.csv("../data/hamby224_sensitivity_joined.csv")
+hamby224_sensitivity_joined <- readRDS("../data/hamby224_sensitivity_joined.rds")
 
 # Obtain features used when fitting the rtrees random forest
 rf_features <- rownames(bulletr::rtrees$importance)
