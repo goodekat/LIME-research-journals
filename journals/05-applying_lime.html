@@ -226,7 +226,7 @@ div.tocify {
 
 <div id="overview" class="section level1">
 <h1>Overview</h1>
-<p>This journal the applications of lime to the bullet data.</p>
+<p>This journal includes the code for applying lime to the random forest fit to the bullet data.</p>
 <pre class="r"><code># Load libraries
 library(bulletr)
 library(lime)
@@ -255,7 +255,16 @@ rf_features &lt;- rownames(rtrees$importance)</code></pre>
 </div>
 <div id="one-implementation" class="section level1">
 <h1>One Implementation</h1>
-<p>The code below applies the LIME algorithm to the bullet data for multiple different input cases.</p>
+<p>The code below applies the LIME algorithm to the bullet data one time for the following different input cases:</p>
+<ul>
+<li>2 to 6 quantile bins</li>
+<li>2 to 6 equally spaced bins</li>
+<li>2 to 6 tree based bins with <code>samesource</code> as the response variable</li>
+<li>2 to 6 tree based bins with <code>rfscore</code> as the response variable</li>
+<li>kernel density estimation</li>
+<li>normal density approximation</li>
+</ul>
+<p>It applies LIME using my function <code>run_lime</code> to specify the different input values. The outputs from the <code>lime</code> function are combined into a list, and the outputs from the <code>explain</code> function are combined into dataframe. Both are saved as .rds files.</p>
 <pre class="r"><code># Apply the run_lime function if the lime results file does not already exist
 if(!file.exists(&quot;../data/hamby224_lime_inputs.rds&quot;)) {
   
@@ -330,7 +339,7 @@ if(!file.exists(&quot;../data/hamby224_lime_inputs.rds&quot;)) {
   hamby224_explain &lt;- readRDS(&quot;../data/hamby224_explain.rds&quot;)
   
 }</code></pre>
-<p>This code creates a dataframe of the bins to use in the app.</p>
+<p>This code creates a dataframe of the bins to use in the app based on the output from the <code>lime</code> function for each of the input settings. The object <code>hamby224_bin_boundaries</code> contains the boundaries for the bins, and <code>hamby224_bins</code> contains nice forms of the bin intervals (i.e. [lower, upper)).</p>
 <pre class="r"><code># Create a dataframe with the bins
 if (!file.exists(&quot;../data/hamby224_bins.csv&quot;)) {
   
@@ -353,7 +362,7 @@ if (!file.exists(&quot;../data/hamby224_bins.csv&quot;)) {
   hamby224_bins &lt;- readRDS(&quot;../data/hamby224_bins.rds&quot;)
   
 }</code></pre>
-<p>This code combines the test data and the explanations.</p>
+<p>This code combines the test data and the LIME explanations into one dataframe and saves the dataframe.</p>
 <pre class="r"><code># Create the test_explain combined data if the file does not already exist
 if(!file.exists(&quot;../data/hamby224_test_explain.rds&quot;)) {
   
@@ -443,7 +452,7 @@ if(!file.exists(&quot;../data/hamby224_test_explain.rds&quot;)) {
   hamby224_test_explain &lt;- readRDS(&quot;../data/hamby224_test_explain.rds&quot;)
   
 }</code></pre>
-<p>This code creates a dataset with summaries of the explanations.</p>
+<p>This code creates and saves a dataset with summaries of the explanations.</p>
 <pre class="r"><code># Create the lime comparison data if the file does not already exist
 if(!file.exists(&quot;../data/hamby224_lime_comparisons.rds&quot;)) {
   
@@ -473,6 +482,16 @@ if(!file.exists(&quot;../data/hamby224_lime_comparisons.rds&quot;)) {
 </div>
 <div id="multiple-implementations" class="section level1">
 <h1>Multiple Implementations</h1>
+<p>I was interested in determining how the random permutations affect ths results from LIME. That is, I wanted to do a sensativity analysis. The code below applies the LIME algorithm to the bullet data ten times for each of the following different input cases:</p>
+<ul>
+<li>2 to 6 quantile bins</li>
+<li>2 to 6 equally spaced bins</li>
+<li>2 to 6 tree based bins with <code>samesource</code> as the response variable</li>
+<li>2 to 6 tree based bins with <code>rfscore</code> as the response variable</li>
+<li>kernel density estimation</li>
+<li>normal density approximation</li>
+</ul>
+<p>It applies LIME using my function <code>run_lime</code> to specify the different input values. The outputs from the <code>explain</code> function are combined into a dataframe and saved as .rds file. The input values are also saved as an .rds file.</p>
 <pre class="r"><code># Perform the sensitivity analysis if not already saved
 if(!file.exists(&quot;../data/hamby224_sensitivity_inputs.rds&quot;)) {
   
@@ -537,7 +556,10 @@ if(!file.exists(&quot;../data/hamby224_sensitivity_inputs.rds&quot;)) {
   hamby224_sensitivity_outputs &lt;- readRDS(&quot;../data/hamby224_sensitivity_outputs.rds&quot;)
 
 }</code></pre>
-<pre class="r"><code># Join the sensativity outputs with the test data
+<p>The code below joins the sensativity outputs with the test data into a dataframe. The dataframe is saved as an .rds file.</p>
+<pre class="r"><code># Join the sensativity outputs with the test data if not already saved
+if(!file.exists(&quot;../data/hamby224_sensitivity_joined.rds&quot;)) {
+
 hamby224_sensitivity_joined &lt;- hamby224_sensitivity_outputs %&gt;%
   full_join(hamby224_test %&gt;% na.omit() %&gt;% 
                 mutate(case = as.character(case)), by = &quot;case&quot;) %&gt;%
@@ -587,8 +609,15 @@ hamby224_sensitivity_joined &lt;- hamby224_sensitivity_outputs %&gt;%
                                                        &quot;normal approximation&quot;)))))) %&gt;%
     mutate(bin_situation = factor(bin_situation))
 
-write.csv(hamby224_sensitivity_joined, &quot;../data/hamby224_sensitivity_joined.csv&quot;,
-          row.names = FALSE)</code></pre>
+  # Save the joined test and explained dataframes
+  saveRDS(hamby224_sensitivity_joined, &quot;../data/hamby224_sensitivity_joined.rds&quot;)
+
+} else {
+
+  # Load in the sensitivity inputs and outputs
+  hamby224_sensitivity_joined &lt;- readRDS(&quot;../data/hamby224_sensitivity_joined.rds&quot;)
+
+}</code></pre>
 </div>
 <div id="session-info" class="section level1">
 <h1>Session Info</h1>

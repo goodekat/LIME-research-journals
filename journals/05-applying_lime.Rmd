@@ -63,7 +63,7 @@ The code below applies the LIME algorithm to the bullet data one time for the fo
 - kernel density estimation
 - normal density approximation
 
-It applies LIME using my function `run_lime` specify the different input values and save the output from the `lime` function and the `explain` function in two lists. The `lime` and `explain` outputs and the input settings are saved as .rds files.
+It applies LIME using my function `run_lime` to specify the different input values. The outputs from the `lime` function are combined into a list, and the outputs from the `explain` function are combined into dataframe. Both are saved as .rds files.
 
 ```{r}
 # Apply the run_lime function if the lime results file does not already exist
@@ -169,7 +169,7 @@ if (!file.exists("../data/hamby224_bins.csv")) {
 }
 ```
 
-This code combines the test data and the explanations.
+This code combines the test data and the LIME explanations into one dataframe and saves the dataframe.
 
 ```{r}
 # Create the test_explain combined data if the file does not already exist
@@ -263,7 +263,7 @@ if(!file.exists("../data/hamby224_test_explain.rds")) {
 }
 ```
 
-This code creates a dataset with summaries of the explanations.
+This code creates and saves a dataset with summaries of the explanations.
 
 ```{r}
 # Create the lime comparison data if the file does not already exist
@@ -296,7 +296,7 @@ if(!file.exists("../data/hamby224_lime_comparisons.rds")) {
 
 # Multiple Implementations
 
-The code below applies the LIME algorithm to the bullet data one time for the following different input cases:
+I was interested in determining how the random permutations affect ths results from LIME. That is, I wanted to do a sensativity analysis. The code below applies the LIME algorithm to the bullet data ten times for each of the following different input cases:
 
 - 2 to 6 quantile bins
 - 2 to 6 equally spaced bins
@@ -305,7 +305,7 @@ The code below applies the LIME algorithm to the bullet data one time for the fo
 - kernel density estimation
 - normal density approximation
 
-It applies LIME using my function `run_lime` specify the different input values and save the output from the `lime` function and the `explain` function in two lists. The `lime` and `explain` outputs and the input settings are saved as .rds files.
+It applies LIME using my function `run_lime` to specify the different input values. The outputs from the `explain` function are combined into a dataframe and saved as .rds file. The input values are also saved as an .rds file.
 
 ```{r}
 # Perform the sensitivity analysis if not already saved
@@ -374,8 +374,12 @@ if(!file.exists("../data/hamby224_sensitivity_inputs.rds")) {
 }
 ```
 
+The code below joins the sensativity outputs with the test data into a dataframe. The dataframe is saved as an .rds file.
+
 ```{r}
-# Join the sensativity outputs with the test data
+# Join the sensativity outputs with the test data if not already saved
+if(!file.exists("../data/hamby224_sensitivity_joined.rds")) {
+
 hamby224_sensitivity_joined <- hamby224_sensitivity_outputs %>%
   full_join(hamby224_test %>% na.omit() %>% 
                 mutate(case = as.character(case)), by = "case") %>%
@@ -425,8 +429,15 @@ hamby224_sensitivity_joined <- hamby224_sensitivity_outputs %>%
                                                        "normal approximation")))))) %>%
     mutate(bin_situation = factor(bin_situation))
 
-write.csv(hamby224_sensitivity_joined, "../data/hamby224_sensitivity_joined.csv",
-          row.names = FALSE)
+  # Save the joined test and explained dataframes
+  saveRDS(hamby224_sensitivity_joined, "../data/hamby224_sensitivity_joined.rds")
+
+} else {
+
+  # Load in the sensitivity inputs and outputs
+  hamby224_sensitivity_joined <- readRDS("../data/hamby224_sensitivity_joined.rds")
+
+}
 ```
 
 # Session Info
