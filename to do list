@@ -13,13 +13,13 @@ Goals for spring semester:
 
 Questions:
 - Thanks for getting me on the CSAFE server! It it making my life so much easier!!
-- Ask Heike about GPSS conference?
+- GPSS conference? poster for machine learning colloquium?
 - Can we go through what I did to clean the training data to make sure I did it right?
 - Did Eric save the testing data so I can compare it to mine? (I wasn't able to find it...)
 
 Completed:
 - remove rows from training data so it matches with rtrees
-- rerun all of lime results with new training restuls
+- rerun all of lime results with new training results
 
 Current Week:
 - keep working on seriation (sort within rfscore)
