@@ -190,6 +190,53 @@ tictoc::toc()
 # 107.731 sec elapsed
 ```
 
+# Understanding `seriation`
+
+The example below is from the paper "Getting Things in Order: An Introduction to the R Package seriation" by Hahsler, Hornik, and Buchta.
+
+```{r}
+library(seriation)
+
+data("iris")
+x <- as.matrix(iris[-5])
+x <- x[sample(seq_len(nrow(x))), ]
+d <- dist(x)
+o <- seriate(d)
+str(o)
+class(0)
+head(get_order(o), 15)
+pimage(d, main = "Random")
+pimage(d, o, main = "Reordered")
+cbind(random = criterion(d), reordered = criterion(d, o))
+
+pimage(x, main = "Random")
+o_2mode <- c(o, ser_permutation(seq_len(ncol(x))))
+pimage(x, o_2mode, main = "Reordered")
+```
+
+I wanted to learn how to use the order that is output from `seriate` to create my own plot using `ggplot`. I create a new dataframe below that includes the order and create two plots. Note that the "order" from `seriate`, which can be obtained using `get_order` is a vector with the case numbers ordered (not the order associated with a case). 
+
+```{r}
+# Add a case variable (ordered by seriate order) and my own order variable to my dataframe
+x2 <- data.frame(x) %>% 
+  mutate(case = factor(1:n(), levels = get_order(o))) %>%
+  arrange(case) %>%
+  mutate(order = 1:n())
+
+# Plot ordered using the case variable
+x2 %>%
+  gather(key = variable, value = value, 1:4) %>%
+  ggplot(aes(x = variable, y = case, fill = value)) + 
+  geom_tile()
+
+# Plot ordered using the order variable
+x2 %>%
+  gather(key = variable, value = value, 1:4) %>%
+  arrange(order) %>%
+  ggplot(aes(x = variable, y = order, fill = value)) + 
+  geom_tile()
+```
+
 # Session Info
 
 ```{r}
