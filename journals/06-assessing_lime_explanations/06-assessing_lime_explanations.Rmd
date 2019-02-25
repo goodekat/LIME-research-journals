@@ -21,6 +21,7 @@ This journal visualizes and compares the results from the different LIME impleme
 ```{r}
 # Load libraries
 library(gretchenalbrecht)
+library(seriation)
 library(tidyverse)
 
 # Load in the testing data (Hamby Data 224 Sets 1 and 11)
@@ -315,6 +316,62 @@ chosen_features %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
+```
+
+Now I am trying to use the function `seriate` from the seriation package to order the cases in the plots. However, something is going wrong. It ends up adding a bunch of NAs to the dataframe after I order the cases. I haven't figured out what is wrong yet.
+
+```{r fig.height = 8, fig.width = 8, eval = FALSE}
+order <- chosen_features %>% 
+  filter(set == "Set 1", bin_situation == "samesource tree") %>%
+  arrange(set, case) %>%
+  select(case, nbins, first) %>%
+  spread(key = nbins, value = first) %>%
+  select(-case) %>%
+  cluster::daisy() %>%
+  seriate(method = "MDS") %>%
+  get_order()
+
+chosen_features %>% 
+  filter(set == "Set 1") %>%
+  mutate(case = factor(case)) %>%
+  ggplot(aes(x = situation, y = case, fill = first)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
+
+set1 <- chosen_features %>% 
+  filter(set == "Set 1") %>%
+  mutate(case = factor(case))
+
+set12 <- chosen_features %>%
+  filter(set == "Set 1") %>%
+  mutate(case = factor(case, levels = order))
+
+order == 272
+unique(set1$case)
+unique(set12$case)
+
+sum(is.na(set1$case))
+sum(is.na(set12$case))
+
+data.frame(set1$case, set12$case) %>% View()
+
+chosen_features %>%
+  filter(set == "Set 1") %>%
+  mutate(case = factor(case, levels = order)) %>%
+  View()
+
+
+  ggplot(aes(x = situation, y = case, fill = first)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
   labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
 ```

@@ -12,14 +12,16 @@ Goals for spring semester:
 - make plans for the statistical paper
 
 Questions:
-- Thanks for getting me on the CSAFE server! It it making my life so much easier!!
-- Can we go through the data together to make sure I am using the correct data? Did Eric save the testing data somewhere?
-- His paper discusses using 10,384 matches, but the rftrees model only has 8000ish comparisons?
-- Where is his code for fitting the random forest? His GitHub is very confusing...
+- Thanks for getting me on the CSAFE server!
+- I heard back from JSM, and my abstract was accepted (likely as a speed presentation).
+- GPSS conference? poster for machine learning colloquium?
+- Can we go through what I did to clean the training data to make sure I did it right?
+- Did Eric save the testing data so I can compare it to mine? (I wasn't able to find it?)
+- Have you used seriate with nominal variables?
 
 Completed:
 - remove rows from training data so it matches with rtrees
-- rerun all of lime results with new training restuls
+- rerun all of lime results with new training results
 
 Current Week:
 - keep working on seriation (sort within rfscore)
