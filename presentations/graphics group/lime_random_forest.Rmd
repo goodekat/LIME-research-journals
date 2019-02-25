@@ -1,0 +1,20 @@
+---
+title: "Applying LIME to a Random Forest Model and the Problems that Ensue"
+output: ioslides_presentation
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Overview
+
+1. Understanding LIME
+2. Hamby bullet matching data
+3. Applying LIME to the bullet data
+4. Issues with LIME
+5. Attempts at a Solution
+6. Future Work
+
+
+
