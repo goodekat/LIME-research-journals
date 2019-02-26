@@ -7,6 +7,4 @@ paper_files
 06-assessing_lime_explanations_cache
 06-assessing_lime_explanations_files
 Applying-LIME-to-Bullet-Data.Rproj
-data/logistic_mains.rds
-data/logistic_inters2.rds
-data/logistic_inters3.rds
+journals/07-logistic_regression/data

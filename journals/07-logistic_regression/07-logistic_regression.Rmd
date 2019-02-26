@@ -50,7 +50,7 @@ The code below fits a logistic regression model to the training data using the `
 
 ```{r}
 # Fit or load the logistic regression model with only main effects
-if(!file.exists("../../data/logistic_mains.rds")) {
+if(!file.exists("./data/logistic_mains.rds")) {
   
   # Fit the model
   logistic_mains <- caret::train(as.factor(samesource) ~ ccf + rough_cor + D + sd_D + 
@@ -61,12 +61,12 @@ if(!file.exists("../../data/logistic_mains.rds")) {
                                  family = "binomial")
 
   # Save the model
-  saveRDS(logistic_mains, "../../data/logistic_mains.rds")
+  saveRDS(logistic_mains, "./data/logistic_mains.rds")
 
 } else{
   
   # Load the model
-  logistic_mains <- readRDS("../../data/logistic_mains.rds")
+  logistic_mains <- readRDS("./data/logistic_mains.rds")
   
 }
 ```
@@ -84,7 +84,7 @@ The code below fits a logistic regression model to the training data using the `
 
 ```{r}
 # Fit or load the logistic regression model with all two way interactions
-if(!file.exists("../../data/logistic_inters2.rds")) {
+if(!file.exists("./data/logistic_inters2.rds")) {
   
   # Fit the model
   logistic_inters2 <- caret::train(as.factor(samesource) ~
@@ -96,12 +96,12 @@ if(!file.exists("../../data/logistic_inters2.rds")) {
                                      family = "binomial")
   
   # Save the model
-  saveRDS(logistic_inters2, "../../data/logistic_inters2.rds")
+  saveRDS(logistic_inters2, "./data/logistic_inters2.rds")
 
 } else{
   
    # Load the model
-  logistic_inters2 <- readRDS("../../data/logistic_inters2.rds")
+  logistic_inters2 <- readRDS("./data/logistic_inters2.rds")
   
 }
 ```
@@ -117,9 +117,9 @@ summary(logistic_inters2)
 
 The code below fits a logistic regression model to the training data using the `train` function from the caret package. The nine features used to fit `rtrees` are included as main effects and with all two and three way interactions. The features are standardized prior to fitting the model using the `preProcess = "scale"` in `train`.
 
-```{r eval = FALSE}
+```{r}
 # Fit or load the logistic regression model with all two and three way interactions
-if(!file.exists("../../data/logistic_inters3.rds")) {
+if(!file.exists("./data/logistic_inters3.rds")) {
   
   # Fit the model
   logistic_inters3 <- caret::train(as.factor(samesource) ~
@@ -131,74 +131,130 @@ if(!file.exists("../../data/logistic_inters3.rds")) {
                                      family = "binomial")
   
   # Save the model
-  saveRDS(logistic_inters3, "../../data/logistic_inters3.rds")
+  saveRDS(logistic_inters3, "./data/logistic_inters3.rds")
 
 } else{
   
   # Load the model
-  logistic_inters3 <- readRDS("../../data/logistic_inters3.rds")
+  logistic_inters3 <- readRDS("./data/logistic_inters3.rds")
   
 }
 ```
 
-The output from the model is shown below.
-
-```{r eval = FALSE}
-# Summary of the model
-summary(logistic_inters3)
-```
+The output from this model is now shown.
 
 ### Comparing the Logistic Models
-
 
 # Applying LIME to the Models
 
 ### Main Effects Only
 
-```{r eval = FALSE}
-logistic_mains_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
-                            model = logistic_mains$finalModel)
+The functions `lime` and `explain` from the lime package are applied below to the logisitc regression model with only main effects.
 
-logistic_mains_explain <- explain(x = hamby224_test %>% 
-                                    select(rf_features) %>% 
-                                    na.omit(), 
-                                  explainer = logistic_mains_lime, 
-                                  n_labels = 1,
-                                  n_features = 3)
+```{r}
+# Create or load the lime and explain objects for the main effects logisitic regression model
+if(!file.exists("./data/lime_explain_mains.rds")) {
+  
+  # Apply lime
+  lime_mains <- lime(x = hamby173and252_train %>% select(rf_features), 
+                     model = logistic_mains)
+  
+  # Apply explain
+  explain_mains <- explain(x = hamby224_test %>%
+                             select(rf_features) %>% 
+                             na.omit(), 
+                           explainer = logistic_mains_lime, 
+                           n_labels = 1,
+                           n_features = 3)
+  
+  # Join the lime and explain objects in a list
+  lime_explain_mains <- list(lime = lime_mains, explain = explain_mains)
+  
+  # Save the lime and explain objects
+  saveRDS(lime_explain_mains, "./data/lime_explain_mains.rds")
 
-plot_features(logistic_mains_explain[1:12,])
+} else {
+  
+  # Load the lime and explain objects
+  lime_explain_mains <- readRDS("./data/lime_explain_mains.rds")
+  
+}
+```
+
+```{r}
+plot_features(lime_explain_mains$explain[1:12,])
 ```
 
 ### All Two Way Interactions
 
-```{r eval = FALSE}
-logistic_inters2_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
-                              model = logistic_inters2)
+```{r}
+# Create or load the lime and explain objects for the two way interaction logisitic regression model
+if(!file.exists("./data/lime_explain_inters2.rds")) {
+  
+  # Apply lime
+  lime_inters2 <- lime(x = hamby173and252_train %>% select(rf_features), 
+                       model = logistic_inters2)
+  
+  # Apply explain
+  explain_inters2 <- explain(x = hamby224_test %>%
+                               select(rf_features) %>% 
+                               na.omit(), 
+                             explainer = logistic_inters2_lime, 
+                             n_labels = 1,
+                             n_features = 3)
+  
+  # Join the lime and explain objects in a list
+  lime_explain_inters2 <- list(lime = lime_inters2, explain = explain_inters2)
+  
+  # Save the lime and explain objects
+  saveRDS(lime_explain_inters2, "./data/lime_explain_inters2.rds")
 
-logistic_inters2_explain <- explain(x = hamby224_test %>% 
-                                      select(rf_features) %>% 
-                                      na.omit(), 
-                                    explainer = logistic_inters2_lime, 
-                                    n_labels = 1,
-                                    n_features = 3)
+} else {
+  
+  # Load the lime and explain objects
+  lime_explain_inters2 <- readRDS("./data/lime_explain_inters2.rds")
+  
+}
+```
 
-plot_features(logistic_inters2_explain[1:12,])
+```{r}
+plot_features(lime_explain_inters2$explain[1:12,])
 ```
 
 ### All Three Way Interactions
 
-```{r eval = FALSE}
-logistic_inters3_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
-                              model = logistic_inters3)
+```{r}
+# Create or load the lime and explain objects for the three way interaction logisitic regression model
+if(!file.exists("./data/lime_explain_inters3.rds")) {
+  
+  # Apply lime
+  lime_inters3 <- lime(x = hamby173and252_train %>% select(rf_features), 
+                       model = logistic_inters3)
+  
+  # Apply explain
+  explain_inters3 <- explain(x = hamby224_test %>%
+                               select(rf_features) %>% 
+                               na.omit(), 
+                             explainer = logistic_inters3_lime, 
+                             n_labels = 1,
+                             n_features = 3)
+  
+  # Join the lime and explain objects in a list
+  lime_explain_inters3 <- list(lime = lime_inters3, explain = explain_inters3)
+  
+  # Save the lime and explain objects
+  saveRDS(lime_explain_inters3, "./data/lime_explain_inters3.rds")
 
-logistic_inters3_explain <- explain(x = hamby224_test %>% 
-                                      select(rf_features) %>% 
-                                      na.omit(), 
-                                    explainer = logistic_inters3_lime, 
-                                    n_labels = 1,
-                                    n_features = 3)
+} else {
+  
+  # Load the lime and explain objects
+  lime_explain_inters3 <- readRDS("./data/lime_explain_inters3.rds")
+  
+}
+```
 
-plot_features(logistic_inters3_explain[1:12,])
+```{r}
+plot_features(lime_explain_inters3$explain[1:12,])
 ```
 
 # Session Info

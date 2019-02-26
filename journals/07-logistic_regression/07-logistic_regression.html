@@ -101,6 +101,9 @@ img {
 button.code-folding-btn:focus {
   outline: none;
 }
+summary {
+  display: list-item;
+}
 </style>
 
 
@@ -108,14 +111,74 @@ button.code-folding-btn:focus {
 <div class="container-fluid main-container">
 
 <!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
 <script>
 $(document).ready(function () {
   window.buildTabsets("TOC");
 });
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
 </script>
 
 <!-- code folding -->
-
 
 
 
@@ -426,6 +489,156 @@ if(!file.exists(&quot;../../data/logistic_inters3.rds&quot;)) {
 <p>The output from the model is shown below.</p>
 <pre class="r"><code># Summary of the model
 summary(logistic_inters3)</code></pre>
+<pre><code>## 
+## Call:
+## NULL
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -3.7234  -0.0717  -0.0396  -0.0217   4.0787  
+## 
+## Coefficients:
+##                                   Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)                      -21.78240   10.07396  -2.162 0.030599 *  
+## ccf                                3.72870    1.96894   1.894 0.058257 .  
+## rough_cor                        -12.57706    2.82371  -4.454 8.42e-06 ***
+## D                                 -7.58524    3.97506  -1.908 0.056365 .  
+## sd_D                               3.35665    2.85863   1.174 0.240308    
+## matches                           -3.30379    4.49810  -0.734 0.462653    
+## mismatches                         1.31749    2.19980   0.599 0.549231    
+## cms                                6.19565    4.06172   1.525 0.127166    
+## non_cms                           -0.83928    2.87553  -0.292 0.770385    
+## sum_peaks                         -1.38146    3.92391  -0.352 0.724791    
+## `ccf:rough_cor`                    6.73347    1.54540   4.357 1.32e-05 ***
+## `ccf:D`                            2.22142    1.58035   1.406 0.159826    
+## `ccf:sd_D`                        -2.13042    2.04027  -1.044 0.296401    
+## `ccf:matches`                      7.37311    4.24413   1.737 0.082343 .  
+## `ccf:mismatches`                  -0.47229    1.83604  -0.257 0.796998    
+## `ccf:cms`                        -12.73566    3.78022  -3.369 0.000754 ***
+## `ccf:non_cms`                      1.59999    1.70805   0.937 0.348893    
+## `ccf:sum_peaks`                    2.15280    3.45945   0.622 0.533747    
+## `rough_cor:D`                     -0.77194    1.82200  -0.424 0.671800    
+## `rough_cor:sd_D`                  10.26503    2.96452   3.463 0.000535 ***
+## `rough_cor:matches`               -0.82006    2.96141  -0.277 0.781844    
+## `rough_cor:mismatches`             5.85695    2.48336   2.358 0.018350 *  
+## `rough_cor:cms`                    7.63022    2.60432   2.930 0.003391 ** 
+## `rough_cor:non_cms`               -2.42758    1.75982  -1.379 0.167756    
+## `rough_cor:sum_peaks`             -4.33444    1.98658  -2.182 0.029120 *  
+## `D:sd_D`                           5.18130    2.20359   2.351 0.018708 *  
+## `D:matches`                       -3.86373    3.38307  -1.142 0.253421    
+## `D:mismatches`                     3.55276    3.81543   0.931 0.351773    
+## `D:cms`                            1.10019    3.02356   0.364 0.715952    
+## `D:non_cms`                        7.43415    3.57722   2.078 0.037692 *  
+## `D:sum_peaks`                      6.35514    2.56810   2.475 0.013337 *  
+## `sd_D:matches`                     6.72688    5.47805   1.228 0.219459    
+## `sd_D:mismatches`                 -1.45987    4.11054  -0.355 0.722475    
+## `sd_D:cms`                        -3.17523    5.12559  -0.619 0.535597    
+## `sd_D:non_cms`                    -6.86822    4.55164  -1.509 0.131310    
+## `sd_D:sum_peaks`                  -5.31397    4.29700  -1.237 0.216210    
+## `matches:mismatches`               4.54637    3.63196   1.252 0.210654    
+## `matches:cms`                     -3.65339    2.94305  -1.241 0.214472    
+## `matches:non_cms`                 -0.65002    2.41668  -0.269 0.787950    
+## `matches:sum_peaks`                1.73841    3.11284   0.558 0.576527    
+## `mismatches:cms`                   1.76294    3.08952   0.571 0.568258    
+## `mismatches:non_cms`              -0.02968    1.76385  -0.017 0.986576    
+## `mismatches:sum_peaks`            -7.15519    3.03529  -2.357 0.018407 *  
+## `cms:non_cms`                     -1.30141    2.26110  -0.576 0.564909    
+## `cms:sum_peaks`                    2.09710    3.55047   0.591 0.554753    
+## `non_cms:sum_peaks`                2.69532    2.04421   1.319 0.187333    
+## `ccf:rough_cor:D`                  0.53385    0.33492   1.594 0.110944    
+## `ccf:rough_cor:sd_D`              -3.96285    1.04439  -3.794 0.000148 ***
+## `ccf:rough_cor:matches`            3.73125    2.32405   1.605 0.108385    
+## `ccf:rough_cor:mismatches`        -2.30312    0.95179  -2.420 0.015530 *  
+## `ccf:rough_cor:cms`               -4.04820    1.92443  -2.104 0.035415 *  
+## `ccf:rough_cor:non_cms`            1.13589    0.67344   1.687 0.091662 .  
+## `ccf:rough_cor:sum_peaks`          2.02681    1.42196   1.425 0.154053    
+## `ccf:D:sd_D`                      -1.22691    0.90950  -1.349 0.177342    
+## `ccf:D:matches`                    3.80489    1.21746   3.125 0.001776 ** 
+## `ccf:D:mismatches`                -1.11178    1.43227  -0.776 0.437609    
+## `ccf:D:cms`                       -1.83161    0.93873  -1.951 0.051037 .  
+## `ccf:D:non_cms`                    0.47078    1.17686   0.400 0.689135    
+## `ccf:D:sum_peaks`                 -1.98245    0.85060  -2.331 0.019772 *  
+## `ccf:sd_D:matches`                -9.31821    3.53898  -2.633 0.008463 ** 
+## `ccf:sd_D:mismatches`             -0.40462    2.35758  -0.172 0.863732    
+## `ccf:sd_D:cms`                     6.16204    3.24869   1.897 0.057857 .  
+## `ccf:sd_D:non_cms`                 0.29698    2.05371   0.145 0.885021    
+## `ccf:sd_D:sum_peaks`               3.61144    2.46591   1.465 0.143044    
+## `ccf:matches:mismatches`          -4.17113    2.46494  -1.692 0.090611 .  
+## `ccf:matches:cms`                  9.09379    3.42004   2.659 0.007838 ** 
+## `ccf:matches:non_cms`              0.24671    1.49159   0.165 0.868629    
+## `ccf:matches:sum_peaks`           -5.07348    2.87675  -1.764 0.077797 .  
+## `ccf:mismatches:cms`               4.25195    1.87859   2.263 0.023613 *  
+## `ccf:mismatches:non_cms`          -1.22849    0.83061  -1.479 0.139134    
+## `ccf:mismatches:sum_peaks`         0.19594    1.98537   0.099 0.921385    
+## `ccf:cms:non_cms`                 -1.08785    1.36574  -0.797 0.425726    
+## `ccf:cms:sum_peaks`               -0.84575    3.92537  -0.215 0.829411    
+## `ccf:non_cms:sum_peaks`           -0.27867    1.21531  -0.229 0.818635    
+## `rough_cor:D:sd_D`                -0.20824    0.85790  -0.243 0.808209    
+## `rough_cor:D:matches`             -0.61002    0.81596  -0.748 0.454692    
+## `rough_cor:D:mismatches`          -1.35043    1.57189  -0.859 0.390277    
+## `rough_cor:D:cms`                 -0.35835    0.72064  -0.497 0.619000    
+## `rough_cor:D:non_cms`              2.85759    1.45901   1.959 0.050161 .  
+## `rough_cor:D:sum_peaks`            1.37454    0.57404   2.394 0.016644 *  
+## `rough_cor:sd_D:matches`           0.37827    2.43000   0.156 0.876296    
+## `rough_cor:sd_D:mismatches`       -3.53787    2.93536  -1.205 0.228103    
+## `rough_cor:sd_D:cms`              -2.55743    2.21046  -1.157 0.247285    
+## `rough_cor:sd_D:non_cms`          -1.56397    2.28356  -0.685 0.493417    
+## `rough_cor:sd_D:sum_peaks`         0.34420    1.53742   0.224 0.822851    
+## `rough_cor:matches:mismatches`     1.26148    1.64816   0.765 0.444042    
+## `rough_cor:matches:cms`           -5.39273    1.72123  -3.133 0.001730 ** 
+## `rough_cor:matches:non_cms`        0.32478    1.00994   0.322 0.747764    
+## `rough_cor:matches:sum_peaks`      1.01435    1.58385   0.640 0.521891    
+## `rough_cor:mismatches:cms`        -0.58749    1.32569  -0.443 0.657653    
+## `rough_cor:mismatches:non_cms`     0.88359    0.70510   1.253 0.210155    
+## `rough_cor:mismatches:sum_peaks`  -0.46998    1.06223  -0.442 0.658165    
+## `rough_cor:cms:non_cms`           -0.07628    0.88753  -0.086 0.931508    
+## `rough_cor:cms:sum_peaks`          1.51263    1.99548   0.758 0.448436    
+## `rough_cor:non_cms:sum_peaks`      0.38202    0.63811   0.599 0.549387    
+## `D:sd_D:matches`                   0.37140    1.14055   0.326 0.744701    
+## `D:sd_D:mismatches`               -2.06603    1.99847  -1.034 0.301227    
+## `D:sd_D:cms`                      -0.28742    1.03975  -0.276 0.782215    
+## `D:sd_D:non_cms`                  -1.06248    1.47363  -0.721 0.470913    
+## `D:sd_D:sum_peaks`                -1.42301    0.91417  -1.557 0.119561    
+## `D:matches:mismatches`             2.21906    2.90599   0.764 0.445095    
+## `D:matches:cms`                   -1.49216    0.93398  -1.598 0.110127    
+## `D:matches:non_cms`               -1.26133    1.88992  -0.667 0.504519    
+## `D:matches:sum_peaks`             -1.56342    1.25905  -1.242 0.214333    
+## `D:mismatches:cms`                 2.26136    2.42580   0.932 0.351228    
+## `D:mismatches:non_cms`            -4.86803    1.81176  -2.687 0.007212 ** 
+## `D:mismatches:sum_peaks`          -4.14473    2.28203  -1.816 0.069333 .  
+## `D:cms:non_cms`                   -1.97943    1.90502  -1.039 0.298777    
+## `D:cms:sum_peaks`                  1.88897    1.25331   1.507 0.131763    
+## `D:non_cms:sum_peaks`              1.94016    1.52710   1.270 0.203912    
+## `sd_D:matches:mismatches`         -3.79048    4.65669  -0.814 0.415654    
+## `sd_D:matches:cms`                 3.58141    2.54747   1.406 0.159764    
+## `sd_D:matches:non_cms`             1.73685    2.81479   0.617 0.537205    
+## `sd_D:matches:sum_peaks`           1.89012    3.38423   0.559 0.576498    
+## `sd_D:mismatches:cms`             -5.55181    3.97674  -1.396 0.162693    
+## `sd_D:mismatches:non_cms`          5.94725    2.61619   2.273 0.023011 *  
+## `sd_D:mismatches:sum_peaks`        8.61732    3.33788   2.582 0.009832 ** 
+## `sd_D:cms:non_cms`                 4.52273    2.96493   1.525 0.127157    
+## `sd_D:cms:sum_peaks`              -3.24178    3.34864  -0.968 0.333000    
+## `sd_D:non_cms:sum_peaks`          -3.95304    2.34717  -1.684 0.092149 .  
+## `matches:mismatches:cms`          -2.99818    1.55218  -1.932 0.053410 .  
+## `matches:mismatches:non_cms`      -0.10266    0.87471  -0.117 0.906573    
+## `matches:mismatches:sum_peaks`     1.24692    1.59685   0.781 0.434881    
+## `matches:cms:non_cms`              0.72768    0.92624   0.786 0.432084    
+## `matches:cms:sum_peaks`           -0.81940    1.34447  -0.609 0.542222    
+## `matches:non_cms:sum_peaks`       -0.11126    0.90529  -0.123 0.902188    
+## `mismatches:cms:non_cms`          -0.61998    0.87129  -0.712 0.476736    
+## `mismatches:cms:sum_peaks`         1.25645    1.74638   0.719 0.471858    
+## `mismatches:non_cms:sum_peaks`     0.69829    0.68942   1.013 0.311125    
+## `cms:non_cms:sum_peaks`           -1.13426    1.18533  -0.957 0.338608    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 12728.0  on 83027  degrees of freedom
+## Residual deviance:  3286.8  on 82898  degrees of freedom
+## AIC: 3546.8
+## 
+## Number of Fisher Scoring iterations: 12</code></pre>
 </div>
 <div id="comparing-the-logistic-models" class="section level3">
 <h3>Comparing the Logistic Models</h3>
@@ -479,78 +692,78 @@ plot_features(logistic_inters3_explain[1:12,])</code></pre>
 <div id="session-info" class="section level1">
 <h1>Session Info</h1>
 <pre class="r"><code>sessionInfo()</code></pre>
-<pre><code>## R version 3.5.2 (2018-12-20)
-## Platform: x86_64-apple-darwin15.6.0 (64-bit)
-## Running under: macOS Mojave 10.14.3
+<pre><code>## R version 3.4.4 (2018-03-15)
+## Platform: x86_64-pc-linux-gnu (64-bit)
+## Running under: Ubuntu 16.04.5 LTS
 ## 
 ## Matrix products: default
-## BLAS: /Library/Frameworks/R.framework/Versions/3.5/Resources/lib/libRblas.0.dylib
-## LAPACK: /Library/Frameworks/R.framework/Versions/3.5/Resources/lib/libRlapack.dylib
+## BLAS: /usr/lib/openblas-base/libblas.so.3
+## LAPACK: /usr/lib/libopenblasp-r0.2.18.so
 ## 
 ## locale:
-## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
 ## 
 ## attached base packages:
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-##  [1] forcats_0.3.0   stringr_1.4.0   dplyr_0.7.8     purrr_0.3.0    
-##  [5] readr_1.1.1     tidyr_0.8.2     tibble_2.0.1    ggplot2_3.1.0  
-##  [9] tidyverse_1.2.1 lime_0.4.1     
+##  [1] caret_6.0-81    lattice_0.20-38 forcats_0.2.0   stringr_1.4.0  
+##  [5] dplyr_0.8.0.1   purrr_0.3.0     readr_1.3.1     tidyr_0.8.2    
+##  [9] tibble_2.0.1    ggplot2_3.1.0   tidyverse_1.2.1 lime_0.4.1     
 ## 
 ## loaded via a namespace (and not attached):
-##   [1] colorspace_1.3-2        class_7.3-14           
-##   [3] rprojroot_1.3-2         pls_2.7-0              
-##   [5] rstudioapi_0.7          DRR_0.0.3              
-##   [7] x3ptools_0.0.1          prodlim_2018.04.18     
-##   [9] lubridate_1.7.4         xml2_1.2.0             
-##  [11] codetools_0.2-15        splines_3.5.2          
-##  [13] robustbase_0.93-2       knitr_1.20             
-##  [15] shinythemes_1.1.2       RcppRoll_0.3.0         
-##  [17] jsonlite_1.6            caret_6.0-80           
-##  [19] broom_0.5.0             ddalpha_1.3.4          
-##  [21] kernlab_0.9-27          sfsmisc_1.1-2          
-##  [23] shiny_1.2.0             compiler_3.5.2         
-##  [25] httr_1.4.0              backports_1.1.3        
-##  [27] assertthat_0.2.0        Matrix_1.2-15          
-##  [29] lazyeval_0.2.1          cli_1.0.1              
-##  [31] later_0.7.5             htmltools_0.3.6        
-##  [33] tools_3.5.2             bindrcpp_0.2.2         
-##  [35] gtable_0.2.0            glue_1.3.0             
-##  [37] reshape2_1.4.3          Rcpp_1.0.0             
-##  [39] cellranger_1.1.0        nlme_3.1-137           
-##  [41] iterators_1.0.10        crosstalk_1.0.0        
-##  [43] timeDate_3043.102       gower_0.1.2            
-##  [45] rvest_0.3.2             mime_0.6               
-##  [47] miniUI_0.1.1.1          DEoptimR_1.0-8         
-##  [49] MASS_7.3-51.1           zoo_1.8-3              
-##  [51] scales_1.0.0            ipred_0.9-8            
-##  [53] hms_0.4.2               promises_1.0.1         
-##  [55] yaml_2.2.0              curl_3.2               
-##  [57] rpart_4.1-13            stringi_1.2.4          
-##  [59] foreach_1.4.4           TTR_0.23-3             
-##  [61] manipulateWidget_0.10.0 lava_1.6.3             
-##  [63] geometry_0.3-6          rlang_0.3.1            
-##  [65] pkgconfig_2.0.2         rgl_0.99.16            
-##  [67] evaluate_0.11           lattice_0.20-38        
-##  [69] bulletr_0.1.0.9003      bindr_0.1.1            
-##  [71] recipes_0.1.3           htmlwidgets_1.3        
-##  [73] CVST_0.2-2              tidyselect_0.2.5       
-##  [75] plyr_1.8.4              magrittr_1.5           
-##  [77] R6_2.3.0                dimRed_0.2.2           
-##  [79] pillar_1.3.1            haven_1.1.2            
-##  [81] withr_2.1.2             xts_0.11-0             
-##  [83] survival_2.43-3         abind_1.4-5            
-##  [85] nnet_7.3-12             modelr_0.1.2           
-##  [87] crayon_1.3.4            plotly_4.8.0.9000      
-##  [89] rmarkdown_1.10          grid_3.5.2             
-##  [91] readxl_1.1.0            data.table_1.11.8      
-##  [93] ModelMetrics_1.2.2      digest_0.6.18          
-##  [95] webshot_0.5.0           xtable_1.8-3           
-##  [97] httpuv_1.4.5.1          stats4_3.5.2           
-##  [99] munsell_0.5.0           glmnet_2.0-16          
-## [101] viridisLite_0.3.0       smoother_1.1           
-## [103] magic_1.5-9</code></pre>
+##  [1] nlme_3.1-137            xts_0.10-1             
+##  [3] lubridate_1.7.1         webshot_0.5.1          
+##  [5] httr_1.4.0              tools_3.4.4            
+##  [7] R6_2.4.0                rpart_4.1-13           
+##  [9] lazyeval_0.2.1          colorspace_1.4-0       
+## [11] nnet_7.3-12             manipulateWidget_0.10.0
+## [13] withr_2.1.2             tidyselect_0.2.5       
+## [15] smoother_1.1            mnormt_1.5-5           
+## [17] curl_3.3                compiler_3.4.4         
+## [19] glmnet_2.0-16           cli_1.0.1              
+## [21] rvest_0.3.2             xml2_1.2.0             
+## [23] plotly_4.8.0            scales_1.0.0           
+## [25] DEoptimR_1.0-8          psych_1.7.8            
+## [27] robustbase_0.93-3       digest_0.6.18          
+## [29] foreign_0.8-70          rmarkdown_1.11         
+## [31] pkgconfig_2.0.2         htmltools_0.3.6        
+## [33] htmlwidgets_1.3         rlang_0.3.1            
+## [35] readxl_1.0.0            TTR_0.23-2             
+## [37] rstudioapi_0.7          shiny_1.2.0            
+## [39] generics_0.0.2          zoo_1.8-4              
+## [41] jsonlite_1.6            crosstalk_1.0.0        
+## [43] ModelMetrics_1.2.2      magrittr_1.5           
+## [45] Matrix_1.2-14           Rcpp_1.0.0             
+## [47] munsell_0.5.0           stringi_1.3.1          
+## [49] yaml_2.2.0              MASS_7.3-50            
+## [51] plyr_1.8.4              recipes_0.1.4          
+## [53] grid_3.4.4              parallel_3.4.4         
+## [55] promises_1.0.1          crayon_1.3.4           
+## [57] miniUI_0.1.1.1          splines_3.4.4          
+## [59] haven_1.1.0             hms_0.4.2              
+## [61] knitr_1.21              pillar_1.3.1           
+## [63] stats4_3.4.4            reshape2_1.4.3         
+## [65] codetools_0.2-15        glue_1.3.0             
+## [67] evaluate_0.13           data.table_1.12.0      
+## [69] modelr_0.1.1            httpuv_1.4.5.1         
+## [71] foreach_1.4.4           cellranger_1.1.0       
+## [73] gtable_0.2.0            bulletr_0.1.0.9003     
+## [75] assertthat_0.2.0        xfun_0.5               
+## [77] gower_0.1.2             prodlim_2018.04.18     
+## [79] mime_0.6                xtable_1.8-2           
+## [81] broom_0.4.3             x3ptools_0.0.1.9000    
+## [83] e1071_1.7-0.1           later_0.8.0            
+## [85] survival_2.43-3         class_7.3-14           
+## [87] viridisLite_0.3.0       timeDate_3043.102      
+## [89] shinythemes_1.1.2       iterators_1.0.10       
+## [91] lava_1.6.5              rgl_0.99.16            
+## [93] ipred_0.9-8</code></pre>
 </div>
 
 
