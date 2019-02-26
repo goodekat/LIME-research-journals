@@ -363,10 +363,7 @@ data.frame(set1$case, set12$case) %>% View()
 
 chosen_features %>%
   filter(set == "Set 1") %>%
-  mutate(case = factor(case, levels = order)) %>%
-  View()
-
-
+  mutate(case = factor(case, levels = order))
   ggplot(aes(x = situation, y = case, fill = first)) + 
   geom_tile() + 
   facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
