@@ -1,5 +1,5 @@
 ---
-title: "Applying LIME to a Random Forest Model and the Problems that Ensue"
+title: "My Story of Applying LIME to a Random Forest Model and the Problems that Ensued"
 author: "Katherine Goode"
 date: "March 1, 2019"
 output:
@@ -16,5 +16,14 @@ output:
 options(htmltools.dir.version = FALSE)
 ```
 
-# Get Started
+## Overview
 
+<<<<<<< HEAD
+=======
+1. Overview of LIME
+2. Hamby bullet matching data
+3. Applying LIME to the bullet data
+4. Issues with LIME
+5. Attempts at a Solution
+6. Future Work
+>>>>>>> 76dc094777268240a89206a02bd02b796138c320

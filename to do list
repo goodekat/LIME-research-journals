@@ -18,19 +18,22 @@ Questions:
 - GPSS conference? poster for machine learning colloquium?
 - Can we go through what I did to clean the training data to make sure I did it right?
 - Did Eric save the testing data so I can compare it to mine? (I wasn't able to find it?)
-- Have you used seriate with nominal variables?
+- Have you used seriate with nominal variables? (Is what I am doing okay?)
+- Which version of slides do you like to use for presentations?
 
 Completed:
-- remove rows from training data so it matches with rtrees
-- rerun all of lime results with new training results
+- removed rows from training data so it matches with rtrees
+- reran all of lime results with new training results
+- fit logistic regression models and ran them through lime 
+- kept working on seriation
 
 Current Week:
-- keep working on seriation (sort within rfscore)
-- fit logistic regression model and run it through lime
+- fix issue with seriation
+- assess lime results on logistic regression models
 - think about how to implement a simulation with a random forest
-- look at 'removing the blindfold' for ideas
 
 Later:
+- look at 'removing the blindfold' for ideas
 - read through Heike's new function
 - think of a way to compute consistency across top two features
 - compare the simple models based on different number of bins using an F-test
