@@ -52,6 +52,9 @@ The code below fits a logistic regression model to the training data using the `
 # Fit or load the logistic regression model with only main effects
 if(!file.exists("./data/logistic_mains.rds")) {
   
+  # Set a seed
+  set.seed(20190226)
+  
   # Fit the model
   logistic_mains <- caret::train(as.factor(samesource) ~ ccf + rough_cor + D + sd_D + 
                                    matches + mismatches + cms + non_cms + sum_peaks,
@@ -85,6 +88,9 @@ The code below fits a logistic regression model to the training data using the `
 ```{r}
 # Fit or load the logistic regression model with all two way interactions
 if(!file.exists("./data/logistic_inters2.rds")) {
+  
+  # Set a seed
+  set.seed(20190226)
   
   # Fit the model
   logistic_inters2 <- caret::train(as.factor(samesource) ~
@@ -121,6 +127,9 @@ The code below fits a logistic regression model to the training data using the `
 # Fit or load the logistic regression model with all two and three way interactions
 if(!file.exists("./data/logistic_inters3.rds")) {
   
+  # Set a seed
+  set.seed(20190226)
+  
   # Fit the model
   logistic_inters3 <- caret::train(as.factor(samesource) ~
                                        (ccf + rough_cor + D + sd_D + matches + 
@@ -145,6 +154,35 @@ The output from this model is now shown.
 
 ### Comparing the Logistic Models
 
+The results as computed by caret on the training data are shown below for the three logistic regression models. The accuracy shows that the models with two way interactions performs the best on the training data.
+
+```{r}
+# Results from the models
+data.frame(model = c("mains", "inters2", "inters3")) %>%
+  bind_cols(bind_rows(logistic_mains$results, logistic_inters2$results, logistic_inters3$results))
+```
+
+The AICs from the models are shown below. The model with three way interactions performs the best based on AIC.
+
+```{r}
+AIC(logistic_mains$finalModel)
+AIC(logistic_inters2$finalModel)
+AIC(logistic_inters3$finalModel)
+```
+
+
+I also want to know how the models perform on the test data. The models are used to make predictions on the test data and the MSEs are computed for each model. These are shown in the table below. The model with main effects only has the smallest MSE. I am guessing that the other models are overfitting.
+
+```{r}
+data.frame(mains = predict(logistic_mains, hamby224_test %>% select(rf_features)),
+           inters2 = predict(logistic_inters2, hamby224_test %>% select(rf_features)),
+           inters3 = predict(logistic_inters3, hamby224_test %>% select(rf_features))) %>%
+  summarise_at(vars(mains, inters2, inters3), 
+               function(pred, obs) sum((as.logical(pred) - obs)^2) / n(),
+               obs = hamby224_test %>% select(samesource) %>% na.omit())
+```
+
+
 # Applying LIME to the Models
 
 ### Main Effects Only
@@ -155,6 +193,9 @@ The functions `lime` and `explain` from the lime package are applied below to th
 # Create or load the lime and explain objects for the main effects logisitic regression model
 if(!file.exists("./data/lime_explain_mains.rds")) {
   
+  # Set a seed
+  set.seed(20190226)
+  
   # Apply lime
   lime_mains <- lime(x = hamby173and252_train %>% select(rf_features), 
                      model = logistic_mains)
@@ -163,7 +204,7 @@ if(!file.exists("./data/lime_explain_mains.rds")) {
   explain_mains <- explain(x = hamby224_test %>%
                              select(rf_features) %>% 
                              na.omit(), 
-                           explainer = logistic_mains_lime, 
+                           explainer = lime_mains, 
                            n_labels = 1,
                            n_features = 3)
   
@@ -191,6 +232,9 @@ plot_features(lime_explain_mains$explain[1:12,])
 # Create or load the lime and explain objects for the two way interaction logisitic regression model
 if(!file.exists("./data/lime_explain_inters2.rds")) {
   
+  # Set a seed
+  set.seed(20190226)
+  
   # Apply lime
   lime_inters2 <- lime(x = hamby173and252_train %>% select(rf_features), 
                        model = logistic_inters2)
@@ -199,7 +243,7 @@ if(!file.exists("./data/lime_explain_inters2.rds")) {
   explain_inters2 <- explain(x = hamby224_test %>%
                                select(rf_features) %>% 
                                na.omit(), 
-                             explainer = logistic_inters2_lime, 
+                             explainer = lime_inters2, 
                              n_labels = 1,
                              n_features = 3)
   
@@ -227,6 +271,9 @@ plot_features(lime_explain_inters2$explain[1:12,])
 # Create or load the lime and explain objects for the three way interaction logisitic regression model
 if(!file.exists("./data/lime_explain_inters3.rds")) {
   
+  # Set a seed
+  set.seed(20190226)
+  
   # Apply lime
   lime_inters3 <- lime(x = hamby173and252_train %>% select(rf_features), 
                        model = logistic_inters3)
@@ -235,7 +282,7 @@ if(!file.exists("./data/lime_explain_inters3.rds")) {
   explain_inters3 <- explain(x = hamby224_test %>%
                                select(rf_features) %>% 
                                na.omit(), 
-                             explainer = logistic_inters3_lime, 
+                             explainer = lime_inters3, 
                              n_labels = 1,
                              n_features = 3)
   
