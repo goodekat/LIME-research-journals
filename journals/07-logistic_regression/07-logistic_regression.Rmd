@@ -10,8 +10,7 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
-                      cache = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
 ```
 
 # Overview
@@ -43,26 +42,167 @@ A vector containing the features used in the random forest `rtrees` is created b
 rf_features <- rownames(bulletr::rtrees$importance)
 ```
 
-# Logistic Regression Model
+# Logistic Regression Models
 
-```{r eval = FALSE}
-# Fit a logistic regression model with only main effects
-logit <- caret::train(as.factor(samesource) ~ ccf + rough_cor + D + sd_D + matches + 
-                        mismatches + cms + non_cms + sum_peaks,
-            data = hamby173and252_train, 
-            method = "glm", 
-            family = "binomial")
+### Main Effects Only
 
-summary(logit)
+The code below fits a logistic regression model to the training data using the `train` function from the caret package. The nine features used to fit `rtrees` are included as main effects only. The features are standardized prior to fitting the model using the `preProcess = "scale"` in `train`.
 
-logit_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
-                    model = logit)
+```{r}
+# Fit or load the logistic regression model with only main effects
+if(!file.exists("../../data/logistic_mains.rds")) {
+  
+  # Fit the model
+  logistic_mains <- caret::train(as.factor(samesource) ~ ccf + rough_cor + D + sd_D + 
+                                   matches + mismatches + cms + non_cms + sum_peaks,
+                                 preProcess = "scale",
+                                 data = hamby173and252_train, 
+                                 method = "glm", 
+                                 family = "binomial")
 
-logit_explain <- explain(x = hamby224_test %>% select(rf_features) %>% na.omit(), 
-                          explainer = logit_lime, 
-                          n_labels = 1,
-                          n_features = 3)
+  # Save the model
+  saveRDS(logistic_mains, "../../data/logistic_mains.rds")
 
-plot_features(logit_explain[1:12,])
+} else{
+  
+  # Load the model
+  logistic_mains <- readRDS("../../data/logistic_mains.rds")
+  
+}
 ```
 
+The output from the model is shown below. The features of ccf and matches stand out as the most important features in the model.
+
+```{r}
+# Summary of the model
+summary(logistic_mains)
+```
+
+### All Two Way Interactions
+
+The code below fits a logistic regression model to the training data using the `train` function from the caret package. The nine features used to fit `rtrees` are included as main effects and with all two way interactions. The features are standardized prior to fitting the model using the `preProcess = "scale"` in `train`.
+
+```{r}
+# Fit or load the logistic regression model with all two way interactions
+if(!file.exists("../../data/logistic_inters2.rds")) {
+  
+  # Fit the model
+  logistic_inters2 <- caret::train(as.factor(samesource) ~
+                                       (ccf + rough_cor + D + sd_D + matches + 
+                                          mismatches + cms + non_cms + sum_peaks)^2,
+                                     preProcess = "scale",
+                                     data = hamby173and252_train,
+                                     method = "glm", 
+                                     family = "binomial")
+  
+  # Save the model
+  saveRDS(logistic_inters2, "../../data/logistic_inters2.rds")
+
+} else{
+  
+   # Load the model
+  logistic_inters2 <- readRDS("../../data/logistic_inters2.rds")
+  
+}
+```
+
+The output from the model is shown below.
+
+```{r}
+# Summary of the model
+summary(logistic_inters2)
+```
+
+### All Three Way Interactions
+
+The code below fits a logistic regression model to the training data using the `train` function from the caret package. The nine features used to fit `rtrees` are included as main effects and with all two and three way interactions. The features are standardized prior to fitting the model using the `preProcess = "scale"` in `train`.
+
+```{r eval = FALSE}
+# Fit or load the logistic regression model with all two and three way interactions
+if(!file.exists("../../data/logistic_inters3.rds")) {
+  
+  # Fit the model
+  logistic_inters3 <- caret::train(as.factor(samesource) ~
+                                       (ccf + rough_cor + D + sd_D + matches + 
+                                          mismatches + cms + non_cms + sum_peaks)^3,
+                                     preProcess = "scale",
+                                     data = hamby173and252_train,
+                                     method = "glm", 
+                                     family = "binomial")
+  
+  # Save the model
+  saveRDS(logistic_inters3, "../../data/logistic_inters3.rds")
+
+} else{
+  
+  # Load the model
+  logistic_inters3 <- readRDS("../../data/logistic_inters3.rds")
+  
+}
+```
+
+The output from the model is shown below.
+
+```{r eval = FALSE}
+# Summary of the model
+summary(logistic_inters3)
+```
+
+### Comparing the Logistic Models
+
+
+# Applying LIME to the Models
+
+### Main Effects Only
+
+```{r eval = FALSE}
+logistic_mains_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
+                            model = logistic_mains$finalModel)
+
+logistic_mains_explain <- explain(x = hamby224_test %>% 
+                                    select(rf_features) %>% 
+                                    na.omit(), 
+                                  explainer = logistic_mains_lime, 
+                                  n_labels = 1,
+                                  n_features = 3)
+
+plot_features(logistic_mains_explain[1:12,])
+```
+
+### All Two Way Interactions
+
+```{r eval = FALSE}
+logistic_inters2_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
+                              model = logistic_inters2)
+
+logistic_inters2_explain <- explain(x = hamby224_test %>% 
+                                      select(rf_features) %>% 
+                                      na.omit(), 
+                                    explainer = logistic_inters2_lime, 
+                                    n_labels = 1,
+                                    n_features = 3)
+
+plot_features(logistic_inters2_explain[1:12,])
+```
+
+### All Three Way Interactions
+
+```{r eval = FALSE}
+logistic_inters3_lime <- lime(x = hamby173and252_train %>% select(rf_features), 
+                              model = logistic_inters3)
+
+logistic_inters3_explain <- explain(x = hamby224_test %>% 
+                                      select(rf_features) %>% 
+                                      na.omit(), 
+                                    explainer = logistic_inters3_lime, 
+                                    n_labels = 1,
+                                    n_features = 3)
+
+plot_features(logistic_inters3_explain[1:12,])
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

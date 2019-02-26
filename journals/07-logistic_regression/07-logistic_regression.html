@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2019-02-22" />
+<meta name="date" content="2019-02-25" />
 
 <title>07-logistic_regression</title>
 
@@ -94,6 +94,9 @@ img {
 }
 .tabbed-pane {
   padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
 }
 button.code-folding-btn:focus {
   outline: none;
@@ -219,7 +222,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">07-logistic_regression</h1>
 <h4 class="author"><em>Katherine Goode</em></h4>
-<h4 class="date"><em>February 22, 2019</em></h4>
+<h4 class="date"><em>February 25, 2019</em></h4>
 
 </div>
 
@@ -243,26 +246,311 @@ hamby224_test &lt;- read.csv(&quot;../../data/hamby224_test.csv&quot;)</code></p
 <pre class="r"><code># Obtain features used when fitting the rtrees random forest
 rf_features &lt;- rownames(bulletr::rtrees$importance)</code></pre>
 </div>
-<div id="logistic-regression-model" class="section level1">
-<h1>Logistic Regression Model</h1>
-<pre class="r"><code># Fit a logistic regression model with only main effects
-logit &lt;- caret::train(as.factor(samesource) ~ ccf + rough_cor + D + sd_D + matches + 
-                        mismatches + cms + non_cms + sum_peaks,
-            data = hamby173and252_train, 
-            method = &quot;glm&quot;, 
-            family = &quot;binomial&quot;)
+<div id="logistic-regression-models" class="section level1">
+<h1>Logistic Regression Models</h1>
+<div id="main-effects-only" class="section level3">
+<h3>Main Effects Only</h3>
+<p>The code below fits a logistic regression model to the training data using the <code>train</code> function from the caret package. The nine features used to fit <code>rtrees</code> are included as main effects only. The features are standardized prior to fitting the model using the <code>preProcess = &quot;scale&quot;</code> in <code>train</code>.</p>
+<pre class="r"><code># Fit or load the logistic regression model with only main effects
+if(!file.exists(&quot;../../data/logistic_mains.rds&quot;)) {
+  
+  # Fit the model
+  logistic_mains &lt;- caret::train(as.factor(samesource) ~ ccf + rough_cor + D + sd_D + 
+                                   matches + mismatches + cms + non_cms + sum_peaks,
+                                 preProcess = &quot;scale&quot;,
+                                 data = hamby173and252_train, 
+                                 method = &quot;glm&quot;, 
+                                 family = &quot;binomial&quot;)
 
-summary(logit)
+  # Save the model
+  saveRDS(logistic_mains, &quot;../../data/logistic_mains.rds&quot;)
 
-logit_lime &lt;- lime(x = hamby173and252_train %&gt;% select(rf_features), 
-                    model = logit)
+} else{
+  
+  # Load the model
+  logistic_mains &lt;- readRDS(&quot;../../data/logistic_mains.rds&quot;)
+  
+}</code></pre>
+<p>The output from the model is shown below. The features of ccf and matches stand out as the most important features in the model.</p>
+<pre class="r"><code># Summary of the model
+summary(logistic_mains)</code></pre>
+<pre><code>## 
+## Call:
+## NULL
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.6617  -0.0759  -0.0416  -0.0239   4.8101  
+## 
+## Coefficients:
+##              Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) -10.02313    0.41486 -24.160  &lt; 2e-16 ***
+## ccf           1.52843    0.05079  30.093  &lt; 2e-16 ***
+## rough_cor    -0.06387    0.06440  -0.992 0.321335    
+## D             0.78418    0.07803  10.049  &lt; 2e-16 ***
+## sd_D         -0.30758    0.07974  -3.857 0.000115 ***
+## matches       1.32252    0.09455  13.987  &lt; 2e-16 ***
+## mismatches   -1.07490    0.08229 -13.062  &lt; 2e-16 ***
+## cms          -0.07989    0.06169  -1.295 0.195318    
+## non_cms       0.81650    0.09165   8.909  &lt; 2e-16 ***
+## sum_peaks    -0.22886    0.07115  -3.216 0.001298 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 12728.0  on 83027  degrees of freedom
+## Residual deviance:  4231.3  on 83018  degrees of freedom
+## AIC: 4251.3
+## 
+## Number of Fisher Scoring iterations: 9</code></pre>
+</div>
+<div id="all-two-way-interactions" class="section level3">
+<h3>All Two Way Interactions</h3>
+<p>The code below fits a logistic regression model to the training data using the <code>train</code> function from the caret package. The nine features used to fit <code>rtrees</code> are included as main effects and with all two way interactions. The features are standardized prior to fitting the model using the <code>preProcess = &quot;scale&quot;</code> in <code>train</code>.</p>
+<pre class="r"><code># Fit or load the logistic regression model with all two way interactions
+if(!file.exists(&quot;../../data/logistic_inters2.rds&quot;)) {
+  
+  # Fit the model
+  logistic_inters2 &lt;- caret::train(as.factor(samesource) ~
+                                       (ccf + rough_cor + D + sd_D + matches + 
+                                          mismatches + cms + non_cms + sum_peaks)^2,
+                                     preProcess = &quot;scale&quot;,
+                                     data = hamby173and252_train,
+                                     method = &quot;glm&quot;, 
+                                     family = &quot;binomial&quot;)
+  
+  # Save the model
+  saveRDS(logistic_inters2, &quot;../../data/logistic_inters2.rds&quot;)
 
-logit_explain &lt;- explain(x = hamby224_test %&gt;% select(rf_features) %&gt;% na.omit(), 
-                          explainer = logit_lime, 
-                          n_labels = 1,
-                          n_features = 3)
+} else{
+  
+   # Load the model
+  logistic_inters2 &lt;- readRDS(&quot;../../data/logistic_inters2.rds&quot;)
+  
+}</code></pre>
+<p>The output from the model is shown below.</p>
+<pre class="r"><code># Summary of the model
+summary(logistic_inters2)</code></pre>
+<pre><code>## 
+## Call:
+## NULL
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -3.1205  -0.0745  -0.0407  -0.0237   4.2132  
+## 
+## Coefficients:
+##                          Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)            -24.072880   2.938961  -8.191 2.59e-16 ***
+## ccf                      4.979994   0.485318  10.261  &lt; 2e-16 ***
+## rough_cor               -4.995185   0.609060  -8.201 2.37e-16 ***
+## D                        0.952347   0.815373   1.168 0.242811    
+## sd_D                    -0.001348   0.763526  -0.002 0.998592    
+## matches                  2.461341   0.934373   2.634 0.008433 ** 
+## mismatches               3.136675   0.548622   5.717 1.08e-08 ***
+## cms                      0.041725   0.708300   0.059 0.953024    
+## non_cms                 -1.440142   0.571859  -2.518 0.011791 *  
+## sum_peaks               -0.024514   0.764662  -0.032 0.974426    
+## `ccf:rough_cor`          2.572535   0.201270  12.782  &lt; 2e-16 ***
+## `ccf:D`                  0.897233   0.246228   3.644 0.000269 ***
+## `ccf:sd_D`              -1.905469   0.477468  -3.991 6.59e-05 ***
+## `ccf:matches`           -0.390872   0.720183  -0.543 0.587309    
+## `ccf:mismatches`        -2.065436   0.351129  -5.882 4.05e-09 ***
+## `ccf:cms`               -0.763596   0.507991  -1.503 0.132795    
+## `ccf:non_cms`            0.529889   0.292531   1.811 0.070080 .  
+## `ccf:sum_peaks`         -1.027035   0.497328  -2.065 0.038913 *  
+## `rough_cor:D`            1.362217   0.279906   4.867 1.13e-06 ***
+## `rough_cor:sd_D`        -0.169127   0.518230  -0.326 0.744156    
+## `rough_cor:matches`      0.929790   0.446140   2.084 0.037153 *  
+## `rough_cor:mismatches`   1.250612   0.412109   3.035 0.002408 ** 
+## `rough_cor:cms`          0.087240   0.336206   0.259 0.795261    
+## `rough_cor:non_cms`     -0.406011   0.285744  -1.421 0.155348    
+## `rough_cor:sum_peaks`    0.157988   0.269637   0.586 0.557923    
+## `D:sd_D`                 0.290592   0.340415   0.854 0.393305    
+## `D:matches`             -0.341222   0.471671  -0.723 0.469414    
+## `D:mismatches`           0.617248   0.660650   0.934 0.350147    
+## `D:cms`                  0.279384   0.358233   0.780 0.435453    
+## `D:non_cms`             -1.330974   0.556952  -2.390 0.016860 *  
+## `D:sum_peaks`           -0.471188   0.354219  -1.330 0.183447    
+## `sd_D:matches`           1.149626   0.822226   1.398 0.162057    
+## `sd_D:mismatches`       -1.292848   0.884750  -1.461 0.143945    
+## `sd_D:cms`              -0.810038   0.670380  -1.208 0.226922    
+## `sd_D:non_cms`           1.638805   0.797504   2.055 0.039887 *  
+## `sd_D:sum_peaks`         1.834932   0.542608   3.382 0.000720 ***
+## `matches:mismatches`    -2.057748   0.702444  -2.929 0.003396 ** 
+## `matches:cms`            1.104391   0.340333   3.245 0.001174 ** 
+## `matches:non_cms`        0.208352   0.405381   0.514 0.607276    
+## `matches:sum_peaks`     -0.812656   0.448760  -1.811 0.070158 .  
+## `mismatches:cms`         0.263191   0.496737   0.530 0.596224    
+## `mismatches:non_cms`     0.021719   0.163658   0.133 0.894422    
+## `mismatches:sum_peaks`  -0.633399   0.518657  -1.221 0.222000    
+## `cms:non_cms`            0.256910   0.356687   0.720 0.471360    
+## `cms:sum_peaks`         -0.159767   0.507386  -0.315 0.752850    
+## `non_cms:sum_peaks`     -0.158603   0.309909  -0.512 0.608811    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 12728.0  on 83027  degrees of freedom
+## Residual deviance:  3497.7  on 82982  degrees of freedom
+## AIC: 3589.7
+## 
+## Number of Fisher Scoring iterations: 10</code></pre>
+</div>
+<div id="all-three-way-interactions" class="section level3">
+<h3>All Three Way Interactions</h3>
+<p>The code below fits a logistic regression model to the training data using the <code>train</code> function from the caret package. The nine features used to fit <code>rtrees</code> are included as main effects and with all two and three way interactions. The features are standardized prior to fitting the model using the <code>preProcess = &quot;scale&quot;</code> in <code>train</code>.</p>
+<pre class="r"><code># Fit or load the logistic regression model with all two and three way interactions
+if(!file.exists(&quot;../../data/logistic_inters3.rds&quot;)) {
+  
+  # Fit the model
+  logistic_inters3 &lt;- caret::train(as.factor(samesource) ~
+                                       (ccf + rough_cor + D + sd_D + matches + 
+                                          mismatches + cms + non_cms + sum_peaks)^3,
+                                     preProcess = &quot;scale&quot;,
+                                     data = hamby173and252_train,
+                                     method = &quot;glm&quot;, 
+                                     family = &quot;binomial&quot;)
+  
+  # Save the model
+  saveRDS(logistic_inters3, &quot;../../data/logistic_inters3.rds&quot;)
 
-plot_features(logit_explain[1:12,])</code></pre>
+} else{
+  
+  # Load the model
+  logistic_inters3 &lt;- readRDS(&quot;../../data/logistic_inters3.rds&quot;)
+  
+}</code></pre>
+<p>The output from the model is shown below.</p>
+<pre class="r"><code># Summary of the model
+summary(logistic_inters3)</code></pre>
+</div>
+<div id="comparing-the-logistic-models" class="section level3">
+<h3>Comparing the Logistic Models</h3>
+</div>
+</div>
+<div id="applying-lime-to-the-models" class="section level1">
+<h1>Applying LIME to the Models</h1>
+<div id="main-effects-only-1" class="section level3">
+<h3>Main Effects Only</h3>
+<pre class="r"><code>logistic_mains_lime &lt;- lime(x = hamby173and252_train %&gt;% select(rf_features), 
+                            model = logistic_mains$finalModel)
+
+logistic_mains_explain &lt;- explain(x = hamby224_test %&gt;% 
+                                    select(rf_features) %&gt;% 
+                                    na.omit(), 
+                                  explainer = logistic_mains_lime, 
+                                  n_labels = 1,
+                                  n_features = 3)
+
+plot_features(logistic_mains_explain[1:12,])</code></pre>
+</div>
+<div id="all-two-way-interactions-1" class="section level3">
+<h3>All Two Way Interactions</h3>
+<pre class="r"><code>logistic_inters2_lime &lt;- lime(x = hamby173and252_train %&gt;% select(rf_features), 
+                              model = logistic_inters2)
+
+logistic_inters2_explain &lt;- explain(x = hamby224_test %&gt;% 
+                                      select(rf_features) %&gt;% 
+                                      na.omit(), 
+                                    explainer = logistic_inters2_lime, 
+                                    n_labels = 1,
+                                    n_features = 3)
+
+plot_features(logistic_inters2_explain[1:12,])</code></pre>
+</div>
+<div id="all-three-way-interactions-1" class="section level3">
+<h3>All Three Way Interactions</h3>
+<pre class="r"><code>logistic_inters3_lime &lt;- lime(x = hamby173and252_train %&gt;% select(rf_features), 
+                              model = logistic_inters3)
+
+logistic_inters3_explain &lt;- explain(x = hamby224_test %&gt;% 
+                                      select(rf_features) %&gt;% 
+                                      na.omit(), 
+                                    explainer = logistic_inters3_lime, 
+                                    n_labels = 1,
+                                    n_features = 3)
+
+plot_features(logistic_inters3_explain[1:12,])</code></pre>
+</div>
+</div>
+<div id="session-info" class="section level1">
+<h1>Session Info</h1>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 3.5.2 (2018-12-20)
+## Platform: x86_64-apple-darwin15.6.0 (64-bit)
+## Running under: macOS Mojave 10.14.3
+## 
+## Matrix products: default
+## BLAS: /Library/Frameworks/R.framework/Versions/3.5/Resources/lib/libRblas.0.dylib
+## LAPACK: /Library/Frameworks/R.framework/Versions/3.5/Resources/lib/libRlapack.dylib
+## 
+## locale:
+## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+##  [1] forcats_0.3.0   stringr_1.4.0   dplyr_0.7.8     purrr_0.3.0    
+##  [5] readr_1.1.1     tidyr_0.8.2     tibble_2.0.1    ggplot2_3.1.0  
+##  [9] tidyverse_1.2.1 lime_0.4.1     
+## 
+## loaded via a namespace (and not attached):
+##   [1] colorspace_1.3-2        class_7.3-14           
+##   [3] rprojroot_1.3-2         pls_2.7-0              
+##   [5] rstudioapi_0.7          DRR_0.0.3              
+##   [7] x3ptools_0.0.1          prodlim_2018.04.18     
+##   [9] lubridate_1.7.4         xml2_1.2.0             
+##  [11] codetools_0.2-15        splines_3.5.2          
+##  [13] robustbase_0.93-2       knitr_1.20             
+##  [15] shinythemes_1.1.2       RcppRoll_0.3.0         
+##  [17] jsonlite_1.6            caret_6.0-80           
+##  [19] broom_0.5.0             ddalpha_1.3.4          
+##  [21] kernlab_0.9-27          sfsmisc_1.1-2          
+##  [23] shiny_1.2.0             compiler_3.5.2         
+##  [25] httr_1.4.0              backports_1.1.3        
+##  [27] assertthat_0.2.0        Matrix_1.2-15          
+##  [29] lazyeval_0.2.1          cli_1.0.1              
+##  [31] later_0.7.5             htmltools_0.3.6        
+##  [33] tools_3.5.2             bindrcpp_0.2.2         
+##  [35] gtable_0.2.0            glue_1.3.0             
+##  [37] reshape2_1.4.3          Rcpp_1.0.0             
+##  [39] cellranger_1.1.0        nlme_3.1-137           
+##  [41] iterators_1.0.10        crosstalk_1.0.0        
+##  [43] timeDate_3043.102       gower_0.1.2            
+##  [45] rvest_0.3.2             mime_0.6               
+##  [47] miniUI_0.1.1.1          DEoptimR_1.0-8         
+##  [49] MASS_7.3-51.1           zoo_1.8-3              
+##  [51] scales_1.0.0            ipred_0.9-8            
+##  [53] hms_0.4.2               promises_1.0.1         
+##  [55] yaml_2.2.0              curl_3.2               
+##  [57] rpart_4.1-13            stringi_1.2.4          
+##  [59] foreach_1.4.4           TTR_0.23-3             
+##  [61] manipulateWidget_0.10.0 lava_1.6.3             
+##  [63] geometry_0.3-6          rlang_0.3.1            
+##  [65] pkgconfig_2.0.2         rgl_0.99.16            
+##  [67] evaluate_0.11           lattice_0.20-38        
+##  [69] bulletr_0.1.0.9003      bindr_0.1.1            
+##  [71] recipes_0.1.3           htmlwidgets_1.3        
+##  [73] CVST_0.2-2              tidyselect_0.2.5       
+##  [75] plyr_1.8.4              magrittr_1.5           
+##  [77] R6_2.3.0                dimRed_0.2.2           
+##  [79] pillar_1.3.1            haven_1.1.2            
+##  [81] withr_2.1.2             xts_0.11-0             
+##  [83] survival_2.43-3         abind_1.4-5            
+##  [85] nnet_7.3-12             modelr_0.1.2           
+##  [87] crayon_1.3.4            plotly_4.8.0.9000      
+##  [89] rmarkdown_1.10          grid_3.5.2             
+##  [91] readxl_1.1.0            data.table_1.11.8      
+##  [93] ModelMetrics_1.2.2      digest_0.6.18          
+##  [95] webshot_0.5.0           xtable_1.8-3           
+##  [97] httpuv_1.4.5.1          stats4_3.5.2           
+##  [99] munsell_0.5.0           glmnet_2.0-16          
+## [101] viridisLite_0.3.0       smoother_1.1           
+## [103] magic_1.5-9</code></pre>
 </div>
 
 
