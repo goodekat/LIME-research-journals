@@ -41,6 +41,11 @@ The following are some of the concerns that we have with the current state of th
 # Ideas to Try
 
 - Could try fitting a regression with interactions and see if LIME does a good job of explaining a model that is already interpretable.
+- Run a simulation to understand if LIME is working
+    - could implement a couple of local linear dependencies
+    - piece this together
+    - could include interactions in the model
+    - does lime find the local models?
 
 # General Thoughts about LIME
 
