@@ -5,31 +5,17 @@ TO DO LIST
 
 https://isu-csafe.stat.iastate.edu/rstudio/
 
-Goals for spring semester:
-- implement ideas for better binning methods
-- find an idea that leads to better LIME explanations
-- write firearm examiner's paper
-- make plans for the statistical paper
-
 Questions:
-- Thanks for getting me on the CSAFE server!
-- CSP money? (Can you email Marlene?)
-- I heard back from JSM, and my abstract was accepted (likely as a speed presentation).
-- GPSS conference? poster for machine learning colloquium?
-- Can we go through what I did to clean the training data to make sure I did it right?
-- Did Eric save the testing data so I can compare it to mine? (I wasn't able to find it?)
-- Have you used seriate with nominal variables? (Is what I am doing okay?)
-- Which version of slides do you like to use for presentations?
 
 Completed:
-- removed rows from training data so it matches with rtrees
-- reran all of lime results with new training results
-- fit logistic regression models and ran them through lime 
-- kept working on seriation
 
 Current Week:
+- make parallel coordinate plots of training data to check if I removed the correct observations
+- change distance matrix in seriation to be 5-# of variables shared between two rows
 - fix issue with seriation
+- try fitting LASSO logistic model and leave one out approach (to deal with multicollinarity)
 - assess lime results on logistic regression models
+- run all implementations of lime with logistic regression models 
 - think about how to implement a simulation with a random forest
 
 Later:
