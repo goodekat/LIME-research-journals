@@ -507,7 +507,14 @@ data.frame(model = c(&quot;mains&quot;, &quot;inters2&quot;, &quot;inters3&quot;
 ## 1   mains      none 0.9948650 0.7874929 0.0003508790 0.01509968
 ## 2 inters2      none 0.9954217 0.8178426 0.0003020483 0.01219222
 ## 3 inters3      none 0.9952083 0.8116823 0.0003312486 0.01248693</code></pre>
-<p>It is more important to see how the models perform on the test data. The models are used to make predictions on the test data and the MSEs are computed for each model. These are shown in the table below. The model with main effects only has the smallest MSE. I am guessing that the other models are overfitting.</p>
+<p>The AICs from the models are shown below. The model with three way interactions performs the best based on AIC.</p>
+<pre class="r"><code>AIC(logistic_mains$finalModel)</code></pre>
+<pre><code>## [1] 4251.283</code></pre>
+<pre class="r"><code>AIC(logistic_inters2$finalModel)</code></pre>
+<pre><code>## [1] 3589.68</code></pre>
+<pre class="r"><code>AIC(logistic_inters3$finalModel)</code></pre>
+<pre><code>## [1] 3546.822</code></pre>
+<p>I also want to know how the models perform on the test data. The models are used to make predictions on the test data and the MSEs are computed for each model. These are shown in the table below. The model with main effects only has the smallest MSE. I am guessing that the other models are overfitting.</p>
 <pre class="r"><code>data.frame(mains = predict(logistic_mains, hamby224_test %&gt;% select(rf_features)),
            inters2 = predict(logistic_inters2, hamby224_test %&gt;% select(rf_features)),
            inters3 = predict(logistic_inters3, hamby224_test %&gt;% select(rf_features))) %&gt;%
