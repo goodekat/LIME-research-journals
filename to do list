@@ -13,7 +13,7 @@ Current Week:
 - make parallel coordinate plots of training data to check if I removed the correct observations
 - change distance matrix in seriation to be 5-# of variables shared between two rows
 - fix issue with seriation
-- try fitting LASSO logistic model and leave one out approach (to deal with multicollinarity)
+- try fitting LASSO logistic model and leave one out approach (for multicollinarity)
 - assess lime results on logistic regression models
 - run all implementations of lime with logistic regression models 
 - think about how to implement a simulation with a random forest
@@ -37,7 +37,7 @@ Later:
 - try out logistic regression idea for bins (write own bin list to put in explain)
 - try out subsampling idea
 - read new paper on Anchor
-- read book Dr. Dixon lent me
+- read book Dr. Dixon lent me on sensativity analyses
 - try visualizing the features from the test data using dimension reduction and
   coloring them by variables suggested to be important by lime
 - look into papers by Giles Hooker and Lucas Mentch

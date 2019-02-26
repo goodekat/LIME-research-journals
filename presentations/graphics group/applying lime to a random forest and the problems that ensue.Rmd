@@ -18,12 +18,9 @@ options(htmltools.dir.version = FALSE)
 
 ## Overview
 
-<<<<<<< HEAD
-=======
 1. Overview of LIME
 2. Hamby bullet matching data
 3. Applying LIME to the bullet data
 4. Issues with LIME
 5. Attempts at a Solution
 6. Future Work
->>>>>>> 76dc094777268240a89206a02bd02b796138c320

@@ -172,6 +172,10 @@ hamby173and252_train <- hamby173and252_train_cleaning %>%
   filter(!(bbl1 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4") | 
            bbl2 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4"))) %>%
   select(-bbl1, -bbl2)
+
+hamby173and252_train_cleaning %>%
+  mutate(id = as.character(1:n())) %>%
+  GGally::ggparcoord(columns = rf_features, order = "columns", groupColumn = id)
 ```
 
 When I look at the dimensions of my training data now and the number of predictions from `rtrees`, then agree now!
