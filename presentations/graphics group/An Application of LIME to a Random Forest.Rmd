@@ -19,11 +19,6 @@ options(htmltools.dir.version = FALSE, eval = FALSE)
 # Overview
 
 .pull-left[
-### Goals for the talk
-- Explain the LIME algorithm
-- Present an application of LIME
-- Highlight problems with this application
-
 ### The plan
 
 1. Explanation of LIME 
@@ -127,7 +122,7 @@ class: inverse, center, middle
  
 ---
 
-# Idea of the LIME Procedure
+# Generalized Version of the LIME Procedure
 
 Start with training data, complex model, and one prediction from the test data
 1. Use the features in the training data to create a new dataset of many perturbations.
@@ -138,7 +133,7 @@ Start with training data, complex model, and one prediction from the test data
   $$\mbox{prediction} \sim \mbox{chosen feature 1} + \cdots + \mbox{chosen feature k}$$
 6. Use the coefficients from the regression to "explain" the predictions.
 
-| | Feature 1 | <span style="color:blue">Feature 2</span> | <span style="color:blue">Feature 3</span> | Feature 4 | Similarity Score | Prediction |
+| | Feature 1 | <span style="color:blue">Feature 2</span> | <span style="color:blue">Feature 3</span> | Feature 4 | Similarity Score | <span style="color:blue">Prediction</span>|
 | --: | :--: | :--: | :--: | :--: | :--: | :--: |
 | test observation | 2 | 4 | 2 | 10 | exact | $\hat{y}_{\mbox{obs}}$ |
 | perturbation 1 | 2 | 3 | 2 | 12 | very close | $\hat{y}_1$ |
@@ -154,16 +149,17 @@ Start with training data, complex model, and one prediction from the test data
 - Developers created a Python package called [lime](https://github.com/marcotcr/lime)
 - Thomas Pedersen created an R package also called [lime](https://github.com/thomasp85/lime)
 
-.pull-left[
+![](./images/lime.png)
+
+### Key Functions in the lime R package
+
 ```{r eval = FALSE}
 #install.packages("lime")
 library(lime)
 ?lime
 ?explain
 ```
-]
 
-.pull-right[![](./images/lime.png)]
 ---
 
 class: inverse, center, middle

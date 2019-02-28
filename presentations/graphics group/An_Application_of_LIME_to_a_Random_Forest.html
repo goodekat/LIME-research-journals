@@ -24,11 +24,6 @@ class: center, middle, inverse, title-slide
 # Overview
 
 .pull-left[
-### Goals for the talk
-- Explain the LIME algorithm
-- Present an application of LIME
-- Highlight problems with this application
-
 ### The plan
 
 1. Explanation of LIME 
@@ -132,7 +127,7 @@ class: inverse, center, middle
  
 ---
 
-# Idea of the LIME Procedure
+# Generalized Version of the LIME Procedure
 
 Start with training data, complex model, and one prediction from the test data
 1. Use the features in the training data to create a new dataset of many perturbations.
@@ -143,7 +138,7 @@ Start with training data, complex model, and one prediction from the test data
   `$$\mbox{prediction} \sim \mbox{chosen feature 1} + \cdots + \mbox{chosen feature k}$$`
 6. Use the coefficients from the regression to "explain" the predictions.
 
-| | Feature 1 | &lt;span style="color:blue"&gt;Feature 2&lt;/span&gt; | &lt;span style="color:blue"&gt;Feature 3&lt;/span&gt; | Feature 4 | Similarity Score | Prediction |
+| | Feature 1 | &lt;span style="color:blue"&gt;Feature 2&lt;/span&gt; | &lt;span style="color:blue"&gt;Feature 3&lt;/span&gt; | Feature 4 | Similarity Score | &lt;span style="color:blue"&gt;Prediction&lt;/span&gt;|
 | --: | :--: | :--: | :--: | :--: | :--: | :--: |
 | test observation | 2 | 4 | 2 | 10 | exact | `\(\hat{y}_{\mbox{obs}}\)` |
 | perturbation 1 | 2 | 3 | 2 | 12 | very close | `\(\hat{y}_1\)` |
@@ -159,7 +154,10 @@ Start with training data, complex model, and one prediction from the test data
 - Developers created a Python package called [lime](https://github.com/marcotcr/lime)
 - Thomas Pedersen created an R package also called [lime](https://github.com/thomasp85/lime)
 
-.pull-left[
+![](./images/lime.png)
+
+### Key Functions in the lime R package
+
 
 ```r
 #install.packages("lime")
@@ -167,9 +165,7 @@ library(lime)
 ?lime
 ?explain
 ```
-]
 
-.pull-right[![](./images/lime.png)]
 ---
 
 class: inverse, center, middle
@@ -440,8 +436,8 @@ explanation[1:2, 1:6]
 
 ```
 ##       model_type case  label label_prob  model_r2 model_intercept
-## 1 classification    1 setosa          1 0.3944587       0.2470557
-## 2 classification    1 setosa          1 0.3944587       0.2470557
+## 1 classification    1 setosa          1 0.3758648       0.2529152
+## 2 classification    1 setosa          1 0.3758648       0.2529152
 ```
 
 ```r
@@ -449,9 +445,9 @@ explanation[1:2, 7:10]
 ```
 
 ```
-##   model_prediction      feature feature_value feature_weight
-## 1        0.6969047 Sepal.Length           5.1   0.0003415683
-## 2        0.6969047  Petal.Width           0.2   0.4495073822
+##   model_prediction     feature feature_value feature_weight
+## 1        0.6786081 Sepal.Width           3.5    -0.01526011
+## 2        0.6786081 Petal.Width           0.2     0.44095302
 ```
 
 ```r
@@ -459,9 +455,9 @@ explanation[1:2, 11:13]
 ```
 
 ```
-##          feature_desc               data prediction
-## 1 Sepal.Length &lt;= 5.2 5.1, 3.5, 1.4, 0.2    1, 0, 0
-## 2  Petal.Width &lt;= 0.4 5.1, 3.5, 1.4, 0.2    1, 0, 0
+##         feature_desc               data prediction
+## 1  3.3 &lt; Sepal.Width 5.1, 3.5, 1.4, 0.2    1, 0, 0
+## 2 Petal.Width &lt;= 0.4 5.1, 3.5, 1.4, 0.2    1, 0, 0
 ```
 
 ---
