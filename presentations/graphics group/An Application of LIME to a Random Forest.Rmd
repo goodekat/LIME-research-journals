@@ -1,0 +1,377 @@
+---
+title: "[![](./images/lindens.jpg)](https://en.wikipedia.org/wiki/Tilia) An Application of LIME to a Random Forest"
+author: <font size="5"> Katherine Goode </font>
+date: <font size="5"> ISU Graphics Group, March 1, 2019 </font>
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include = FALSE}
+options(htmltools.dir.version = FALSE, eval = FALSE)
+```
+
+# Overview
+
+.pull-left[
+### Goals for the talk
+- Explain the LIME algorithm
+- Present an application of LIME
+- Highlight problems with this application
+
+### The plan
+
+1. Explanation of LIME 
+2. Hamby bullet data
+3. Applying LIME to the bullet data
+4. Issues with LIME
+5. Attempts at a solution
+6. Future work
+]
+
+.pull-right[
+<br>
+<br>
+<img src="./images/lime_drawing.png" width = 400>
+]
+
+---
+
+class: inverse, center, middle
+
+# What is <span style="color:lime">LIME</span>?
+
+---
+
+# Motivation for LIME
+
+<br>
+
+[![](./images/blackbox.png)](https://en.wikipedia.org/wiki/Black_box)
+
+### Black Box Prediction Models
+
+- Offer great predictive ability 
+- Loss of interpretability
+- Difficult to assess trustworthiness
+
+### Enter LIME
+
+- **L**ocal **I**nterpretable **M**odel-Agnostic **E**xplanations
+- Developed by computer scientists ([Ribeiro, Singh, and Guestrin](https://arxiv.org/pdf/1602.04938.pdf))
+- Designed to assess if a black box predictive model is trustworthy
+- Produces "explanations" for individual predictions
+
+---
+
+# Meaning of LIME
+
+.pull-left[
+### <span style="color:lime">L</span>ocal
+
+- Focuses on behavior of a complex model at a local level
+
+### <span style="color:lime">I</span>nterpretable
+
+- Produces easily interpretable "explanations"
+
+### <span style="color:lime">M</span>odel-Agnostic
+
+- Works with any black-box predictor
+
+### <span style="color:lime">E</span>xplanations
+
+- Provides insight into individual predictions
+]
+
+.pull-right[
+<br>
+<br>
+.center[<img src="./images/local.png" width=300>]
+.center[<font size="4">Figure 3 in Ribeiro, Singh, and Guestrin (2016)</font>]
+<br>
+<br>
+.center[<img src="./images/image_explanation.png" width=500>]
+.center[<font size="4">Figure 4 in Ribeiro, Singh, and Guestrin (2016)</font>]
+]
+
+---
+
+# An Example <font size="3">(from Ribeiro, Singh, and Guestrin (2016))</font>
+
+.pull-left[
+### 1. Black Box Model 
+- Model predicts whether a patient has the flu
+- Apply the model to a new patient
+- Predicts that the patient has the flu
+- Can this prediction be trusted?
+]
+
+.pull-right[
+### 2. LIME
+- Apply LIME to *this* case
+- LIME returns the most important variables in *this* prediction
+- Colors indicate
+    + <span style="color:green">green</span>: evidence supporting the flu
+    + <span style="color:red">red</span>: evidence against the flu
+- Can this prediction be trusted?
+]
+
+.center[<img src="./images/example.png" width=700>]
+.center[<font size="4">Figure 1 in Ribeiro, Singh, and Guestrin (2016)</font>]
+ 
+---
+
+# Idea of the LIME Procedure
+
+Start with training data, complex model, and one prediction from the test data
+1. Use the features in the training data to create a new dataset of many perturbations.
+2. Obtain a prediction for each perturbation using the complex model.
+3. Compute a similarity score between the test observation and each perturbation. 
+4. Perform feature selection to choose $k$.
+5. Fit a linear regression (weighted by the similarity scores) to the perturbations with the $k$ chosen features (standardized).
+  $$\mbox{prediction} \sim \mbox{chosen feature 1} + \cdots + \mbox{chosen feature k}$$
+6. Use the coefficients from the regression to "explain" the predictions.
+
+| | Feature 1 | <span style="color:blue">Feature 2</span> | <span style="color:blue">Feature 3</span> | Feature 4 | Similarity Score | Prediction |
+| --: | :--: | :--: | :--: | :--: | :--: | :--: |
+| test observation | 2 | 4 | 2 | 10 | exact | $\hat{y}_{\mbox{obs}}$ |
+| perturbation 1 | 2 | 3 | 2 | 12 | very close | $\hat{y}_1$ |
+| $\vdots$ | $\vdots$ | ... | ... | ... | ... | 
+| perturbation 5000  | 10 | 0 | 13 | 22 | not close | $\hat{y}_{5000}$ |
+
+---
+
+# Using LIME
+
+### Implementations of LIME
+
+- Developers created a Python package called [lime](https://github.com/marcotcr/lime)
+- Thomas Pedersen created an R package also called [lime](https://github.com/thomasp85/lime)
+
+.pull-left[
+```{r eval = FALSE}
+#install.packages("lime")
+library(lime)
+?lime
+?explain
+```
+]
+
+.pull-right[![](./images/lime.png)]
+---
+
+class: inverse, center, middle
+
+# Hamby Bullet Matching Data
+
+---
+class: inverse, center, middle
+
+# Applying LIME to the bullet data
+
+---
+
+# <span style="color:lime">LIME</span> Procedure with Iris Data (in R)
+
+## Step 0: Split iris data into training and testing datasets
+
+```{r, echo = TRUE}
+# Iris dataset
+iris[1:3, ]
+
+# Split up the data set into training and testing datasets
+iris_test <- iris[1:5, 1:4]
+iris_train <- iris[-(1:5), 1:4]
+
+# Create a vector with the responses for the training dataset
+iris_lab <- iris[[5]][-(1:5)]
+```
+
+---
+
+## Step 1: Fit a complex model to the training data
+
+```{r, echo = TRUE}
+# Create random forest model on iris data
+library(caret)
+rf_model <- train(iris_train, iris_lab, method = 'rf')
+
+# Can use the complex model to make predictions
+Pred <- predict(rf_model, iris_test)
+Actual <- iris[1:5, 5]
+data.frame(iris_test, Pred, Actual)
+```
+
+---
+
+## Step 2: Obtain distributions of the variables from the training data
+
+```{r, echo = TRUE}
+# Create an explainer object
+library(lime); explainer <- lime(iris_train, rf_model)
+
+# Sepal length quantiles obtained from training data
+explainer$bin_cuts$Sepal.Length
+
+# Probability distribution for sepal length
+explainer$feature_distribution$Sepal.Length
+```
+
+---
+
+## | Histogram of Sepal Length from Training Data
+
+```{r, fig.width = 8, fig.height = 5, fig.align = "center"}
+
+# Histogram of sepal length from training data
+ggplot(iris_train, aes(x = Sepal.Length)) +
+  geom_histogram(bins = 10, color = "grey") +
+  geom_vline(xintercept = explainer$bin_cuts[[1]][[1]], color = "green", size = 1) +
+  geom_vline(xintercept = explainer$bin_cuts[[1]][[2]], color = "green", size = 1) +
+  geom_vline(xintercept = explainer$bin_cuts[[1]][[3]], color = "green", size = 1) +
+  geom_vline(xintercept = explainer$bin_cuts[[1]][[4]], color = "green", size = 1) +
+  geom_vline(xintercept = explainer$bin_cuts[[1]][[5]], color = "green", size = 1) +
+  labs(x = "Sepal Length", y = "Count")
+```
+
+---
+
+## Step 3: Sample from each of the variable distributions $n$ times
+
+Histograms of predictor variables from training data
+
+```{r, out.width = "500px", fig.align = "center"}
+knitr::include_graphics("./Graphics/training_distributions.png")
+```
+
+---
+
+## | Histograms of $n=5000$ samples from distributions of training variables for each of the five testing cases
+
+```{r, out.width = "550px", fig.align = "center"}
+knitr::include_graphics("./Graphics/samples.png")
+```
+
+---
+
+## Step 4: Obtain predictions for sampled values using the complex model
+
+* For each testing case use the random forest model to make a prediction for each of the $n=5000$ samples
+* In the iris data, the predictions are represented by the probability that a flower is a particular species
+
+```{r}
+perturb <- read.csv("./Data/perturb_predictions.csv")
+perturb
+```
+
+---
+
+## Step 5: Obtain similarity score between data observation and sampled values
+
+We need to determine how similar a sampled case is to the observed case in the testing data
+
+Case 1 from testing data:
+```{r}
+iris_test[1, ]
+```
+
+First sample from training data variable distributions associated with case 1 of testing data:
+```{r}
+perturb[1, 1:4]
+```
+
+---- 
+
+LIME uses exponential kernel function
+  $$\pi_{x_{obs}}(x_{sampled}) = exp\left\{\frac{−D(x_{obs}, \ x_{sampled})^2}{σ^2}\right\}$$
+where
+
+$x_{obs}$: observed data vector to predict  
+
+$x_{sampled}$: sampled data vector from distribution of training variables  
+
+$D(\cdot \ , \ \cdot)$: distance function such as euclidean distance, cosine distance, etc.  
+$\sigma$: width (default set to 0.75 in `lime`)
+ 
+---
+ 
+## Step 6: Perform feature selection by fiting a model to the sampled data and associated predictions (weighted by the similarity scores)
+
+* The user can specify the number of variables (features) they would like to select: $m$
+* With the iris data, the following three models will be fit to perform variable selection to select $m=2$ features:
+
+$$\mbox{P(setosa)} \sim \mbox{Sepal.Length} + \mbox{Sepal.Width} + \mbox{Petal.Length} + \mbox{Petal.Width}$$
+$$\mbox{P(versicolor)} \sim \mbox{Sepal.Length} + \mbox{Sepal.Width} + \mbox{Petal.Length} + \mbox{Petal.Width}$$
+$$\mbox{P(virginica)} \sim \mbox{Sepal.Length} + \mbox{Sepal.Width} + \mbox{Petal.Length} + \mbox{Petal.Width}$$
+
+----
+
+* To perform variable selection `lime` supports: 
+    - forward selection with ridge regression
+    - highest weight with ridge regression
+    - LASSO
+    - tree models
+    - auto: forward selection if $m\le6$, highest weight otherwise
+
+---
+
+## Step 7: Fit a simple model to regress the predictions on the $m$ selected predictor variables (weighted by the similarity scores)
+
+* Currently, `lime` is programmed to use ridge regression as the "simple" model
+* If the response is categorical, the user can select how many categories they want to explain
+* In this example, only setosa will be explained
+* If petal length and sepal length were selected as the most important features for the first case in the testing data, then the simple model is
+
+  $$\mbox{P(Setosa)} \sim \mbox{Petal.Length} + \mbox{Sepal.Length} $$
+
+---
+
+## Step 8: Extract the feature weights and use them as the explanations
+
+* Steps 3 through 8 are all performed using the `explain` function in `lime`
+* Steps 3 through 7 all happen behind the scenes
+* The "feature weights" that are extracted are the coefficients for the predictor variables from the ridge regression
+
+```{r, echo = TRUE}
+# Explain new observation
+explanation <- explain(iris_test, explainer, n_labels = 1, 
+                       n_features = 2, n_permutations = 5000,
+                       feature_select = 'auto')
+```
+
+----
+
+```{r, echo = TRUE}
+explanation[1:2, 1:6]
+explanation[1:2, 7:10]
+explanation[1:2, 11:13]
+```
+
+---
+
+## | Plot of explanations for predictions from random forest model trained on iris data
+
+```{r, echo = TRUE}
+plot_features(explanation)
+```
+
+---
+class: inverse, center, middle
+
+# Issues with LIME
+
+---
+class: inverse, center, middle
+
+# Attempts at a Solution
+
+---
+class: inverse, center, middle
+
+# Future Work
