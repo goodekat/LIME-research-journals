@@ -122,7 +122,7 @@ class: inverse, center, middle
  
 ---
 
-# Generalized Version of the LIME Procedure
+# General LIME Procedure
 
 Start with training data, complex model, and one prediction from the test data
 1. Use the features in the training data to create a new dataset of many perturbations.

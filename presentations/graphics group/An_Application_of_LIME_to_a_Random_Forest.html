@@ -127,7 +127,7 @@ class: inverse, center, middle
  
 ---
 
-# Generalized Version of the LIME Procedure
+# General LIME Procedure
 
 Start with training data, complex model, and one prediction from the test data
 1. Use the features in the training data to create a new dataset of many perturbations.
@@ -436,8 +436,8 @@ explanation[1:2, 1:6]
 
 ```
 ##       model_type case  label label_prob  model_r2 model_intercept
-## 1 classification    1 setosa          1 0.3758648       0.2529152
-## 2 classification    1 setosa          1 0.3758648       0.2529152
+## 1 classification    1 setosa          1 0.3767147       0.2351789
+## 2 classification    1 setosa          1 0.3767147       0.2351789
 ```
 
 ```r
@@ -446,8 +446,8 @@ explanation[1:2, 7:10]
 
 ```
 ##   model_prediction     feature feature_value feature_weight
-## 1        0.6786081 Sepal.Width           3.5    -0.01526011
-## 2        0.6786081 Petal.Width           0.2     0.44095302
+## 1        0.6796694 Sepal.Width           3.5     0.02773269
+## 2        0.6796694 Petal.Width           0.2     0.41675777
 ```
 
 ```r
