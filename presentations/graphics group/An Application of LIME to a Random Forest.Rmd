@@ -1,7 +1,7 @@
 ---
 title: "[![](./images/lindens.jpg)](https://en.wikipedia.org/wiki/Tilia) An Application of LIME to a Random Forest"
 author: <font size="5"> Katherine Goode </font>
-date: <font size="5"> ISU Graphics Group, March 1, 2019 </font>
+date: <font size="5"> ISU Graphics Group - March 1, 2019 </font>
 output:
   xaringan::moon_reader:
     css: [default, metropolis, metropolis-fonts]
@@ -421,7 +421,7 @@ ggplot(hamby173and252_train, aes(x = ccf)) +
 - Can specify the number of features to select
     - We have been choosing 3 features
 - Options in lime
-     - auto: forward selection if $m\le6$, highest weight otherwise (default)
+     - auto: forward selection if $k\le6$, highest weight otherwise (default)
      - forward selection with ridge regression
      - highest weight with ridge regression
      - LASSO
@@ -455,7 +455,7 @@ $$\hat{\mbox{rf score}}=\hat{\beta_0} + \hat{\beta_1} I[\mbox{ccf in same bin}] 
 #### Use the coefficients from the regression to "explain" the predictions.
 
 - Since features are standardized, we can compare the coefficients
-- Largest $\beta_i$ is considered the most important
+- Largest $\hat{\beta}_i$ is considered the most important
 
 ---
 
@@ -523,7 +523,7 @@ class: inverse, center, middle
 We first applied lime using all default settings.
 - Explanations did not make sense
 - $R^2$ values were very low
--Predictions from the simple model were poor
+- Predictions from the simple model were poor
     
 .center[<img src="./images/explain1.png" width=450>]
 .center[<font size="4">Example where the random forest prediction is wrong. The explanations are from 4 quantile bins.</font>]
@@ -533,10 +533,10 @@ We first applied lime using all default settings.
 # More Issues
 
 Then we tried more of the feature distribution estimation methods
-- explanations still not great
+- Explanations still not great
 - $R^2$ values still very low
-- predictions from the simple model still poor
-- explanations dependent on the input
+- Predictions from the simple model still poor
+- Explanations dependent on the input
 
 .center[<img src="./images/explain2.png" width=450>]
 .center[<font size="4">This is the same case with explanations from 3 equally spaced bins.</font>]
@@ -661,6 +661,7 @@ class: middle, center, inverse
 - Adjust and compare weighting methods and the feature selection methods
 - Allow the number of bins to vary across features
 - Use a tree as the simple model
+- Find other ways to interpret random forest models
 
 ---
 
