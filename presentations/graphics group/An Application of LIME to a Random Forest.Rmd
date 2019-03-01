@@ -14,6 +14,11 @@ output:
 
 ```{r setup, include = FALSE}
 options(htmltools.dir.version = FALSE, eval = FALSE)
+
+# Load libraries
+library(gt)
+library(randomForest)
+library(tidyverse)
 ```
 
 # Overview
@@ -23,9 +28,8 @@ options(htmltools.dir.version = FALSE, eval = FALSE)
 
 1. Explanation of LIME 
 2. Hamby bullet data
-3. Applying LIME to the bullet data
-4. Issues with LIME
-5. Attempts at a solution
+3. Applying LIME to the random forest
+4. Issues with LIME and attempts at a solution
 6. Future work
 ]
 
@@ -125,7 +129,7 @@ class: inverse, center, middle
 # General LIME Procedure
 
 Start with training data, complex model, and one prediction from the test data
-1. Use the features in the training data to create a new dataset of many perturbations.
+1. Create perturbations based on training data.
 2. Obtain a prediction for each perturbation using the complex model.
 3. Compute a similarity score between the test observation and each perturbation. 
 4. Perform feature selection to choose $k$.
@@ -137,7 +141,7 @@ Start with training data, complex model, and one prediction from the test data
 | --: | :--: | :--: | :--: | :--: | :--: | :--: |
 | test observation | 2 | 4 | 2 | 10 | exact | $\hat{y}_{\mbox{obs}}$ |
 | perturbation 1 | 2 | 3 | 2 | 12 | very close | $\hat{y}_1$ |
-| $\vdots$ | $\vdots$ | ... | ... | ... | ... | 
+| $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | 
 | perturbation 5000  | 10 | 0 | 13 | 22 | not close | $\hat{y}_{5000}$ |
 
 ---
@@ -167,207 +171,480 @@ class: inverse, center, middle
 # Hamby Bullet Matching Data
 
 ---
-class: inverse, center, middle
 
-# Applying LIME to the bullet data
+# Hamby Bullet Study [<font size="3">James E. Hamby et. al. (2009)</font>](https://cdn2.hubspot.net/hub/71705/file-15668427-pdf/docs/aftespringvol41no2pages99-110.pdf)
 
----
+- Sets of bullets from both “known” and “unknown” gun barrels were sent to firearm examiners around the world
+- 240 total sets created
+    - 10 barrels in a set
+    - 35 bullets in a set 
+        - 20 known (2 from the same barrel)
+        - 15 unknowns (at least 1 and no more than 3 from each barrel)
+- Examiners asked to use the known bullets to identify which barrels the unknown bullets were fired from
 
-# <span style="color:lime">LIME</span> Procedure with Iris Data (in R)
-
-## Step 0: Split iris data into training and testing datasets
-
-```{r, echo = TRUE}
-# Iris dataset
-iris[1:3, ]
-
-# Split up the data set into training and testing datasets
-iris_test <- iris[1:5, 1:4]
-iris_train <- iris[-(1:5), 1:4]
-
-# Create a vector with the responses for the training dataset
-iris_lab <- iris[[5]][-(1:5)]
-```
+.center[<img src="./images/hamby.png" width=350>]
+.center[<font size="4">Results table from Hamby et. al. (2009)</font>]
 
 ---
 
-## Step 1: Fit a complex model to the training data
+# Automated Bullet Matching Algorithm
 
-```{r, echo = TRUE}
-# Create random forest model on iris data
-library(caret)
-rf_model <- train(iris_train, iris_lab, method = 'rf')
+- CSAFE has access to some of the bullet sets
+- [Hare, Hofmann, and Carriquiry ](https://projecteuclid.org/euclid.aoas/1514430288)(2017) develop an automated algorithm to determine whether two bullets are a match
+- High definition scans of bullets used to obtain signatures associated with each land
+- Developed variables that measure how similar two signatures are
+- Fit a random forest model to predict whether two bullets were a match
 
-# Can use the complex model to make predictions
-Pred <- predict(rf_model, iris_test)
-Actual <- iris[1:5, 5]
-data.frame(iris_test, Pred, Actual)
-```
+.center[<img src="./images/signatures.png" width=575>]
+.center[<font size="4">Figure from Hare, Hofmann, and Carriquiry (2017)</font>]
 
 ---
 
-## Step 2: Obtain distributions of the variables from the training data
+# Training Data
 
-```{r, echo = TRUE}
-# Create an explainer object
-library(lime); explainer <- lime(iris_train, rf_model)
-
-# Sepal length quantiles obtained from training data
-explainer$bin_cuts$Sepal.Length
-
-# Probability distribution for sepal length
-explainer$feature_distribution$Sepal.Length
-```
-
----
-
-## | Histogram of Sepal Length from Training Data
-
-```{r, fig.width = 8, fig.height = 5, fig.align = "center"}
-
-# Histogram of sepal length from training data
-ggplot(iris_train, aes(x = Sepal.Length)) +
-  geom_histogram(bins = 10, color = "grey") +
-  geom_vline(xintercept = explainer$bin_cuts[[1]][[1]], color = "green", size = 1) +
-  geom_vline(xintercept = explainer$bin_cuts[[1]][[2]], color = "green", size = 1) +
-  geom_vline(xintercept = explainer$bin_cuts[[1]][[3]], color = "green", size = 1) +
-  geom_vline(xintercept = explainer$bin_cuts[[1]][[4]], color = "green", size = 1) +
-  geom_vline(xintercept = explainer$bin_cuts[[1]][[5]], color = "green", size = 1) +
-  labs(x = "Sepal Length", y = "Count")
-```
-
----
-
-## Step 3: Sample from each of the variable distributions $n$ times
-
-Histograms of predictor variables from training data
-
-```{r, out.width = "500px", fig.align = "center"}
-knitr::include_graphics("./Graphics/training_distributions.png")
-```
-
----
-
-## | Histograms of $n=5000$ samples from distributions of training variables for each of the five testing cases
-
-```{r, out.width = "550px", fig.align = "center"}
-knitr::include_graphics("./Graphics/samples.png")
-```
-
----
-
-## Step 4: Obtain predictions for sampled values using the complex model
-
-* For each testing case use the random forest model to make a prediction for each of the $n=5000$ samples
-* In the iris data, the predictions are represented by the probability that a flower is a particular species
+#### Sets 173 and 252
 
 ```{r}
-perturb <- read.csv("./Data/perturb_predictions.csv")
-perturb
+hamby173and252_train <- read.csv("./data/hamby173and252_train.csv") # 83,028 rows
 ```
 
----
+#### Variables Identifying the Bullets
 
-## Step 5: Obtain similarity score between data observation and sampled values
-
-We need to determine how similar a sampled case is to the observed case in the testing data
-
-Case 1 from testing data:
 ```{r}
-iris_test[1, ]
+hamby173and252_train %>% select(1:8) %>% slice(1:5)
 ```
 
-First sample from training data variable distributions associated with case 1 of testing data:
+---
+
+# Training Data
+
+#### Signature Similarity Features
+
 ```{r}
-perturb[1, 1:4]
+hamby173and252_train %>% select(9:17) %>% slice(1:5) %>% round(2)
 ```
 
----- 
+#### Response and RF Score
 
-LIME uses exponential kernel function
-  $$\pi_{x_{obs}}(x_{sampled}) = exp\left\{\frac{−D(x_{obs}, \ x_{sampled})^2}{σ^2}\right\}$$
-where
-
-$x_{obs}$: observed data vector to predict  
-
-$x_{sampled}$: sampled data vector from distribution of training variables  
-
-$D(\cdot \ , \ \cdot)$: distance function such as euclidean distance, cosine distance, etc.  
-$\sigma$: width (default set to 0.75 in `lime`)
- 
----
- 
-## Step 6: Perform feature selection by fiting a model to the sampled data and associated predictions (weighted by the similarity scores)
-
-* The user can specify the number of variables (features) they would like to select: $m$
-* With the iris data, the following three models will be fit to perform variable selection to select $m=2$ features:
-
-$$\mbox{P(setosa)} \sim \mbox{Sepal.Length} + \mbox{Sepal.Width} + \mbox{Petal.Length} + \mbox{Petal.Width}$$
-$$\mbox{P(versicolor)} \sim \mbox{Sepal.Length} + \mbox{Sepal.Width} + \mbox{Petal.Length} + \mbox{Petal.Width}$$
-$$\mbox{P(virginica)} \sim \mbox{Sepal.Length} + \mbox{Sepal.Width} + \mbox{Petal.Length} + \mbox{Petal.Width}$$
-
-----
-
-* To perform variable selection `lime` supports: 
-    - forward selection with ridge regression
-    - highest weight with ridge regression
-    - LASSO
-    - tree models
-    - auto: forward selection if $m\le6$, highest weight otherwise
-
----
-
-## Step 7: Fit a simple model to regress the predictions on the $m$ selected predictor variables (weighted by the similarity scores)
-
-* Currently, `lime` is programmed to use ridge regression as the "simple" model
-* If the response is categorical, the user can select how many categories they want to explain
-* In this example, only setosa will be explained
-* If petal length and sepal length were selected as the most important features for the first case in the testing data, then the simple model is
-
-  $$\mbox{P(Setosa)} \sim \mbox{Petal.Length} + \mbox{Sepal.Length} $$
-
----
-
-## Step 8: Extract the feature weights and use them as the explanations
-
-* Steps 3 through 8 are all performed using the `explain` function in `lime`
-* Steps 3 through 7 all happen behind the scenes
-* The "feature weights" that are extracted are the coefficients for the predictor variables from the ridge regression
-
-```{r, echo = TRUE}
-# Explain new observation
-explanation <- explain(iris_test, explainer, n_labels = 1, 
-                       n_features = 2, n_permutations = 5000,
-                       feature_select = 'auto')
-```
-
-----
-
-```{r, echo = TRUE}
-explanation[1:2, 1:6]
-explanation[1:2, 7:10]
-explanation[1:2, 11:13]
+```{r}
+hamby173and252_train %>% select(18:19) %>% slice(1:5)
 ```
 
 ---
 
-## | Plot of explanations for predictions from random forest model trained on iris data
+# Random Forest Model
 
-```{r, echo = TRUE}
-plot_features(explanation)
+The random forest model fit to the training data in Hare, Hofmann, and Carriquiry can be found in the bulletr R package. It is called `rtrees`.
+
+.pull-left[
+```{r}
+# Load the bulletr library
+library(bulletr)
 ```
+```{r}
+# Importance values from 
+# the random forest
+rtrees$importance
+```
+]
+
+.pull-right[
+```{r}
+# Number of trees
+rtrees$ntree
+
+# Number of variables randomly 
+# sampled at each split
+rtrees$mtry
+
+# Confusion matrix
+rtrees$confusion
+```
+]
+
+---
+
+# Testing Data
+
+```{r}
+hamby224_test <- read.csv("./data/hamby224_test.csv")
+glimpse(hamby224_test)
+```
+
+---
+
+# Testing Data
+
+#### Results from Applying `rtrees` to Hamby 224 (Sets 1 and 11)
+
+<br>
+
+```{r echo = FALSE}
+data.frame(Truth = hamby224_test$samesource %>% na.omit(),
+           RF_Prediction = as.logical(predict(rtrees, hamby224_test %>%
+                                       select(ccf:sum_peaks) %>% 
+                                       na.omit()))) %>%
+  count(Truth, RF_Prediction) %>%
+  rename(Count = n) %>%
+  gt::gt()
+```
+
+<br>
+
+- Want to know which were the driving variables for individual predictions
+- Especially great when the model is wrong
+- Variable importance scores provide global interpretations
+- We want local interpretations
+
+---
+
+class: inverse, center, middle
+
+# Applying <span style="color:lime">LIME</span> to the Random Forest
+
+---
+
+# Step 0: Starting Objects
+
+**Training Data**: `hamby173and252_train`
+
+**Complex Model**: `rtrees`
+
+**Case of Interest**: case 1 from `hamby224_test`
+
+<br>
+
+```{r echo = FALSE}
+hamby224_test %>% filter(case == 1) %>% select(case:land2) %>% gt()
+```
+
+<br>
+
+```{r echo = FALSE}
+hamby224_test %>% filter(case == 1) %>% select(ccf:rfscore) %>% round(2) %>% gt()
+```
+
+---
+
+# Step 1: Create Perturbations
+
+#### Estimate the feature distributions
+
+.pull-left[
+- quantile bins (default with 4 bins)
+- equally spaced bins
+]
+.pull-right[
+- normal approximation 
+- kernel density estimation
+]
+.center[
+```{r echo = FALSE, fig.height = 4.5, fig.width = 9}
+limeout <- lime::lime(x = hamby173and252_train %>% select(ccf:sum_peaks), model = rtrees)
+ggplot(hamby173and252_train, aes(x = ccf)) + 
+  geom_histogram(bins = 30) + 
+  geom_vline(xintercept = limeout$bin_cuts$ccf[[1]], color = "green", size = 1) +
+  geom_vline(xintercept = limeout$bin_cuts$ccf[[2]], color = "green", size = 1) +
+  geom_vline(xintercept = limeout$bin_cuts$ccf[[3]], color = "green", size = 1) +
+  geom_vline(xintercept = limeout$bin_cuts$ccf[[4]], color = "green", size = 1) +
+  geom_vline(xintercept = limeout$bin_cuts$ccf[[5]], color = "green", size = 1) +
+  geom_vline(xintercept = hamby224_test %>% 
+               filter(case == 1) %>% 
+               select(ccf) %>%
+               pull(), color = "blue", size = 1) +
+  labs(x = "CCF", y = "Frequency") +
+  theme(text = element_text(size = 18))
+```
+]
+.center[<font size="4">Histogram of CCF from Training Data with LIME Quantile Bins (blue line is ccf value of case 1)</font>]
+
+---
+
+# Step 1: Create Perturbations
+
+#### Draw many samples from the estimated feature distributions to obtain the perturbations
+
+- If the a binning estimation method is used, numeric features are converted to indicator variables.
+    - 1 if in same bin as case 1
+    - 0 o.w.
+
+| | ccf same bin? | rough_cor same bin? | $\cdots$ | sum_peaks same bin?|
+| --: | :--: | :--: | :--: | :--: | 
+| case 1 | 1 | 1 | $\cdots$ | 1 |
+| perturbation 1 | 0 | 1 | $\cdots$ | 1 |
+| $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ |
+| perturbation 5000  | 0 | 0 | $\cdots$ | 1|
+
+- Otherwise, features are left as is.
+
+---
+
+# Step 2: Obtain Predictions
+
+#### Use the complex model to obtain a prediction for each perturbation
+
+- Use the `rtrees` model to do this
+
+<br>
+
+| | ccf same bin? | rough_cor same bin? | $\cdots$ | sum_peaks same bin?| prediction |
+| --: | :--: | :--: | :--: | :--: | :--: |
+| case 1 | 1 | 1 | $\cdots$ | 1 | not a match |
+| perturbation 1 | 0 | 1 | $\cdots$ | 1 | match |
+| $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ |
+| perturbation 5000  | 0 | 0 | $\cdots$ | 1 | not a match |
+
+---
+
+# Step 3: Similarity Score 
+
+#### Compute a similiarity score between the test observation and each perturbation.
+
+- Default method in R package is gower distance
+    - between 0 and 1 
+    - 0 indicates exactly the same
+- Other distance metrics can be specified
+    
+| | ccf same bin? | rough_cor same bin? | $\cdots$ | sum_peaks same bin?| distance | prediction |
+| --: | :--: | :--: | :--: | :--: | :--: |
+| case 1 | 1 | 1 | $\cdots$ | 1 | 0 | not a match |
+| perturbation 1 | 0 | 1 | $\cdots$ | 1 | 0.1 | match |
+| $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ |
+| perturbation 5000  | 0 | 0 | $\cdots$ | 1 | 0.8 | not a match |
+
+---
+
+# Step 4: Feature Selection
+
+#### Perform feature selection to choose $k$ features.
+
+- Can specify the number of features to select
+    - We have been choosing 3 features
+- Options in lime
+     - auto: forward selection if $m\le6$, highest weight otherwise (default)
+     - forward selection with ridge regression
+     - highest weight with ridge regression
+     - LASSO
+     - tree models
+- We have been using the default method
+
+$$\mbox{rf score}=\beta_0 + \beta_1 I[\mbox{ccf in same bin}] + \beta_2 I[\mbox{rough_cor in same bin}] +\cdots + \beta_9 I[\mbox{sum_peaks in same bin}]$$
+
+---
+
+# Step 5: Simple Model
+
+#### Fit a linear regression (weighted by the similarity scores) to the perturbations with the 3 chosen features.
+
+- Features are standardized
+- Currently, lime uses ridge regression as the "simple" model
+- If the response is categorical, the user can select how many categories they want to explain
+    - We have only been explaining "TRUE"
+- Example model: 
+
+$$\mbox{rf score}=\beta_0 + \beta_1 I[\mbox{ccf in same bin}] + \beta_2 I[\mbox{cms in same bin}] + \beta_3 I[\mbox{matches in same bin}]$$
+
+---
+
+# Step 6: Interpret 
+
+#### Use the coefficients from the regression to "explain" the predictions.
+
+- Since features are standardized, we can compare the coefficients
+- Largest $\beta_i$ is conisdered the most important
+
+---
+
+# R Code
+
+## lime Function
+
+The `lime` function estimates the feature distributions (first part of step 1).
+
+```{r}
+set.seed(20190229)
+out_lime <- lime::lime(x = hamby173and252_train %>% select(ccf:sum_peaks), 
+                      model = lime::as_classifier(rtrees))
+out_lime$bin_cuts$ccf
+out_lime$feature_distribution$ccf
+```
+
+---
+
+# R Code
+
+## explain Function
+
+The `explain` function performs the rest of the steps.
+
+```{r}
+out_explain <- lime::explain(x = hamby224_test %>% filter(case == 1) %>%
+                               select(ccf:sum_peaks),
+                             explainer = out_lime,
+                             labels = TRUE,
+                             n_features = 3)
+out_explain[,1:6]
+out_explain[,7:10]
+```
+
+---
+
+# R Code
+
+## R Package Plot of Explanations 
+
+The function `plot_features` let you visualize the explanations.
+
+```{r fig.width = 10, fig.height = 5}
+lime::plot_features(out_explain)
+```
+
+---
+
+# Shiny App
+
+<br>
+
+.center[<img src="./images/app.png" width=1100>]
 
 ---
 class: inverse, center, middle
 
-# Issues with LIME
+# Issues with <span style="color:lime">LIME</span> and Attempts at a Solution
 
 ---
-class: inverse, center, middle
 
-# Attempts at a Solution
+# Initial Concerns
+
+We first applied lime using all default settings
+- explanations did not make sense
+- $R^2$ values were very low
+- predictions from the simple model were poor
+    
+.center[<img src="./images/explain1.png" width=450>]
+.center[<font size="4">Example where the random forest prediction is wrong. The explanations are from from 4 quantile bins.</font>]
+
+---
+
+# More Issues
+
+Then we tried more of the feature distribution estimaton methods
+- explanations still not great
+- $R^2$ values still very low
+- predictions from the simple model still poor
+- explanations dependent on the input
+
+.center[<img src="./images/explain2.png" width=450>]
+.center[<font size="4">This is the same case with explanations are from from 3 equally spaced bins.</font>]
+
+---
+
+# New Binning Method
+
+Next we created our own way to select bins using trees
+
+```{r echo = FALSE, message = FALSE}
+source("../../code/helper_functions.R")
+```
+
+.pull-left[
+```{r}
+# Example using treebink
+treebink(
+  y = hamby173and252_train$samesource, 
+  x = hamby173and252_train$ccf, 
+  k = 5
+)
+```
+]
+.pull-right[
+.center[<img src="./images/tree.png" height = 500>]
+]
+---
+
+# Comparing Methods
+
+#### Feature distribution estimaton methods:
+
+- 2 to 5 quntile bins
+- 2 to 5 equally spaced bins
+- 2 to 5 tree based bins with `samesoure` as the response
+- 2 to 5 tree based bins with `rfscore` as the response
+- normal approximation
+- kernel density estimation
+
+#### Comparison metrics:
+
+- MSEs (rf prediction vs simple model predictions)
+- $R^2$
+- Consistency across number of bins
+- Consistency across 10 reps
+
+---
+
+# Comparing MSEs
+
+.center[<img src="./images/mse.png" width = 900>]
+
+---
+
+# Comparing $R^2$ Values
+
+.center[<img src="./images/r2.png" width = 900>]
+
+---
+
+# Comparing Consistency Across Bins
+
+.center[<img src="./images/firstfeature.png" width = 1100>]
+
+---
+
+# Comparing Consistency Across Bins
+
+.center[<img src="./images/secondfeature.png" width = 1100>]
+
+---
+
+# Comparing Consistency Across Bins
+
+.center[<img src="./images/thirdfeature.png" width = 1100>]
+
+---
+
+# Comparing Consistency Across Reps
+
+.center[<img src="./images/reps1.png" width = 1100>]
+
+---
+
+# Comparing Consistency Across Reps
+
+.center[<img src="./images/reps2.png" width = 1100>]
+
+---
+
+# Comparing Consistency Across Reps
+
+.center[<img src="./images/reps3.png" width = 1100>]
+
+---
+
+# Conclusions
+
+#### Key Observations 
+
+- equally spaced bins are dependent on the nubmer of bins
+- tree based bins usually have the lowest MSEs
+- rfscore tree based bins usually have the highest $R^2$ for the binning options
+- all options results in low $R^2$ values
+    - we think that the linear regression is not similar enough to a random forest to produce good explanations
+- explanations are relatively consistent across reps for first and second features
+- non-binning methods produce very different results
 
 ---
 class: inverse, center, middle
 
 # Future Work
+
+

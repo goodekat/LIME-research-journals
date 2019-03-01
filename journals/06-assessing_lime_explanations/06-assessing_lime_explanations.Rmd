@@ -143,7 +143,7 @@ hamby224_lime_results %>%
   facet_grid(set ~ bins, scales = "free_x", space = "free_x") + 
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
-        legend.position = "bottom") + 
+        legend.position = "none") + 
   labs(x = "Bin Type", y = "MSE", color = "") + 
   scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
 ```
@@ -159,7 +159,7 @@ hamby224_lime_results %>%
   facet_grid(set ~ bins, scales = "free_x", space = "free_x") + 
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "bottom") + 
+        legend.position = "none") + 
   labs(x = "Bin Type", y = "Average R2", color = "") + 
   scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
 ```
@@ -575,12 +575,13 @@ hamby224_sensitivity_joined %>%
   ggplot(aes(x = order, fill = feature)) + 
   geom_bar(position = "stack", width = 1) + 
   coord_flip() + 
-  facet_wrap(situation ~ ., ncol = 4, scales = "free_y") +
+  facet_wrap(situation ~ ., ncol = 5, scales = "free_y") +
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) +
-  labs(x = "cases")
+  labs(x = "Cases", y = "Rep", fill = "Feature",
+       title = "First Feature")
 
 hamby224_sensitivity_joined %>%
   filter(set == "Set 1") %>%
@@ -599,12 +600,13 @@ hamby224_sensitivity_joined %>%
   ggplot(aes(x = order, fill = feature)) + 
   geom_bar(position = "stack", width = 1) + 
   coord_flip() + 
-  facet_wrap(situation ~ ., ncol = 4, scales = "free_y") +
+  facet_wrap(situation ~ ., ncol = 5, scales = "free_y") +
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) +
-  labs(x = "cases")
+  labs(x = "Cases", y = "Rep", fill = "Feature",
+       title = "Second Feature")
 
 hamby224_sensitivity_joined %>%
   filter(set == "Set 1") %>%
@@ -623,12 +625,35 @@ hamby224_sensitivity_joined %>%
   ggplot(aes(x = order, fill = feature)) + 
   geom_bar(position = "stack", width = 1) + 
   coord_flip() + 
-  facet_wrap(situation ~ ., ncol = 4, scales = "free_y") +
+  facet_wrap(situation ~ ., ncol = 5, scales = "free_y") +
   theme(legend.position = "bottom",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
   scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) +
-  labs(x = "cases")
+  labs(x = "Cases", y = "Rep", fill = "Feature",
+       hamby224_sensitivity_joined %>%
+  filter(set == "Set 1") %>%
+  droplevels() %>%
+  select(situation, case, rep, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(situation, case, rep, desc(feature_weight_abs)) %>%
+  group_by(situation, case, rep) %>%
+  slice(3) %>%
+  ungroup() %>%
+  group_by(situation, case) %>%
+  mutate(nlevels = length(levels(factor(feature)))) %>%
+  ungroup() %>%
+  arrange(situation, desc(nlevels), case, feature) %>%
+  mutate(order = rep(rep(1:length(levels(factor(case))), each = 10), 22)) %>%
+  ggplot(aes(x = order, fill = feature)) + 
+  geom_bar(position = "stack", width = 1) + 
+  coord_flip() + 
+  facet_wrap(situation ~ ., ncol = 5, scales = "free_y") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) +
+  labs(x = "Cases", y = "Rep", fill = "Feature",
+       title = "Third Feature"))
 ```
 
 I was thinking a bit more about the relationship between the top features chosen and the type of binning used. I realized it would be helpful to view the relationship between the features and the random forest score. The plots below show the testing data with random forest score versus each of the features. The points are colored by the samesource variable.
