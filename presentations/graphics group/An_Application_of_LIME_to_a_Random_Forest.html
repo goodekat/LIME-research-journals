@@ -29,7 +29,7 @@ class: center, middle, inverse, title-slide
 1. Explanation of LIME 
 2. Hamby bullet data
 3. Applying LIME to the random forest
-4. Issues with LIME and attempts at a solution
+4. Issues and attempts at a solution
 6. Conclusions and future work
 ]
 
@@ -81,7 +81,7 @@ class: inverse, center, middle
 
 ### &lt;span style="color:lime"&gt;M&lt;/span&gt;odel-Agnostic
 
-- Works with any black-box predictor
+- Works with any predictive model
 
 ### &lt;span style="color:lime"&gt;E&lt;/span&gt;xplanations
 
@@ -128,14 +128,14 @@ class: inverse, center, middle
 
 # General LIME Procedure
 
-Start with training data, complex model, and one prediction from the test data
-1. Create perturbations based on training data.
-2. Obtain a prediction for each perturbation using the complex model.
-3. Compute a similarity score between the test observation and each perturbation. 
-4. Perform feature selection to choose `\(k\)`.
-5. Fit a linear regression (weighted by the similarity scores) to the perturbations with the `\(k\)` chosen features (standardized).
-  `$$\mbox{prediction} \sim \mbox{chosen feature 1} + \cdots + \mbox{chosen feature k}$$`
-6. Use the coefficients from the regression to "explain" the predictions.
+**Start with**: (1) training data, (2) complex model, (3) one prediction from the testing data
+1. Create perturbations from training data
+2. Input each perturbation into complex model to get predictions
+3. Compute similarity scores between test observation and each perturbation 
+4. Perform feature selection to choose `\(k\)` features
+5. Fit a simple and interpretable model weighted by the similarity scores to the perturbations
+  `$$\mbox{Example: } \mbox{prediction} \sim \mbox{feature 2} + \mbox{feature 3} \ \ \ \mbox{(with features standardized)}$$`
+6. Interpret the simple model to "explain" the predictions
 
 | | Feature 1 | &lt;span style="color:blue"&gt;Feature 2&lt;/span&gt; | &lt;span style="color:blue"&gt;Feature 3&lt;/span&gt; | Feature 4 | Similarity Score | &lt;span style="color:blue"&gt;Prediction&lt;/span&gt;|
 | --: | :--: | :--: | :--: | :--: | :--: | :--: |
@@ -177,9 +177,9 @@ class: inverse, center, middle
 
 - Sets of bullets from both “known” and “unknown” gun barrels were sent to firearm examiners around the world
 - 240 total sets created
-    - 10 barrels in a set
+    - 10 barrels used to create a set
     - 35 bullets in a set 
-        - 20 known (2 from the same barrel)
+        - 20 knowns (2 from the same barrel)
         - 15 unknowns (at least 1 and no more than 3 from each barrel)
 - Examiners asked to use the known bullets to identify which barrels the unknown bullets were fired from
 
@@ -373,7 +373,7 @@ glimpse(hamby224_test)
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#xhborjouov .gt_table {
+#nsbhjvoeod .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -392,13 +392,13 @@ glimpse(hamby224_test)
   /* table.border.top.color */
 }
 
-#xhborjouov .gt_heading {
+#nsbhjvoeod .gt_heading {
   background-color: #FFFFFF;
   /* heading.background.color */
   border-bottom-color: #FFFFFF;
 }
 
-#xhborjouov .gt_title {
+#nsbhjvoeod .gt_title {
   color: #000000;
   font-size: 125%;
   /* heading.title.font.size */
@@ -409,7 +409,7 @@ glimpse(hamby224_test)
   border-bottom-width: 0;
 }
 
-#xhborjouov .gt_subtitle {
+#nsbhjvoeod .gt_subtitle {
   color: #000000;
   font-size: 85%;
   /* heading.subtitle.font.size */
@@ -420,7 +420,7 @@ glimpse(hamby224_test)
   border-top-width: 0;
 }
 
-#xhborjouov .gt_bottom_border {
+#nsbhjvoeod .gt_bottom_border {
   border-bottom-style: solid;
   /* heading.border.bottom.style */
   border-bottom-width: 2px;
@@ -429,7 +429,7 @@ glimpse(hamby224_test)
   /* heading.border.bottom.color */
 }
 
-#xhborjouov .gt_column_spanner {
+#nsbhjvoeod .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #A8A8A8;
@@ -437,7 +437,7 @@ glimpse(hamby224_test)
   padding-bottom: 4px;
 }
 
-#xhborjouov .gt_col_heading {
+#nsbhjvoeod .gt_col_heading {
   color: #000000;
   background-color: #FFFFFF;
   /* column_labels.background.color */
@@ -450,11 +450,11 @@ glimpse(hamby224_test)
   margin: 10px;
 }
 
-#xhborjouov .gt_sep_right {
+#nsbhjvoeod .gt_sep_right {
   border-right: 5px solid #FFFFFF;
 }
 
-#xhborjouov .gt_group_heading {
+#nsbhjvoeod .gt_group_heading {
   padding: 8px;
   color: #000000;
   background-color: #FFFFFF;
@@ -478,7 +478,7 @@ glimpse(hamby224_test)
   vertical-align: middle;
 }
 
-#xhborjouov .gt_empty_group_heading {
+#nsbhjvoeod .gt_empty_group_heading {
   padding: 0.5px;
   color: #000000;
   background-color: #FFFFFF;
@@ -502,29 +502,29 @@ glimpse(hamby224_test)
   vertical-align: middle;
 }
 
-#xhborjouov .gt_striped {
+#nsbhjvoeod .gt_striped {
   background-color: #f2f2f2;
 }
 
-#xhborjouov .gt_row {
+#nsbhjvoeod .gt_row {
   padding: 10px;
   /* row.padding */
   margin: 10px;
   vertical-align: middle;
 }
 
-#xhborjouov .gt_stub {
+#nsbhjvoeod .gt_stub {
   border-right-style: solid;
   border-right-width: 2px;
   border-right-color: #A8A8A8;
   padding-left: 12px;
 }
 
-#xhborjouov .gt_stub.gt_row {
+#nsbhjvoeod .gt_stub.gt_row {
   background-color: #FFFFFF;
 }
 
-#xhborjouov .gt_summary_row {
+#nsbhjvoeod .gt_summary_row {
   background-color: #FFFFFF;
   /* summary_row.background.color */
   padding: 6px;
@@ -533,13 +533,13 @@ glimpse(hamby224_test)
   /* summary_row.text_transform */
 }
 
-#xhborjouov .gt_first_summary_row {
+#nsbhjvoeod .gt_first_summary_row {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #A8A8A8;
 }
 
-#xhborjouov .gt_table_body {
+#nsbhjvoeod .gt_table_body {
   border-top-style: solid;
   /* field.border.top.style */
   border-top-width: 2px;
@@ -554,55 +554,55 @@ glimpse(hamby224_test)
   /* field.border.bottom.color */
 }
 
-#xhborjouov .gt_footnote {
+#nsbhjvoeod .gt_footnote {
   font-size: 90%;
   /* footnote.font.size */
   padding: 4px;
   /* footnote.padding */
 }
 
-#xhborjouov .gt_sourcenote {
+#nsbhjvoeod .gt_sourcenote {
   font-size: 90%;
   /* sourcenote.font.size */
   padding: 4px;
   /* sourcenote.padding */
 }
 
-#xhborjouov .gt_center {
+#nsbhjvoeod .gt_center {
   text-align: center;
 }
 
-#xhborjouov .gt_left {
+#nsbhjvoeod .gt_left {
   text-align: left;
 }
 
-#xhborjouov .gt_right {
+#nsbhjvoeod .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#xhborjouov .gt_font_normal {
+#nsbhjvoeod .gt_font_normal {
   font-weight: normal;
 }
 
-#xhborjouov .gt_font_bold {
+#nsbhjvoeod .gt_font_bold {
   font-weight: bold;
 }
 
-#xhborjouov .gt_font_italic {
+#nsbhjvoeod .gt_font_italic {
   font-style: italic;
 }
 
-#xhborjouov .gt_super {
+#nsbhjvoeod .gt_super {
   font-size: 65%;
 }
 
-#xhborjouov .gt_footnote_glyph {
+#nsbhjvoeod .gt_footnote_glyph {
   font-style: italic;
   font-size: 65%;
 }
 </style>
-<div id="xhborjouov" style="overflow-x:auto;"><!--gt table start-->
+<div id="nsbhjvoeod" style="overflow-x:auto;"><!--gt table start-->
 <table class='gt_table'>
 <tr>
 <th class='gt_col_heading gt_center' rowspan='1' colspan='1'>Truth</th>
@@ -613,12 +613,12 @@ glimpse(hamby224_test)
 <tr>
 <td class='gt_row gt_center'>FALSE</td>
 <td class='gt_row gt_center'>FALSE</td>
-<td class='gt_row gt_right'>276</td>
+<td class='gt_row gt_right'>277</td>
 </tr>
 <tr>
 <td class='gt_row gt_center gt_striped'>FALSE</td>
 <td class='gt_row gt_center gt_striped'>TRUE</td>
-<td class='gt_row gt_right gt_striped'>44</td>
+<td class='gt_row gt_right gt_striped'>43</td>
 </tr>
 <tr>
 <td class='gt_row gt_center'>TRUE</td>
@@ -637,8 +637,8 @@ glimpse(hamby224_test)
 
 &lt;br&gt;
 
-- Want to know which were the driving variables for individual predictions
-- Especially great when the model is wrong
+- Want to determine the driving variables for individual predictions
+- Especially helpful when the model is wrong
 - Variable importance scores provide global interpretations
 - We want local interpretations
 
@@ -664,7 +664,7 @@ class: inverse, center, middle
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#xjhsorunti .gt_table {
+#tntcekpcgz .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -683,13 +683,13 @@ class: inverse, center, middle
   /* table.border.top.color */
 }
 
-#xjhsorunti .gt_heading {
+#tntcekpcgz .gt_heading {
   background-color: #FFFFFF;
   /* heading.background.color */
   border-bottom-color: #FFFFFF;
 }
 
-#xjhsorunti .gt_title {
+#tntcekpcgz .gt_title {
   color: #000000;
   font-size: 125%;
   /* heading.title.font.size */
@@ -700,7 +700,7 @@ class: inverse, center, middle
   border-bottom-width: 0;
 }
 
-#xjhsorunti .gt_subtitle {
+#tntcekpcgz .gt_subtitle {
   color: #000000;
   font-size: 85%;
   /* heading.subtitle.font.size */
@@ -711,7 +711,7 @@ class: inverse, center, middle
   border-top-width: 0;
 }
 
-#xjhsorunti .gt_bottom_border {
+#tntcekpcgz .gt_bottom_border {
   border-bottom-style: solid;
   /* heading.border.bottom.style */
   border-bottom-width: 2px;
@@ -720,7 +720,7 @@ class: inverse, center, middle
   /* heading.border.bottom.color */
 }
 
-#xjhsorunti .gt_column_spanner {
+#tntcekpcgz .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #A8A8A8;
@@ -728,7 +728,7 @@ class: inverse, center, middle
   padding-bottom: 4px;
 }
 
-#xjhsorunti .gt_col_heading {
+#tntcekpcgz .gt_col_heading {
   color: #000000;
   background-color: #FFFFFF;
   /* column_labels.background.color */
@@ -741,11 +741,11 @@ class: inverse, center, middle
   margin: 10px;
 }
 
-#xjhsorunti .gt_sep_right {
+#tntcekpcgz .gt_sep_right {
   border-right: 5px solid #FFFFFF;
 }
 
-#xjhsorunti .gt_group_heading {
+#tntcekpcgz .gt_group_heading {
   padding: 8px;
   color: #000000;
   background-color: #FFFFFF;
@@ -769,7 +769,7 @@ class: inverse, center, middle
   vertical-align: middle;
 }
 
-#xjhsorunti .gt_empty_group_heading {
+#tntcekpcgz .gt_empty_group_heading {
   padding: 0.5px;
   color: #000000;
   background-color: #FFFFFF;
@@ -793,29 +793,29 @@ class: inverse, center, middle
   vertical-align: middle;
 }
 
-#xjhsorunti .gt_striped {
+#tntcekpcgz .gt_striped {
   background-color: #f2f2f2;
 }
 
-#xjhsorunti .gt_row {
+#tntcekpcgz .gt_row {
   padding: 10px;
   /* row.padding */
   margin: 10px;
   vertical-align: middle;
 }
 
-#xjhsorunti .gt_stub {
+#tntcekpcgz .gt_stub {
   border-right-style: solid;
   border-right-width: 2px;
   border-right-color: #A8A8A8;
   padding-left: 12px;
 }
 
-#xjhsorunti .gt_stub.gt_row {
+#tntcekpcgz .gt_stub.gt_row {
   background-color: #FFFFFF;
 }
 
-#xjhsorunti .gt_summary_row {
+#tntcekpcgz .gt_summary_row {
   background-color: #FFFFFF;
   /* summary_row.background.color */
   padding: 6px;
@@ -824,13 +824,13 @@ class: inverse, center, middle
   /* summary_row.text_transform */
 }
 
-#xjhsorunti .gt_first_summary_row {
+#tntcekpcgz .gt_first_summary_row {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #A8A8A8;
 }
 
-#xjhsorunti .gt_table_body {
+#tntcekpcgz .gt_table_body {
   border-top-style: solid;
   /* field.border.top.style */
   border-top-width: 2px;
@@ -845,55 +845,55 @@ class: inverse, center, middle
   /* field.border.bottom.color */
 }
 
-#xjhsorunti .gt_footnote {
+#tntcekpcgz .gt_footnote {
   font-size: 90%;
   /* footnote.font.size */
   padding: 4px;
   /* footnote.padding */
 }
 
-#xjhsorunti .gt_sourcenote {
+#tntcekpcgz .gt_sourcenote {
   font-size: 90%;
   /* sourcenote.font.size */
   padding: 4px;
   /* sourcenote.padding */
 }
 
-#xjhsorunti .gt_center {
+#tntcekpcgz .gt_center {
   text-align: center;
 }
 
-#xjhsorunti .gt_left {
+#tntcekpcgz .gt_left {
   text-align: left;
 }
 
-#xjhsorunti .gt_right {
+#tntcekpcgz .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#xjhsorunti .gt_font_normal {
+#tntcekpcgz .gt_font_normal {
   font-weight: normal;
 }
 
-#xjhsorunti .gt_font_bold {
+#tntcekpcgz .gt_font_bold {
   font-weight: bold;
 }
 
-#xjhsorunti .gt_font_italic {
+#tntcekpcgz .gt_font_italic {
   font-style: italic;
 }
 
-#xjhsorunti .gt_super {
+#tntcekpcgz .gt_super {
   font-size: 65%;
 }
 
-#xjhsorunti .gt_footnote_glyph {
+#tntcekpcgz .gt_footnote_glyph {
   font-style: italic;
   font-size: 65%;
 }
 </style>
-<div id="xjhsorunti" style="overflow-x:auto;"><!--gt table start-->
+<div id="tntcekpcgz" style="overflow-x:auto;"><!--gt table start-->
 <table class='gt_table'>
 <tr>
 <th class='gt_col_heading gt_right' rowspan='1' colspan='1'>case</th>
@@ -925,7 +925,7 @@ class: inverse, center, middle
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#fhpnkbpzqw .gt_table {
+#jppfydzbgm .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -944,13 +944,13 @@ class: inverse, center, middle
   /* table.border.top.color */
 }
 
-#fhpnkbpzqw .gt_heading {
+#jppfydzbgm .gt_heading {
   background-color: #FFFFFF;
   /* heading.background.color */
   border-bottom-color: #FFFFFF;
 }
 
-#fhpnkbpzqw .gt_title {
+#jppfydzbgm .gt_title {
   color: #000000;
   font-size: 125%;
   /* heading.title.font.size */
@@ -961,7 +961,7 @@ class: inverse, center, middle
   border-bottom-width: 0;
 }
 
-#fhpnkbpzqw .gt_subtitle {
+#jppfydzbgm .gt_subtitle {
   color: #000000;
   font-size: 85%;
   /* heading.subtitle.font.size */
@@ -972,7 +972,7 @@ class: inverse, center, middle
   border-top-width: 0;
 }
 
-#fhpnkbpzqw .gt_bottom_border {
+#jppfydzbgm .gt_bottom_border {
   border-bottom-style: solid;
   /* heading.border.bottom.style */
   border-bottom-width: 2px;
@@ -981,7 +981,7 @@ class: inverse, center, middle
   /* heading.border.bottom.color */
 }
 
-#fhpnkbpzqw .gt_column_spanner {
+#jppfydzbgm .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #A8A8A8;
@@ -989,7 +989,7 @@ class: inverse, center, middle
   padding-bottom: 4px;
 }
 
-#fhpnkbpzqw .gt_col_heading {
+#jppfydzbgm .gt_col_heading {
   color: #000000;
   background-color: #FFFFFF;
   /* column_labels.background.color */
@@ -1002,11 +1002,11 @@ class: inverse, center, middle
   margin: 10px;
 }
 
-#fhpnkbpzqw .gt_sep_right {
+#jppfydzbgm .gt_sep_right {
   border-right: 5px solid #FFFFFF;
 }
 
-#fhpnkbpzqw .gt_group_heading {
+#jppfydzbgm .gt_group_heading {
   padding: 8px;
   color: #000000;
   background-color: #FFFFFF;
@@ -1030,7 +1030,7 @@ class: inverse, center, middle
   vertical-align: middle;
 }
 
-#fhpnkbpzqw .gt_empty_group_heading {
+#jppfydzbgm .gt_empty_group_heading {
   padding: 0.5px;
   color: #000000;
   background-color: #FFFFFF;
@@ -1054,29 +1054,29 @@ class: inverse, center, middle
   vertical-align: middle;
 }
 
-#fhpnkbpzqw .gt_striped {
+#jppfydzbgm .gt_striped {
   background-color: #f2f2f2;
 }
 
-#fhpnkbpzqw .gt_row {
+#jppfydzbgm .gt_row {
   padding: 10px;
   /* row.padding */
   margin: 10px;
   vertical-align: middle;
 }
 
-#fhpnkbpzqw .gt_stub {
+#jppfydzbgm .gt_stub {
   border-right-style: solid;
   border-right-width: 2px;
   border-right-color: #A8A8A8;
   padding-left: 12px;
 }
 
-#fhpnkbpzqw .gt_stub.gt_row {
+#jppfydzbgm .gt_stub.gt_row {
   background-color: #FFFFFF;
 }
 
-#fhpnkbpzqw .gt_summary_row {
+#jppfydzbgm .gt_summary_row {
   background-color: #FFFFFF;
   /* summary_row.background.color */
   padding: 6px;
@@ -1085,13 +1085,13 @@ class: inverse, center, middle
   /* summary_row.text_transform */
 }
 
-#fhpnkbpzqw .gt_first_summary_row {
+#jppfydzbgm .gt_first_summary_row {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #A8A8A8;
 }
 
-#fhpnkbpzqw .gt_table_body {
+#jppfydzbgm .gt_table_body {
   border-top-style: solid;
   /* field.border.top.style */
   border-top-width: 2px;
@@ -1106,55 +1106,55 @@ class: inverse, center, middle
   /* field.border.bottom.color */
 }
 
-#fhpnkbpzqw .gt_footnote {
+#jppfydzbgm .gt_footnote {
   font-size: 90%;
   /* footnote.font.size */
   padding: 4px;
   /* footnote.padding */
 }
 
-#fhpnkbpzqw .gt_sourcenote {
+#jppfydzbgm .gt_sourcenote {
   font-size: 90%;
   /* sourcenote.font.size */
   padding: 4px;
   /* sourcenote.padding */
 }
 
-#fhpnkbpzqw .gt_center {
+#jppfydzbgm .gt_center {
   text-align: center;
 }
 
-#fhpnkbpzqw .gt_left {
+#jppfydzbgm .gt_left {
   text-align: left;
 }
 
-#fhpnkbpzqw .gt_right {
+#jppfydzbgm .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#fhpnkbpzqw .gt_font_normal {
+#jppfydzbgm .gt_font_normal {
   font-weight: normal;
 }
 
-#fhpnkbpzqw .gt_font_bold {
+#jppfydzbgm .gt_font_bold {
   font-weight: bold;
 }
 
-#fhpnkbpzqw .gt_font_italic {
+#jppfydzbgm .gt_font_italic {
   font-style: italic;
 }
 
-#fhpnkbpzqw .gt_super {
+#jppfydzbgm .gt_super {
   font-size: 65%;
 }
 
-#fhpnkbpzqw .gt_footnote_glyph {
+#jppfydzbgm .gt_footnote_glyph {
   font-style: italic;
   font-size: 65%;
 }
 </style>
-<div id="fhpnkbpzqw" style="overflow-x:auto;"><!--gt table start-->
+<div id="jppfydzbgm" style="overflow-x:auto;"><!--gt table start-->
 <table class='gt_table'>
 <tr>
 <th class='gt_col_heading gt_right' rowspan='1' colspan='1'>ccf</th>
@@ -1203,15 +1203,15 @@ class: inverse, center, middle
 .center[
 ![](An_Application_of_LIME_to_a_Random_Forest_files/figure-html/unnamed-chunk-13-1.png)&lt;!-- --&gt;
 ]
-.center[&lt;font size="4"&gt;Histogram of CCF from Training Data with LIME Quantile Bins (blue line is ccf value of case 1)&lt;/font&gt;]
+.center[&lt;font size="4"&gt;Histogram of CCF from training data with LIME quantile bins (blue line is ccf value of case 1)&lt;/font&gt;]
 
 ---
 
 # Step 1: Create Perturbations
 
-#### Draw many samples from the estimated feature distributions to obtain the perturbations
+#### Draw many samples from the estimated feature distributions
 
-- If the a binning estimation method is used, numeric features are converted to indicator variables.
+- If a binning estimation method is used, numeric features are converted to indicator variables.
     - 1 if in same bin as case 1
     - 0 o.w.
 
@@ -1275,7 +1275,9 @@ class: inverse, center, middle
      - tree models
 - We have been using the default method
 
-`$$\mbox{rf score}=\beta_0 + \beta_1 I[\mbox{ccf in same bin}] + \beta_2 I[\mbox{rough_cor in same bin}] +\cdots + \beta_9 I[\mbox{sum_peaks in same bin}]$$`
+&lt;br&gt;
+
+`$$\hat{\mbox{rf score}}=\hat{\beta_0} + \hat{\beta_1} I[\mbox{ccf in same bin}] + \hat{\beta_2} I[\mbox{rough_cor in same bin}] +\cdots + \hat{\beta_9} I[\mbox{sum_peaks in same bin}]$$`
 
 ---
 
@@ -1289,7 +1291,9 @@ class: inverse, center, middle
     - We have only been explaining "TRUE"
 - Example model: 
 
-`$$\mbox{rf score}=\beta_0 + \beta_1 I[\mbox{ccf in same bin}] + \beta_2 I[\mbox{cms in same bin}] + \beta_3 I[\mbox{matches in same bin}]$$`
+&lt;br&gt;
+
+`$$\hat{\mbox{rf score}}=\hat{\beta_0} + \hat{\beta_1} I[\mbox{ccf in same bin}] + \hat{\beta_2} I[\mbox{cms in same bin}] + \hat{\beta_3} I[\mbox{matches in same bin}]$$`
 
 ---
 
@@ -1399,13 +1403,13 @@ class: inverse, center, middle
 
 # Initial Concerns
 
-We first applied lime using all default settings
-- explanations did not make sense
+We first applied lime using all default settings.
+- Explanations did not make sense
 - `\(R^2\)` values were very low
-- predictions from the simple model were poor
+-Predictions from the simple model were poor
     
 .center[&lt;img src="./images/explain1.png" width=450&gt;]
-.center[&lt;font size="4"&gt;Example where the random forest prediction is wrong. The explanations are from from 4 quantile bins.&lt;/font&gt;]
+.center[&lt;font size="4"&gt;Example where the random forest prediction is wrong. The explanations are from 4 quantile bins.&lt;/font&gt;]
 
 ---
 
@@ -1418,7 +1422,7 @@ Then we tried more of the feature distribution estimation methods
 - explanations dependent on the input
 
 .center[&lt;img src="./images/explain2.png" width=450&gt;]
-.center[&lt;font size="4"&gt;This is the same case with explanations are from from 3 equally spaced bins.&lt;/font&gt;]
+.center[&lt;font size="4"&gt;This is the same case with explanations from 3 equally spaced bins.&lt;/font&gt;]
 
 ---
 
@@ -1526,21 +1530,21 @@ class: middle, center, inverse
 
 - Equally spaced bins are dependent on the number of bins
 - Tree based bins usually have the lowest MSEs
-- rfscore tree based bins usually have the highest `\(R^2\)` for the binning options
+- `rfscore` tree based bins usually have the highest `\(R^2\)` for the binning options
 - All options results in low `\(R^2\)` values
     - We think that the linear regression is not similar enough to a random forest to produce good explanations
 - Explanations are relatively consistent across reps for first and second features
-- Non-binning methods produce very different results
+- Non-binning methods produce very different results compared to the binning methods
 
 ---
 
 # Future Work
 
-- Apply LIME to explain a logistic regression model
+- Apply LIME to a logistic regression model
     - We know how to interpret a logistic regression
     - Can compare to LIME explanations
 - Run some sort of simulation to assess LIME explanations
-- Adjust and compare weighting methods and the features selection methods
+- Adjust and compare weighting methods and the feature selection methods
 - Allow the number of bins to vary across features
 - Use a tree as the simple model
 

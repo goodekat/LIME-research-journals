@@ -29,7 +29,7 @@ library(tidyverse)
 1. Explanation of LIME 
 2. Hamby bullet data
 3. Applying LIME to the random forest
-4. Issues with LIME and attempts at a solution
+4. Issues and attempts at a solution
 6. Conclusions and future work
 ]
 
@@ -81,7 +81,7 @@ class: inverse, center, middle
 
 ### <span style="color:lime">M</span>odel-Agnostic
 
-- Works with any black-box predictor
+- Works with any predictive model
 
 ### <span style="color:lime">E</span>xplanations
 
@@ -128,14 +128,14 @@ class: inverse, center, middle
 
 # General LIME Procedure
 
-Start with training data, complex model, and one prediction from the test data
-1. Create perturbations based on training data.
-2. Obtain a prediction for each perturbation using the complex model.
-3. Compute a similarity score between the test observation and each perturbation. 
-4. Perform feature selection to choose $k$.
-5. Fit a linear regression (weighted by the similarity scores) to the perturbations with the $k$ chosen features (standardized).
-  $$\mbox{prediction} \sim \mbox{chosen feature 1} + \cdots + \mbox{chosen feature k}$$
-6. Use the coefficients from the regression to "explain" the predictions.
+**Start with**: (1) training data, (2) complex model, (3) one prediction from the testing data
+1. Create perturbations from training data
+2. Input each perturbation into complex model to get predictions
+3. Compute similarity scores between test observation and each perturbation 
+4. Perform feature selection to choose $k$ features
+5. Fit a simple and interpretable model weighted by the similarity scores to the perturbations
+  $$\mbox{Example: } \mbox{prediction} \sim \mbox{feature 2} + \mbox{feature 3} \ \ \ \mbox{(with features standardized)}$$
+6. Interpret the simple model to "explain" the predictions
 
 | | Feature 1 | <span style="color:blue">Feature 2</span> | <span style="color:blue">Feature 3</span> | Feature 4 | Similarity Score | <span style="color:blue">Prediction</span>|
 | --: | :--: | :--: | :--: | :--: | :--: | :--: |
@@ -176,9 +176,9 @@ class: inverse, center, middle
 
 - Sets of bullets from both “known” and “unknown” gun barrels were sent to firearm examiners around the world
 - 240 total sets created
-    - 10 barrels in a set
+    - 10 barrels used to create a set
     - 35 bullets in a set 
-        - 20 known (2 from the same barrel)
+        - 20 knowns (2 from the same barrel)
         - 15 unknowns (at least 1 and no more than 3 from each barrel)
 - Examiners asked to use the known bullets to identify which barrels the unknown bullets were fired from
 
@@ -291,8 +291,8 @@ data.frame(Truth = hamby224_test$samesource %>% na.omit(),
 
 <br>
 
-- Want to know which were the driving variables for individual predictions
-- Especially great when the model is wrong
+- Want to determine the driving variables for individual predictions
+- Especially helpful when the model is wrong
 - Variable importance scores provide global interpretations
 - We want local interpretations
 
@@ -356,15 +356,15 @@ ggplot(hamby173and252_train, aes(x = ccf)) +
   theme(text = element_text(size = 18))
 ```
 ]
-.center[<font size="4">Histogram of CCF from Training Data with LIME Quantile Bins (blue line is ccf value of case 1)</font>]
+.center[<font size="4">Histogram of CCF from training data with LIME quantile bins (blue line is ccf value of case 1)</font>]
 
 ---
 
 # Step 1: Create Perturbations
 
-#### Draw many samples from the estimated feature distributions to obtain the perturbations
+#### Draw many samples from the estimated feature distributions
 
-- If the a binning estimation method is used, numeric features are converted to indicator variables.
+- If a binning estimation method is used, numeric features are converted to indicator variables.
     - 1 if in same bin as case 1
     - 0 o.w.
 
@@ -428,7 +428,9 @@ ggplot(hamby173and252_train, aes(x = ccf)) +
      - tree models
 - We have been using the default method
 
-$$\mbox{rf score}=\beta_0 + \beta_1 I[\mbox{ccf in same bin}] + \beta_2 I[\mbox{rough_cor in same bin}] +\cdots + \beta_9 I[\mbox{sum_peaks in same bin}]$$
+<br>
+
+$$\hat{\mbox{rf score}}=\hat{\beta_0} + \hat{\beta_1} I[\mbox{ccf in same bin}] + \hat{\beta_2} I[\mbox{rough_cor in same bin}] +\cdots + \hat{\beta_9} I[\mbox{sum_peaks in same bin}]$$
 
 ---
 
@@ -442,7 +444,9 @@ $$\mbox{rf score}=\beta_0 + \beta_1 I[\mbox{ccf in same bin}] + \beta_2 I[\mbox{
     - We have only been explaining "TRUE"
 - Example model: 
 
-$$\mbox{rf score}=\beta_0 + \beta_1 I[\mbox{ccf in same bin}] + \beta_2 I[\mbox{cms in same bin}] + \beta_3 I[\mbox{matches in same bin}]$$
+<br>
+
+$$\hat{\mbox{rf score}}=\hat{\beta_0} + \hat{\beta_1} I[\mbox{ccf in same bin}] + \hat{\beta_2} I[\mbox{cms in same bin}] + \hat{\beta_3} I[\mbox{matches in same bin}]$$
 
 ---
 
@@ -516,13 +520,13 @@ class: inverse, center, middle
 
 # Initial Concerns
 
-We first applied lime using all default settings
-- explanations did not make sense
+We first applied lime using all default settings.
+- Explanations did not make sense
 - $R^2$ values were very low
-- predictions from the simple model were poor
+-Predictions from the simple model were poor
     
 .center[<img src="./images/explain1.png" width=450>]
-.center[<font size="4">Example where the random forest prediction is wrong. The explanations are from from 4 quantile bins.</font>]
+.center[<font size="4">Example where the random forest prediction is wrong. The explanations are from 4 quantile bins.</font>]
 
 ---
 
@@ -535,7 +539,7 @@ Then we tried more of the feature distribution estimation methods
 - explanations dependent on the input
 
 .center[<img src="./images/explain2.png" width=450>]
-.center[<font size="4">This is the same case with explanations are from from 3 equally spaced bins.</font>]
+.center[<font size="4">This is the same case with explanations from 3 equally spaced bins.</font>]
 
 ---
 
@@ -640,21 +644,21 @@ class: middle, center, inverse
 
 - Equally spaced bins are dependent on the number of bins
 - Tree based bins usually have the lowest MSEs
-- rfscore tree based bins usually have the highest $R^2$ for the binning options
+- `rfscore` tree based bins usually have the highest $R^2$ for the binning options
 - All options results in low $R^2$ values
     - We think that the linear regression is not similar enough to a random forest to produce good explanations
 - Explanations are relatively consistent across reps for first and second features
-- Non-binning methods produce very different results
+- Non-binning methods produce very different results compared to the binning methods
 
 ---
 
 # Future Work
 
-- Apply LIME to explain a logistic regression model
+- Apply LIME to a logistic regression model
     - We know how to interpret a logistic regression
     - Can compare to LIME explanations
 - Run some sort of simulation to assess LIME explanations
-- Adjust and compare weighting methods and the features selection methods
+- Adjust and compare weighting methods and the feature selection methods
 - Allow the number of bins to vary across features
 - Use a tree as the simple model
 
