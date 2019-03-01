@@ -30,7 +30,7 @@ library(tidyverse)
 2. Hamby bullet data
 3. Applying LIME to the random forest
 4. Issues with LIME and attempts at a solution
-6. Future work
+6. Conclusions and future work
 ]
 
 .pull-right[
@@ -51,7 +51,7 @@ class: inverse, center, middle
 
 <br>
 
-[![](./images/blackbox.png)](https://en.wikipedia.org/wiki/Black_box)
+![](./images/blackbox.png)
 
 ### Black Box Prediction Models
 
@@ -59,7 +59,7 @@ class: inverse, center, middle
 - Loss of interpretability
 - Difficult to assess trustworthiness
 
-### Enter LIME
+### Enter LIME...
 
 - **L**ocal **I**nterpretable **M**odel-Agnostic **E**xplanations
 - Developed by computer scientists ([Ribeiro, Singh, and Guestrin](https://arxiv.org/pdf/1602.04938.pdf))
@@ -400,7 +400,7 @@ ggplot(hamby173and252_train, aes(x = ccf)) +
 
 #### Compute a similiarity score between the test observation and each perturbation.
 
-- Default method in R package is gower distance
+- Default method in R package is Gower distance
     - between 0 and 1 
     - 0 indicates exactly the same
 - Other distance metrics can be specified
@@ -451,7 +451,7 @@ $$\mbox{rf score}=\beta_0 + \beta_1 I[\mbox{ccf in same bin}] + \beta_2 I[\mbox{
 #### Use the coefficients from the regression to "explain" the predictions.
 
 - Since features are standardized, we can compare the coefficients
-- Largest $\beta_i$ is conisdered the most important
+- Largest $\beta_i$ is considered the most important
 
 ---
 
@@ -528,7 +528,7 @@ We first applied lime using all default settings
 
 # More Issues
 
-Then we tried more of the feature distribution estimaton methods
+Then we tried more of the feature distribution estimation methods
 - explanations still not great
 - $R^2$ values still very low
 - predictions from the simple model still poor
@@ -566,7 +566,7 @@ treebink(
 
 #### Feature distribution estimaton methods:
 
-- 2 to 5 quntile bins
+- 2 to 5 quantile bins
 - 2 to 5 equally spaced bins
 - 2 to 5 tree based bins with `samesoure` as the response
 - 2 to 5 tree based bins with `rfscore` as the response
@@ -630,21 +630,40 @@ treebink(
 
 ---
 
-# Conclusions
+class: middle, center, inverse
 
-#### Key Observations 
-
-- equally spaced bins are dependent on the nubmer of bins
-- tree based bins usually have the lowest MSEs
-- rfscore tree based bins usually have the highest $R^2$ for the binning options
-- all options results in low $R^2$ values
-    - we think that the linear regression is not similar enough to a random forest to produce good explanations
-- explanations are relatively consistent across reps for first and second features
-- non-binning methods produce very different results
+# Conclusions and Future Work
 
 ---
-class: inverse, center, middle
+
+# Conclusions
+
+- Equally spaced bins are dependent on the number of bins
+- Tree based bins usually have the lowest MSEs
+- rfscore tree based bins usually have the highest $R^2$ for the binning options
+- All options results in low $R^2$ values
+    - We think that the linear regression is not similar enough to a random forest to produce good explanations
+- Explanations are relatively consistent across reps for first and second features
+- Non-binning methods produce very different results
+
+---
 
 # Future Work
 
+- Apply LIME to explain a logistic regression model
+    - We know how to interpret a logistic regression
+    - Can compare to LIME explanations
+- Run some sort of simulation to assess LIME explanations
+- Adjust and compare weighting methods and the features selection methods
+- Allow the number of bins to vary across features
+- Use a tree as the simple model
+
+---
+
+# Image Credits
+
+- slide 1: https://www.flickr.com/photos/lincolnian/300262799
+- slide 2: https://ayoqq.org/explore/lime-drawing/
+- slide 3: https://en.wikipedia.org/wiki/Black_box 
+- slide 8: https://github.com/thomasp85/lime
 

@@ -30,7 +30,7 @@ class: center, middle, inverse, title-slide
 2. Hamby bullet data
 3. Applying LIME to the random forest
 4. Issues with LIME and attempts at a solution
-6. Future work
+6. Conclusions and future work
 ]
 
 .pull-right[
@@ -51,7 +51,7 @@ class: inverse, center, middle
 
 &lt;br&gt;
 
-[![](./images/blackbox.png)](https://en.wikipedia.org/wiki/Black_box)
+![](./images/blackbox.png)
 
 ### Black Box Prediction Models
 
@@ -59,7 +59,7 @@ class: inverse, center, middle
 - Loss of interpretability
 - Difficult to assess trustworthiness
 
-### Enter LIME
+### Enter LIME...
 
 - **L**ocal **I**nterpretable **M**odel-Agnostic **E**xplanations
 - Developed by computer scientists ([Ribeiro, Singh, and Guestrin](https://arxiv.org/pdf/1602.04938.pdf))
@@ -373,7 +373,7 @@ glimpse(hamby224_test)
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#jbkaqeknxh .gt_table {
+#krzwvhkyyj .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -392,13 +392,13 @@ glimpse(hamby224_test)
   /* table.border.top.color */
 }
 
-#jbkaqeknxh .gt_heading {
+#krzwvhkyyj .gt_heading {
   background-color: #FFFFFF;
   /* heading.background.color */
   border-bottom-color: #FFFFFF;
 }
 
-#jbkaqeknxh .gt_title {
+#krzwvhkyyj .gt_title {
   color: #000000;
   font-size: 125%;
   /* heading.title.font.size */
@@ -409,7 +409,7 @@ glimpse(hamby224_test)
   border-bottom-width: 0;
 }
 
-#jbkaqeknxh .gt_subtitle {
+#krzwvhkyyj .gt_subtitle {
   color: #000000;
   font-size: 85%;
   /* heading.subtitle.font.size */
@@ -420,7 +420,7 @@ glimpse(hamby224_test)
   border-top-width: 0;
 }
 
-#jbkaqeknxh .gt_bottom_border {
+#krzwvhkyyj .gt_bottom_border {
   border-bottom-style: solid;
   /* heading.border.bottom.style */
   border-bottom-width: 2px;
@@ -429,7 +429,7 @@ glimpse(hamby224_test)
   /* heading.border.bottom.color */
 }
 
-#jbkaqeknxh .gt_column_spanner {
+#krzwvhkyyj .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #A8A8A8;
@@ -437,7 +437,7 @@ glimpse(hamby224_test)
   padding-bottom: 4px;
 }
 
-#jbkaqeknxh .gt_col_heading {
+#krzwvhkyyj .gt_col_heading {
   color: #000000;
   background-color: #FFFFFF;
   /* column_labels.background.color */
@@ -450,11 +450,11 @@ glimpse(hamby224_test)
   margin: 10px;
 }
 
-#jbkaqeknxh .gt_sep_right {
+#krzwvhkyyj .gt_sep_right {
   border-right: 5px solid #FFFFFF;
 }
 
-#jbkaqeknxh .gt_group_heading {
+#krzwvhkyyj .gt_group_heading {
   padding: 8px;
   color: #000000;
   background-color: #FFFFFF;
@@ -478,7 +478,7 @@ glimpse(hamby224_test)
   vertical-align: middle;
 }
 
-#jbkaqeknxh .gt_empty_group_heading {
+#krzwvhkyyj .gt_empty_group_heading {
   padding: 0.5px;
   color: #000000;
   background-color: #FFFFFF;
@@ -502,29 +502,29 @@ glimpse(hamby224_test)
   vertical-align: middle;
 }
 
-#jbkaqeknxh .gt_striped {
+#krzwvhkyyj .gt_striped {
   background-color: #f2f2f2;
 }
 
-#jbkaqeknxh .gt_row {
+#krzwvhkyyj .gt_row {
   padding: 10px;
   /* row.padding */
   margin: 10px;
   vertical-align: middle;
 }
 
-#jbkaqeknxh .gt_stub {
+#krzwvhkyyj .gt_stub {
   border-right-style: solid;
   border-right-width: 2px;
   border-right-color: #A8A8A8;
   padding-left: 12px;
 }
 
-#jbkaqeknxh .gt_stub.gt_row {
+#krzwvhkyyj .gt_stub.gt_row {
   background-color: #FFFFFF;
 }
 
-#jbkaqeknxh .gt_summary_row {
+#krzwvhkyyj .gt_summary_row {
   background-color: #FFFFFF;
   /* summary_row.background.color */
   padding: 6px;
@@ -533,13 +533,13 @@ glimpse(hamby224_test)
   /* summary_row.text_transform */
 }
 
-#jbkaqeknxh .gt_first_summary_row {
+#krzwvhkyyj .gt_first_summary_row {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #A8A8A8;
 }
 
-#jbkaqeknxh .gt_table_body {
+#krzwvhkyyj .gt_table_body {
   border-top-style: solid;
   /* field.border.top.style */
   border-top-width: 2px;
@@ -554,55 +554,55 @@ glimpse(hamby224_test)
   /* field.border.bottom.color */
 }
 
-#jbkaqeknxh .gt_footnote {
+#krzwvhkyyj .gt_footnote {
   font-size: 90%;
   /* footnote.font.size */
   padding: 4px;
   /* footnote.padding */
 }
 
-#jbkaqeknxh .gt_sourcenote {
+#krzwvhkyyj .gt_sourcenote {
   font-size: 90%;
   /* sourcenote.font.size */
   padding: 4px;
   /* sourcenote.padding */
 }
 
-#jbkaqeknxh .gt_center {
+#krzwvhkyyj .gt_center {
   text-align: center;
 }
 
-#jbkaqeknxh .gt_left {
+#krzwvhkyyj .gt_left {
   text-align: left;
 }
 
-#jbkaqeknxh .gt_right {
+#krzwvhkyyj .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#jbkaqeknxh .gt_font_normal {
+#krzwvhkyyj .gt_font_normal {
   font-weight: normal;
 }
 
-#jbkaqeknxh .gt_font_bold {
+#krzwvhkyyj .gt_font_bold {
   font-weight: bold;
 }
 
-#jbkaqeknxh .gt_font_italic {
+#krzwvhkyyj .gt_font_italic {
   font-style: italic;
 }
 
-#jbkaqeknxh .gt_super {
+#krzwvhkyyj .gt_super {
   font-size: 65%;
 }
 
-#jbkaqeknxh .gt_footnote_glyph {
+#krzwvhkyyj .gt_footnote_glyph {
   font-style: italic;
   font-size: 65%;
 }
 </style>
-<div id="jbkaqeknxh" style="overflow-x:auto;"><!--gt table start-->
+<div id="krzwvhkyyj" style="overflow-x:auto;"><!--gt table start-->
 <table class='gt_table'>
 <tr>
 <th class='gt_col_heading gt_center' rowspan='1' colspan='1'>Truth</th>
@@ -613,12 +613,12 @@ glimpse(hamby224_test)
 <tr>
 <td class='gt_row gt_center'>FALSE</td>
 <td class='gt_row gt_center'>FALSE</td>
-<td class='gt_row gt_right'>277</td>
+<td class='gt_row gt_right'>276</td>
 </tr>
 <tr>
 <td class='gt_row gt_center gt_striped'>FALSE</td>
 <td class='gt_row gt_center gt_striped'>TRUE</td>
-<td class='gt_row gt_right gt_striped'>43</td>
+<td class='gt_row gt_right gt_striped'>44</td>
 </tr>
 <tr>
 <td class='gt_row gt_center'>TRUE</td>
@@ -664,7 +664,7 @@ class: inverse, center, middle
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#eucegkvgqq .gt_table {
+#vkdamloxxj .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -683,13 +683,13 @@ class: inverse, center, middle
   /* table.border.top.color */
 }
 
-#eucegkvgqq .gt_heading {
+#vkdamloxxj .gt_heading {
   background-color: #FFFFFF;
   /* heading.background.color */
   border-bottom-color: #FFFFFF;
 }
 
-#eucegkvgqq .gt_title {
+#vkdamloxxj .gt_title {
   color: #000000;
   font-size: 125%;
   /* heading.title.font.size */
@@ -700,7 +700,7 @@ class: inverse, center, middle
   border-bottom-width: 0;
 }
 
-#eucegkvgqq .gt_subtitle {
+#vkdamloxxj .gt_subtitle {
   color: #000000;
   font-size: 85%;
   /* heading.subtitle.font.size */
@@ -711,7 +711,7 @@ class: inverse, center, middle
   border-top-width: 0;
 }
 
-#eucegkvgqq .gt_bottom_border {
+#vkdamloxxj .gt_bottom_border {
   border-bottom-style: solid;
   /* heading.border.bottom.style */
   border-bottom-width: 2px;
@@ -720,7 +720,7 @@ class: inverse, center, middle
   /* heading.border.bottom.color */
 }
 
-#eucegkvgqq .gt_column_spanner {
+#vkdamloxxj .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #A8A8A8;
@@ -728,7 +728,7 @@ class: inverse, center, middle
   padding-bottom: 4px;
 }
 
-#eucegkvgqq .gt_col_heading {
+#vkdamloxxj .gt_col_heading {
   color: #000000;
   background-color: #FFFFFF;
   /* column_labels.background.color */
@@ -741,11 +741,11 @@ class: inverse, center, middle
   margin: 10px;
 }
 
-#eucegkvgqq .gt_sep_right {
+#vkdamloxxj .gt_sep_right {
   border-right: 5px solid #FFFFFF;
 }
 
-#eucegkvgqq .gt_group_heading {
+#vkdamloxxj .gt_group_heading {
   padding: 8px;
   color: #000000;
   background-color: #FFFFFF;
@@ -769,7 +769,7 @@ class: inverse, center, middle
   vertical-align: middle;
 }
 
-#eucegkvgqq .gt_empty_group_heading {
+#vkdamloxxj .gt_empty_group_heading {
   padding: 0.5px;
   color: #000000;
   background-color: #FFFFFF;
@@ -793,29 +793,29 @@ class: inverse, center, middle
   vertical-align: middle;
 }
 
-#eucegkvgqq .gt_striped {
+#vkdamloxxj .gt_striped {
   background-color: #f2f2f2;
 }
 
-#eucegkvgqq .gt_row {
+#vkdamloxxj .gt_row {
   padding: 10px;
   /* row.padding */
   margin: 10px;
   vertical-align: middle;
 }
 
-#eucegkvgqq .gt_stub {
+#vkdamloxxj .gt_stub {
   border-right-style: solid;
   border-right-width: 2px;
   border-right-color: #A8A8A8;
   padding-left: 12px;
 }
 
-#eucegkvgqq .gt_stub.gt_row {
+#vkdamloxxj .gt_stub.gt_row {
   background-color: #FFFFFF;
 }
 
-#eucegkvgqq .gt_summary_row {
+#vkdamloxxj .gt_summary_row {
   background-color: #FFFFFF;
   /* summary_row.background.color */
   padding: 6px;
@@ -824,13 +824,13 @@ class: inverse, center, middle
   /* summary_row.text_transform */
 }
 
-#eucegkvgqq .gt_first_summary_row {
+#vkdamloxxj .gt_first_summary_row {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #A8A8A8;
 }
 
-#eucegkvgqq .gt_table_body {
+#vkdamloxxj .gt_table_body {
   border-top-style: solid;
   /* field.border.top.style */
   border-top-width: 2px;
@@ -845,55 +845,55 @@ class: inverse, center, middle
   /* field.border.bottom.color */
 }
 
-#eucegkvgqq .gt_footnote {
+#vkdamloxxj .gt_footnote {
   font-size: 90%;
   /* footnote.font.size */
   padding: 4px;
   /* footnote.padding */
 }
 
-#eucegkvgqq .gt_sourcenote {
+#vkdamloxxj .gt_sourcenote {
   font-size: 90%;
   /* sourcenote.font.size */
   padding: 4px;
   /* sourcenote.padding */
 }
 
-#eucegkvgqq .gt_center {
+#vkdamloxxj .gt_center {
   text-align: center;
 }
 
-#eucegkvgqq .gt_left {
+#vkdamloxxj .gt_left {
   text-align: left;
 }
 
-#eucegkvgqq .gt_right {
+#vkdamloxxj .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#eucegkvgqq .gt_font_normal {
+#vkdamloxxj .gt_font_normal {
   font-weight: normal;
 }
 
-#eucegkvgqq .gt_font_bold {
+#vkdamloxxj .gt_font_bold {
   font-weight: bold;
 }
 
-#eucegkvgqq .gt_font_italic {
+#vkdamloxxj .gt_font_italic {
   font-style: italic;
 }
 
-#eucegkvgqq .gt_super {
+#vkdamloxxj .gt_super {
   font-size: 65%;
 }
 
-#eucegkvgqq .gt_footnote_glyph {
+#vkdamloxxj .gt_footnote_glyph {
   font-style: italic;
   font-size: 65%;
 }
 </style>
-<div id="eucegkvgqq" style="overflow-x:auto;"><!--gt table start-->
+<div id="vkdamloxxj" style="overflow-x:auto;"><!--gt table start-->
 <table class='gt_table'>
 <tr>
 <th class='gt_col_heading gt_right' rowspan='1' colspan='1'>case</th>
@@ -925,7 +925,7 @@ class: inverse, center, middle
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#vxpvjgahth .gt_table {
+#yalhrvhsec .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -944,13 +944,13 @@ class: inverse, center, middle
   /* table.border.top.color */
 }
 
-#vxpvjgahth .gt_heading {
+#yalhrvhsec .gt_heading {
   background-color: #FFFFFF;
   /* heading.background.color */
   border-bottom-color: #FFFFFF;
 }
 
-#vxpvjgahth .gt_title {
+#yalhrvhsec .gt_title {
   color: #000000;
   font-size: 125%;
   /* heading.title.font.size */
@@ -961,7 +961,7 @@ class: inverse, center, middle
   border-bottom-width: 0;
 }
 
-#vxpvjgahth .gt_subtitle {
+#yalhrvhsec .gt_subtitle {
   color: #000000;
   font-size: 85%;
   /* heading.subtitle.font.size */
@@ -972,7 +972,7 @@ class: inverse, center, middle
   border-top-width: 0;
 }
 
-#vxpvjgahth .gt_bottom_border {
+#yalhrvhsec .gt_bottom_border {
   border-bottom-style: solid;
   /* heading.border.bottom.style */
   border-bottom-width: 2px;
@@ -981,7 +981,7 @@ class: inverse, center, middle
   /* heading.border.bottom.color */
 }
 
-#vxpvjgahth .gt_column_spanner {
+#yalhrvhsec .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #A8A8A8;
@@ -989,7 +989,7 @@ class: inverse, center, middle
   padding-bottom: 4px;
 }
 
-#vxpvjgahth .gt_col_heading {
+#yalhrvhsec .gt_col_heading {
   color: #000000;
   background-color: #FFFFFF;
   /* column_labels.background.color */
@@ -1002,11 +1002,11 @@ class: inverse, center, middle
   margin: 10px;
 }
 
-#vxpvjgahth .gt_sep_right {
+#yalhrvhsec .gt_sep_right {
   border-right: 5px solid #FFFFFF;
 }
 
-#vxpvjgahth .gt_group_heading {
+#yalhrvhsec .gt_group_heading {
   padding: 8px;
   color: #000000;
   background-color: #FFFFFF;
@@ -1030,7 +1030,7 @@ class: inverse, center, middle
   vertical-align: middle;
 }
 
-#vxpvjgahth .gt_empty_group_heading {
+#yalhrvhsec .gt_empty_group_heading {
   padding: 0.5px;
   color: #000000;
   background-color: #FFFFFF;
@@ -1054,29 +1054,29 @@ class: inverse, center, middle
   vertical-align: middle;
 }
 
-#vxpvjgahth .gt_striped {
+#yalhrvhsec .gt_striped {
   background-color: #f2f2f2;
 }
 
-#vxpvjgahth .gt_row {
+#yalhrvhsec .gt_row {
   padding: 10px;
   /* row.padding */
   margin: 10px;
   vertical-align: middle;
 }
 
-#vxpvjgahth .gt_stub {
+#yalhrvhsec .gt_stub {
   border-right-style: solid;
   border-right-width: 2px;
   border-right-color: #A8A8A8;
   padding-left: 12px;
 }
 
-#vxpvjgahth .gt_stub.gt_row {
+#yalhrvhsec .gt_stub.gt_row {
   background-color: #FFFFFF;
 }
 
-#vxpvjgahth .gt_summary_row {
+#yalhrvhsec .gt_summary_row {
   background-color: #FFFFFF;
   /* summary_row.background.color */
   padding: 6px;
@@ -1085,13 +1085,13 @@ class: inverse, center, middle
   /* summary_row.text_transform */
 }
 
-#vxpvjgahth .gt_first_summary_row {
+#yalhrvhsec .gt_first_summary_row {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #A8A8A8;
 }
 
-#vxpvjgahth .gt_table_body {
+#yalhrvhsec .gt_table_body {
   border-top-style: solid;
   /* field.border.top.style */
   border-top-width: 2px;
@@ -1106,55 +1106,55 @@ class: inverse, center, middle
   /* field.border.bottom.color */
 }
 
-#vxpvjgahth .gt_footnote {
+#yalhrvhsec .gt_footnote {
   font-size: 90%;
   /* footnote.font.size */
   padding: 4px;
   /* footnote.padding */
 }
 
-#vxpvjgahth .gt_sourcenote {
+#yalhrvhsec .gt_sourcenote {
   font-size: 90%;
   /* sourcenote.font.size */
   padding: 4px;
   /* sourcenote.padding */
 }
 
-#vxpvjgahth .gt_center {
+#yalhrvhsec .gt_center {
   text-align: center;
 }
 
-#vxpvjgahth .gt_left {
+#yalhrvhsec .gt_left {
   text-align: left;
 }
 
-#vxpvjgahth .gt_right {
+#yalhrvhsec .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#vxpvjgahth .gt_font_normal {
+#yalhrvhsec .gt_font_normal {
   font-weight: normal;
 }
 
-#vxpvjgahth .gt_font_bold {
+#yalhrvhsec .gt_font_bold {
   font-weight: bold;
 }
 
-#vxpvjgahth .gt_font_italic {
+#yalhrvhsec .gt_font_italic {
   font-style: italic;
 }
 
-#vxpvjgahth .gt_super {
+#yalhrvhsec .gt_super {
   font-size: 65%;
 }
 
-#vxpvjgahth .gt_footnote_glyph {
+#yalhrvhsec .gt_footnote_glyph {
   font-style: italic;
   font-size: 65%;
 }
 </style>
-<div id="vxpvjgahth" style="overflow-x:auto;"><!--gt table start-->
+<div id="yalhrvhsec" style="overflow-x:auto;"><!--gt table start-->
 <table class='gt_table'>
 <tr>
 <th class='gt_col_heading gt_right' rowspan='1' colspan='1'>ccf</th>
@@ -1247,7 +1247,7 @@ class: inverse, center, middle
 
 #### Compute a similiarity score between the test observation and each perturbation.
 
-- Default method in R package is gower distance
+- Default method in R package is Gower distance
     - between 0 and 1 
     - 0 indicates exactly the same
 - Other distance metrics can be specified
@@ -1298,7 +1298,7 @@ class: inverse, center, middle
 #### Use the coefficients from the regression to "explain" the predictions.
 
 - Since features are standardized, we can compare the coefficients
-- Largest `\(\beta_i\)` is conisdered the most important
+- Largest `\(\beta_i\)` is considered the most important
 
 ---
 
@@ -1409,9 +1409,9 @@ We first applied lime using all default settings
 
 ---
 
-# Initial Concerns
+# More Issues
 
-Then we tried more of the feature distribution estimaton methods
+Then we tried more of the feature distribution estimation methods
 - explanations still not great
 - `\(R^2\)` values still very low
 - predictions from the simple model still poor
@@ -1452,7 +1452,7 @@ treebink(
 
 #### Feature distribution estimaton methods:
 
-- 2 to 5 quntile bins
+- 2 to 5 quantile bins
 - 2 to 5 equally spaced bins
 - 2 to 5 tree based bins with `samesoure` as the response
 - 2 to 5 tree based bins with `rfscore` as the response
@@ -1516,22 +1516,42 @@ treebink(
 
 ---
 
-# Conclusions
+class: middle, center, inverse
 
-#### Key Observations 
-
-- equally spaced bins are dependent on the nubmer of bins
-- tree based bins usually have the lowest MSEs
-- rfscore tree based bins usually have the highest `\(R^2\)` for the binning options
-- all options results in low `\(R^2\)` values
-    - we think that the linear regression is not similar enough to a random forest to produce good explanations
-- explanations are relatively consistent across reps for first and second features
-- non-binning methods produce very different results
+# Conclusions and Future Work
 
 ---
-class: inverse, center, middle
+
+# Conclusions
+
+- Equally spaced bins are dependent on the number of bins
+- Tree based bins usually have the lowest MSEs
+- rfscore tree based bins usually have the highest `\(R^2\)` for the binning options
+- All options results in low `\(R^2\)` values
+    - We think that the linear regression is not similar enough to a random forest to produce good explanations
+- Explanations are relatively consistent across reps for first and second features
+- Non-binning methods produce very different results
+
+---
 
 # Future Work
+
+- Apply LIME to explain a logistic regression model
+    - We know how to interpret a logistic regression
+    - Can compare to LIME explanations
+- Run some sort of simulation to assess LIME explanations
+- Adjust and compare weighting methods and the features selection methods
+- Allow the number of bins to vary across features
+- Use a tree as the simple model
+
+---
+
+# Image Credits
+
+- slide 1: https://www.flickr.com/photos/lincolnian/300262799
+- slide 2: https://ayoqq.org/explore/lime-drawing/
+- slide 3: https://en.wikipedia.org/wiki/Black_box 
+- slide 8: https://github.com/thomasp85/lime
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script>var slideshow = remark.create({
