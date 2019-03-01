@@ -544,7 +544,7 @@ Then we tried more of the feature distribution estimation methods
 Next we created our own way to select bins using trees
 
 ```{r echo = FALSE, message = FALSE}
-source("../../code/helper_functions.R")
+source("./code/helper_functions.R")
 ```
 
 .pull-left[
