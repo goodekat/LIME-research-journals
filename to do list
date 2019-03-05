@@ -6,11 +6,14 @@ TO DO LIST
 https://isu-csafe.stat.iastate.edu/rstudio/
 
 Questions:
+- conference money
+- hosting gg presentation
+- the paralle coordinate plot does not seem to help...
 
 Completed:
+- make parallel coordinate plots of training data to check if I removed the correct observations
 
 Current Week:
-- make parallel coordinate plots of training data to check if I removed the correct observations
 - change distance matrix in seriation to be 5-# of variables shared between two rows
 - fix issue with seriation
 - try fitting LASSO logistic model and leave one out approach (for multicollinarity)
