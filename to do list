@@ -19,6 +19,7 @@ Current Week:
 - think about how to implement a simulation with a random forest
 
 Later:
+- try retriculate to apply python version of lime
 - look at 'removing the blindfold' for ideas
 - read through Heike's new function
 - think of a way to compute consistency across top two features

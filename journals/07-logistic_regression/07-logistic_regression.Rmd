@@ -10,7 +10,8 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
+                      cache = TRUE)
 ```
 
 # Overview
@@ -114,14 +115,14 @@ if(!file.exists("./data/logistic_inters2.rds")) {
 }
 ```
 
-The output from the model is shown below.
+The output from this model is not shown.
 
-```{r}
+```{r eval = FALSE}
 # Summary of the model
 summary(logistic_inters2)
 ```
 
-### Comparing the Logistic Models
+### Comparing the Two Models
 
 The results as computed by caret on the training data are shown below for the two logistic regression models. The accuracy shows that the models with two way interactions performs better on the training data.
 
@@ -141,16 +142,20 @@ AIC(logistic_inters2$finalModel)
 I also wanted to know how the models perform on the test data. The models are used to make predictions on the test data and the MSEs are computed for each model. These are shown in the table below. The model with main effects only has the smallest MSE. I am guessing that the other model is overfitting the data.
 
 ```{r}
-data.frame(mains = predict(logistic_mains, hamby224_test %>% select(rf_features)),
+data.frame(obs = hamby224_test %>% 
+             pull(samesource) %>% na.omit(),
+           mains = predict(logistic_mains, hamby224_test %>% select(rf_features)),
            inters2 = predict(logistic_inters2, hamby224_test %>% select(rf_features))) %>%
-  summarise_at(vars(mains, inters2), 
-               function(pred, obs) sum((as.logical(pred) - obs)^2) / n(),
-               obs = hamby224_test %>% select(samesource) %>% na.omit())
+  mutate(mains_sqerrs = (obs - as.logical(mains))^2,
+         inters2_sqerrs = (obs - as.logical(inters2))^2) %>%
+  summarise_at(vars(mains_sqerrs, inters2_sqerrs), 
+               function(x) sum(x) / length(x)) %>%
+  rename(mains_mse = mains_sqerrs, inters2_mse = inters2_sqerrs)
 ```
 
 # Applying LIME to the Models
 
-### Main Effects Only
+### Default LIME Applied to Main Effects Model
 
 The functions `lime` and `explain` from the lime package are applied below to the logisitc regression model with only main effects.
 
@@ -189,7 +194,57 @@ if(!file.exists("./data/lime_explain_mains.rds")) {
 
 ```{r}
 plot_features(lime_explain_mains$explain[1:12,])
-hamby224_test %>% filter(case == 1)
+```
+
+```{r}
+coefs <- logistic_mains$finalModel$coefficients %>% round(2)
+```
+
+The logistic regression model is 
+
+$\log\left(\frac{\hat{p}}{1-\hat{p}}\right)=$ `r coefs[[1]]` + `r coefs[[2]]` ccf + `r coefs[[3]]` rough_cor + `r coefs[[4]]` D + `r coefs[[5]]` sd_D + `r coefs[[6]]` matches + `r coefs[[7]]` mismatches + `r coefs[[8]]` cms + `r coefs[[9]]` non_cms + `r coefs[[10]]` sum_peaks
+
+where $\hat{p}=P(\mbox{samesource = TRUE})$.
+
+I started trying to compare the results from LIME to the logistic regression model, but I realized that I need to standardize my test data before I use the model to make predictions.
+
+```{r}
+m = function(x) coefs[2:10] * x
+m(hamby224_test[1,] %>% select(rf_features))
+hamby224_test[1:4,] %>% select(rf_features)
+coefs
+hamby224_test[1:4,] %>% select(rf_features) * coefs[2:10]
+```
+
+
+```{r}
+mains_test_explain <- hamby224_test %>%
+  mutate(case = as.character(case)) %>%
+  full_join(lime_explain_mains$explain, by = "case") %>%
+  mutate(case = factor(case),
+         feature = factor(feature))
+```
+
+Below is a plot of the three chosen features for each of the cases faceted by set. The features are ordered by order they were chosen by lime (ordered by magnitude of the coefficients).
+
+```{r}
+mains_test_explain %>%
+  na.omit() %>%
+  arrange(case, desc(abs(feature_weight))) %>%
+  mutate(feature_order = rep(c("first", "second", "third"), n() / 3)) %>%
+  select(case, set, feature, feature_order) %>%
+  spread(feature_order, feature) %>%
+  arrange(set, first, second, third) %>%
+  mutate(order = 1:n()) %>%
+  gather(feature_order, feature, 3:5) %>%
+  ggplot(aes(x = feature_order, y = order, fill = feature)) + 
+  geom_tile() + 
+  facet_grid(set ~ ., scales = "free_y") +
+  theme_bw() +
+  gretchenalbrecht::scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  labs(x = "Order of Features Chosen", y = "Case", fill = "Feature")
 ```
 
 # Session Info
