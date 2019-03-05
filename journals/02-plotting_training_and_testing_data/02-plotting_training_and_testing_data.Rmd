@@ -351,6 +351,21 @@ style(subplot(p1, p2, p3, p4, p5, p6, p7, p8, p9,
       traces = 7)
 ```
 
+# Biplot
+
+```{r eval = FALSE}
+pca_set1 <- princomp(x = hamby224_test %>% 
+                       filter(set == "Set 1") %>% 
+                       select(rf_features) %>% 
+                       na.omit(), 
+                     cor = TRUE)
+biplot(pca, col = hamby224_test %>% 
+                       filter(set == "Set 1") %>% 
+                       pull(rfscore))
+```
+
+
+
 # Session Info
 
 ```{r}
