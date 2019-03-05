@@ -10,7 +10,8 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
+                      cache = TRUE)
 ```
 
 # Overview 
@@ -172,10 +173,6 @@ hamby173and252_train <- hamby173and252_train_cleaning %>%
   filter(!(bbl1 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4") | 
            bbl2 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4"))) %>%
   select(-bbl1, -bbl2)
-
-hamby173and252_train_cleaning %>%
-  mutate(id = as.character(1:n())) %>%
-  GGally::ggparcoord(columns = rf_features, order = "columns", groupColumn = id)
 ```
 
 When I look at the dimensions of my training data now and the number of predictions from `rtrees`, then agree now!
@@ -185,6 +182,31 @@ When I look at the dimensions of my training data now and the number of predicti
 # number of predictions from rtrees
 dim(hamby173and252_train)
 dim(predict(bulletr::rtrees, type = "prob"))
+```
+
+It is possible that the labels that Eric was using are different from the labels in my training dataset. In order to check whether I removed the correct datapoints, Heike suggested that I look at a parallel coordinate plots to see if the observations that were removed stand out as being unusual compared to the rest of the data. The code below prepares the training data before observations were removed to be plotted.
+
+```{r}
+# Create dataset for creating the paralle coordinate plot
+par_data <- hamby173and252_train_cleaning %>%
+  mutate(bbl1 = barrel1:bullet1:land1,
+         bbl2 = barrel2:bullet2:land2) %>%
+  mutate(category = factor(ifelse(!(bbl1 %in% c("6:2:1", "9:2:4", "Unknown:B:2",
+                                                "Unknown:Q:4") | 
+                                      bbl2 %in% c("6:2:1", "9:2:4", "Unknown:B:2",
+                                                  "Unknown:Q:4")),
+                           "keep", "remove"))) %>%
+  arrange(category)
+
+my_colors <- colors()[par_data %>% pull(category) %>% as.numeric() * 11]
+table(my_colors)
+```
+
+The first plot shows the observations that were kept in aquamarine and the observations that were removed in bisque. These observations do not seem to be weird. I am wondering if I removed the correct points or not. The second plot shows the data plotted after the observations have been removed. There are not obvious points that really stand out as unusual, but there is so much data it also makes it hard to tell.
+
+```{r}
+MASS::parcoord(hamby173and252_train_cleaning %>% select(ccf:sum_peaks), col = my_colors)
+MASS::parcoord(hamby173and252_train %>% select(ccf:sum_peaks))
 ```
 
 ### Saving the Training Data
