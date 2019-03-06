@@ -196,17 +196,21 @@ par_data <- hamby173and252_train_cleaning %>%
                                       bbl2 %in% c("6:2:1", "9:2:4", "Unknown:B:2",
                                                   "Unknown:Q:4")),
                            "keep", "remove"))) %>%
-  arrange(category)
-
-my_colors <- colors()[par_data %>% pull(category) %>% as.numeric() * 11]
-table(my_colors)
+  arrange(category) %>%
+  mutate(samesource_colors = ifelse(samesource == TRUE, rgb(1, 0, 0, alpha = 0.05), 
+                                    rgb(0, 0, 0, alpha = 0.001)),
+         samesource_colors2 = ifelse(samesource == TRUE, rgb(1, 0, 0, alpha = 0.001), 
+                                    rgb(0, 0, 0, alpha = 0.01)),
+         tankrash_colors = ifelse(category == "keep", rgb(0, 0, 1, alpha = 0.05),
+                                  rgb(0, 0, 0, alpha = 0.01)))
 ```
 
-The first plot shows the observations that were kept in aquamarine and the observations that were removed in bisque. These observations do not seem to be weird. I am wondering if I removed the correct points or not. The second plot shows the data plotted after the observations have been removed. There are not obvious points that really stand out as unusual, but there is so much data it also makes it hard to tell.
+The first plot shows the observations that were kept in black and the observations that were removed in blue. These observations do not stand out to me. It is not clear if these were the ones that were suppose to be removed or not. The second plot shows the observations from matches plotted in red, and the third plot shows the observations from nonmatches plotted in black.
 
 ```{r}
-MASS::parcoord(hamby173and252_train_cleaning %>% select(ccf:sum_peaks), col = my_colors)
-MASS::parcoord(hamby173and252_train %>% select(ccf:sum_peaks))
+MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$tankrash_colors)
+MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$samesource_colors)
+MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$samesource_colors2)
 ```
 
 ### Saving the Training Data

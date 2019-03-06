@@ -247,6 +247,16 @@ mains_test_explain %>%
   labs(x = "Order of Features Chosen", y = "Case", fill = "Feature")
 ```
 
+```{r}
+pca_results <- princomp(hamby224_test %>% select(rf_features) %>% na.omit())
+pca_results$loadings
+z1 <- pca_results$scores[,1]
+z2 <- pca_results$scores[,2]
+ggplot(data.frame(z1, z2), aes(x = z1, y = z2)) + 
+  geom_point()
+biplot(pca_results)
+```
+
 # Session Info
 
 ```{r}
