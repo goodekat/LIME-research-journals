@@ -20,6 +20,7 @@ Current Week:
 - assess lime results on logistic regression models
 - run all implementations of lime with logistic regression models 
 - think about how to implement a simulation with a random forest
+- make better parallel coordinate plots
 
 Later:
 - try retriculate to apply python version of lime
