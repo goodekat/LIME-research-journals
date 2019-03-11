@@ -10,7 +10,8 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
+                      cache = TRUE)
 ```
 
 # Overview
@@ -349,6 +350,46 @@ style(subplot(p1, p2, p3, p4, p5, p6, p7, p8, p9,
               margin = 0.03),
       hoverinfo = "skip",
       traces = 7)
+```
+
+# Parallel Coordinate Plots
+
+Below is a parallel coordinate plot of the training dataset. It is facetted by `samesource` and colored by `rfscore`. The features are sorted by the variable importance scores (descending from left to right) from the `rtrees` model. It is interesting to see that the matches with low rfscores have feature values that are similar to the nonmatches.
+
+```{r fig.width = 10}
+hamby173and252_train %>%
+  mutate(case = 1:n()) %>%
+  select(case, rfscore, samesource, ccf:sum_peaks) %>%
+  mutate_at(rf_features, scale) %>%
+  gather(variable, value, 4:12) %>%
+  mutate(variable = factor(variable, levels = rf_features)) %>%
+  ggplot(aes(x = variable, y = value, group = case, color = rfscore)) + 
+  geom_point() + 
+  geom_line(alpha = 0.2) + 
+  facet_grid( ~ samesource) + 
+  scale_color_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(x = "Feature (sorted by rtrees variable importance)", 
+       y = "Standardized Feature Values")
+```
+
+Below is a parallel coordinate plot of the testing dataset. It is facetted by `samesource` and colored by `rfscore`. You can see a clear distinction between the trends of the feature values from the nonmatches and matches. It is interesting to consider the cases in set 1 that are matches but were predicted to be nonmatches by the model. These are the cases colored in grey, and their feature values are very different from the observations that were predicted to be matches by the model. The nonmatch predictions have values that are closer to the nonmatches.
+
+```{r fig.width = 10}
+hamby224_test %>%
+  na.omit() %>%
+  select(case, set, rfscore, samesource, ccf:sum_peaks) %>%
+  mutate_at(rf_features, scale) %>%
+  gather(variable, value, 5:13) %>%
+  mutate(variable = factor(variable, levels = rf_features)) %>%
+  ggplot(aes(x = variable, y = value, group = case, color = rfscore)) + 
+  geom_point() + 
+  geom_line(alpha = 0.5) + 
+  facet_grid(set ~ samesource) + 
+  scale_color_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(x = "Feature (sorted by rtrees variable importance)", 
+       y = "Standardized Feature Values")
 ```
 
 # Biplot
