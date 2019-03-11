@@ -13,6 +13,7 @@ Completed:
 - applied LIME to iris data
 
 Current Week:
+- iris comparison
 - change distance matrix in seriation to be 5-# of variables shared between two rows
 - fix issue with seriation
 - try fitting LASSO logistic model and leave one out approach (for multicollinarity)
