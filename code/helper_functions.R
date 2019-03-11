@@ -11,10 +11,6 @@
 library(tidyverse)
 library(tree)
 
-y = hamby173and252_train$samesource
-x = hamby173and252_train$ccf
-k = 5
-
 treebink <- function (y, x, k, minsize = 10) {
   
   # Set the mindev: "The within-node deviance must be at least this times 

@@ -10,8 +10,7 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
-                      cache = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
 ```
 
 # Overview
@@ -20,8 +19,13 @@ I have been thinking a lot about it is difficult to determine whether LIME is pr
 
 ```{r}
 # Load libraries
+library(furrr)
+library(future)
 library(lime)
 library(tidyverse)
+
+# Source functions
+source("../../code/helper_functions.R")
 ```
 
 # The Data
@@ -73,8 +77,6 @@ if(!file.exists("./data/logistic_mains.rds")) {
   logistic_mains <- readRDS("./data/logistic_mains.rds")
   
 }
-
-summary(logistic_mains)
 ```
 
 The output from the model is shown below. The features of ccf and matches stand out as the most important features in the model.
@@ -255,6 +257,96 @@ z2 <- pca_results$scores[,2]
 ggplot(data.frame(z1, z2), aes(x = z1, y = z2)) + 
   geom_point()
 biplot(pca_results)
+```
+
+### All Input Options of LIME Applied to Main Effects Model
+
+The code below applies the LIME algorithm to the main effects logisitic regression model one time for the following different input cases:
+
+- 2 to 6 quantile bins
+- 2 to 6 equally spaced bins
+- 2 to 6 tree based bins with `samesource` as the response variable
+- 2 to 6 tree based bins with `rfscore` as the response variable
+- kernel density estimation
+- normal density approximation
+
+It applies LIME using my function `run_lime` to specify the different input values. The outputs from the `lime` function are combined into a list, and the outputs from the `explain` function are combined into dataframe. Both are saved as .rds files.
+
+```{r}
+# Apply the run_lime function if the lime results file does not already exist
+if(!file.exists("./data/logistic_lime_inputs.rds")) {
+  
+  # Specify the input options to use with lime
+  logistic_lime_inputs <- list(bin_continuous = c(rep(TRUE, 20), 
+                                                  rep(FALSE, 2)),
+                               quantile_bins = c(rep(TRUE, 5), 
+                                                 rep(FALSE, 5), 
+                                                 rep(TRUE, 12)),
+                               nbins = c(rep(2:6, 4), 
+                                         rep(4, 2)),
+                               use_density = c(rep(TRUE, 20), TRUE, FALSE),
+                               bin_method = c(rep("quantile_bins", 5),
+                                              rep("equally_spaced", 5),
+                                              rep("tree", 10),
+                                              rep("quantile_bins", 2)),
+                               response = c(rep(NA, 10), 
+                                            rep("samesource", 5), 
+                                            rep("rfscore", 5), 
+                                            rep(NA, 2)))
+  
+  # Tell R to run the upcoming code in parallel
+  plan(multiprocess)
+  
+  # Apply lime to the full training data with the specified input options
+  logistic_lime_explain <- future_pmap(.l = logistic_lime_inputs,
+             .f = run_lime, # run_lime is one of my helper functions
+             features = rf_features,
+             train = hamby173and252_train,
+             test = hamby224_test %>% 
+               arrange(case) %>% 
+               select(rf_features) %>% 
+               na.omit(),
+             rfmodel = logistic_mains,
+             label = "TRUE",
+             nfeatures = 3,
+             seed = TRUE)
+  
+  # Separate the lime and explain function results from the full data
+  logistic_lime <- map(logistic_lime_explain, function(list) list$lime)
+  logistic_explain <- map_df(logistic_lime_explain, function(list) list$explain)
+  
+  # Name the items in the lime list
+  names(logistic_lime) <- map_chr(1:22, function(case) 
+      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s, bin_method = %s, response = %s",
+              logistic_lime_inputs$bin_continuous[case],
+              logistic_lime_inputs$quantile_bins[case],
+              logistic_lime_inputs$nbins[case],
+              logistic_lime_inputs$use_density[case],
+              logistic_lime_inputs$bin_method[case],
+              logistic_lime_inputs$response[case]))
+
+  # Turn the lime input options into a dataframe before saving it
+  logistic_lime_inputs <- logistic_lime_inputs %>%
+    unlist() %>%
+    matrix(ncol = length(logistic_lime_inputs), 
+           dimnames = list(NULL, names(logistic_lime_inputs))) %>%
+    as.data.frame() %>%
+    mutate(case = 1:length(logistic_lime_inputs$quantile_bins)) %>%
+    select(case, bin_continuous:response)
+  
+  # Save the lime objects
+  saveRDS(logistic_lime_inputs, "./data/logistic_lime_inputs.rds")
+  saveRDS(logistic_lime, "./data/logistic_lime.rds")
+  saveRDS(logistic_explain, "./data/logistic_explain.rds")
+  
+} else {
+  
+  # Load in the lime objects
+  logistic_lime_inputs <- readRDS("./data/logistic_lime_inputs.rds")
+  logistic_lime <- readRDS("./data/logistic_lime.rds")
+  logistic_explain <- readRDS("./data/logistic_explain.rds")
+  
+}
 ```
 
 # Session Info

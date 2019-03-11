@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2019-03-05" />
+<meta name="date" content="2019-03-11" />
 
 <title>07-logistic_regression</title>
 
@@ -222,7 +222,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">07-logistic_regression</h1>
 <h4 class="author"><em>Katherine Goode</em></h4>
-<h4 class="date"><em>March 05, 2019</em></h4>
+<h4 class="date"><em>March 11, 2019</em></h4>
 
 </div>
 
@@ -273,39 +273,7 @@ if(!file.exists(&quot;./data/logistic_mains.rds&quot;)) {
   # Load the model
   logistic_mains &lt;- readRDS(&quot;./data/logistic_mains.rds&quot;)
   
-}
-
-summary(logistic_mains)</code></pre>
-<pre><code>## 
-## Call:
-## NULL
-## 
-## Deviance Residuals: 
-##     Min       1Q   Median       3Q      Max  
-## -1.6617  -0.0759  -0.0416  -0.0239   4.8101  
-## 
-## Coefficients:
-##              Estimate Std. Error z value Pr(&gt;|z|)    
-## (Intercept) -10.02313    0.41486 -24.160  &lt; 2e-16 ***
-## ccf           1.52843    0.05079  30.093  &lt; 2e-16 ***
-## rough_cor    -0.06387    0.06440  -0.992 0.321335    
-## D             0.78418    0.07803  10.049  &lt; 2e-16 ***
-## sd_D         -0.30758    0.07974  -3.857 0.000115 ***
-## matches       1.32252    0.09455  13.987  &lt; 2e-16 ***
-## mismatches   -1.07490    0.08229 -13.062  &lt; 2e-16 ***
-## cms          -0.07989    0.06169  -1.295 0.195318    
-## non_cms       0.81650    0.09165   8.909  &lt; 2e-16 ***
-## sum_peaks    -0.22886    0.07115  -3.216 0.001298 ** 
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## (Dispersion parameter for binomial family taken to be 1)
-## 
-##     Null deviance: 12728.0  on 83027  degrees of freedom
-## Residual deviance:  4231.3  on 83018  degrees of freedom
-## AIC: 4251.3
-## 
-## Number of Fisher Scoring iterations: 9</code></pre>
+}</code></pre>
 <p>The output from the model is shown below. The features of ccf and matches stand out as the most important features in the model.</p>
 <pre class="r"><code># Summary of the model
 summary(logistic_mains)</code></pre>
