@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, cache = TRUE)
 ```
 
 # Overview
@@ -21,6 +21,7 @@ I have been thinking a lot about it is difficult to determine whether LIME is pr
 # Load libraries
 library(furrr)
 library(future)
+library(gretchenalbrecht)
 library(lime)
 library(tidyverse)
 
@@ -194,71 +195,6 @@ if(!file.exists("./data/lime_explain_mains.rds")) {
 }
 ```
 
-```{r}
-plot_features(lime_explain_mains$explain[1:12,])
-```
-
-```{r}
-coefs <- logistic_mains$finalModel$coefficients %>% round(2)
-```
-
-The logistic regression model is 
-
-$\log\left(\frac{\hat{p}}{1-\hat{p}}\right)=$ `r coefs[[1]]` + `r coefs[[2]]` ccf + `r coefs[[3]]` rough_cor + `r coefs[[4]]` D + `r coefs[[5]]` sd_D + `r coefs[[6]]` matches + `r coefs[[7]]` mismatches + `r coefs[[8]]` cms + `r coefs[[9]]` non_cms + `r coefs[[10]]` sum_peaks
-
-where $\hat{p}=P(\mbox{samesource = TRUE})$.
-
-I started trying to compare the results from LIME to the logistic regression model, but I realized that I need to standardize my test data before I use the model to make predictions.
-
-```{r}
-m = function(x) coefs[2:10] * x
-m(hamby224_test[1,] %>% select(rf_features))
-hamby224_test[1:4,] %>% select(rf_features)
-coefs
-hamby224_test[1:4,] %>% select(rf_features) * coefs[2:10]
-```
-
-
-```{r}
-mains_test_explain <- hamby224_test %>%
-  mutate(case = as.character(case)) %>%
-  full_join(lime_explain_mains$explain, by = "case") %>%
-  mutate(case = factor(case),
-         feature = factor(feature))
-```
-
-Below is a plot of the three chosen features for each of the cases faceted by set. The features are ordered by order they were chosen by lime (ordered by magnitude of the coefficients).
-
-```{r}
-mains_test_explain %>%
-  na.omit() %>%
-  arrange(case, desc(abs(feature_weight))) %>%
-  mutate(feature_order = rep(c("first", "second", "third"), n() / 3)) %>%
-  select(case, set, feature, feature_order) %>%
-  spread(feature_order, feature) %>%
-  arrange(set, first, second, third) %>%
-  mutate(order = 1:n()) %>%
-  gather(feature_order, feature, 3:5) %>%
-  ggplot(aes(x = feature_order, y = order, fill = feature)) + 
-  geom_tile() + 
-  facet_grid(set ~ ., scales = "free_y") +
-  theme_bw() +
-  gretchenalbrecht::scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) +
-  theme(axis.text.y = element_blank(),
-        axis.ticks.y = element_blank()) + 
-  labs(x = "Order of Features Chosen", y = "Case", fill = "Feature")
-```
-
-```{r}
-pca_results <- princomp(hamby224_test %>% select(rf_features) %>% na.omit())
-pca_results$loadings
-z1 <- pca_results$scores[,1]
-z2 <- pca_results$scores[,2]
-ggplot(data.frame(z1, z2), aes(x = z1, y = z2)) + 
-  geom_point()
-biplot(pca_results)
-```
-
 ### All Input Options of LIME Applied to Main Effects Model
 
 The code below applies the LIME algorithm to the main effects logisitic regression model one time for the following different input cases:
@@ -347,6 +283,323 @@ if(!file.exists("./data/logistic_lime_inputs.rds")) {
   logistic_explain <- readRDS("./data/logistic_explain.rds")
   
 }
+```
+
+```{r}
+# Create the test_explain combined data if the file does not already exist
+if(!file.exists("./data/logistic_test_explain.rds")) {
+  
+  # Join the data and the explanations and edit and add additional variables
+  logistic_test_explain <- hamby224_test %>%
+    mutate(case = as.character(case)) %>%
+    full_join(logistic_explain, by = "case") %>%
+    mutate(case = factor(case),
+           feature_desc = factor(feature_desc),
+           feature = factor(feature),
+           nbins = factor(nbins)) %>%
+    arrange(nbins) %>%
+    mutate(nbins = as.numeric(as.character(nbins)),
+           situation = ifelse(bin_continuous == TRUE & bin_method == "quantile_bins", 
+                              sprintf("%.0f quantile", nbins),
+                              ifelse(bin_continuous == TRUE & bin_method == "equally_spaced",
+                                     sprintf("%.0f equally spaced", nbins),
+                                     ifelse(bin_continuous == TRUE & bin_method == "tree" &
+                                              response == "samesource",
+                                            sprintf("%.0f samesource tree", nbins),
+                                            ifelse(bin_continuous == TRUE & bin_method == "tree" &
+                                              response == "rfscore",
+                                              sprintf("%.0f rfscore tree", nbins),
+                                              ifelse(bin_continuous == FALSE & 
+                                                     use_density == TRUE, 
+                                                     "kernel density", 
+                                                     "normal approximation"))))) %>%
+             fct_relevel("2 quantile", "3 quantile", "4 quantile",
+                         "5 quantile", "6 quantile", "2 equally spaced",
+                         "3 equally spaced", "4 equally spaced",
+                         "5 equally spaced", "6 equally spaced",
+                         "2 samesource tree", "3 samesource tree",
+                         "4 samesource tree", "5 samesource tree",
+                         "6 samesource tree")) %>%
+    mutate(bin_situation = ifelse(bin_method == "quantile_bins" & 
+                                  bin_continuous == TRUE,
+                                  "quantile",
+                                  ifelse(bin_method == "equally_spaced" & 
+                                         bin_continuous == TRUE,
+                                         "equally spaced", 
+                                         ifelse(bin_method == "tree" & 
+                                                bin_continuous == TRUE & 
+                                                response == "samesource",
+                                                "samesource tree", 
+                                                ifelse(bin_method == "tree" & 
+                                                       bin_continuous == TRUE & 
+                                                       response == "rfscore",
+                                                       "rfscore tree", 
+                                                       ifelse(bin_continuous == FALSE & 
+                                                       use_density == TRUE, 
+                                                       "kernel density", 
+                                                       "normal approximation")))))) %>%
+    mutate(bin_situation = factor(bin_situation))
+
+  # Save the combined test and explain data
+  saveRDS(logistic_test_explain, "./data/logistic_test_explain.rds")
+   
+} else {
+  
+  # Load in the data
+  logistic_test_explain <- readRDS("./data/logistic_test_explain.rds")
+  
+}
+```
+
+This code creates and saves a dataset with summaries of the explanations.
+
+```{r}
+# Create the lime comparison data if the file does not already exist
+if(!file.exists("./data/logistic_lime_comparisons.rds")) {
+  
+  # Create a data frame with the interesting information relating to the different
+  # evaluations of lime and compute the difference and mean between the rf and rr
+  # model predictions
+  logistic_lime_comparisons <- logistic_test_explain %>%
+    select(-data, -prediction) %>%
+    group_by(case, bin_continuous, quantile_bins, nbins, use_density, bin_method, response) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(situation, bin_situation, bin_method, bin_continuous, quantile_bins, response, 
+           nbins, use_density, set, case, rf_features, rfscore, model_prediction, model_r2) %>%
+    mutate(diff = rfscore - model_prediction,
+           mean = (rfscore + model_prediction) / 2)
+    
+  
+  # Save the lime comparison data frame
+  saveRDS(logistic_lime_comparisons, "./data/logistic_lime_comparisons.rds")
+  
+} else {
+  
+  # Load in the lime comparison data frame
+  logistic_lime_comparisons <- readRDS("./data/logistic_lime_comparisons.rds")
+  
+}
+```
+
+# Visualizing Default LIME
+
+```{r}
+plot_features(lime_explain_mains$explain[1:12,])
+```
+
+```{r}
+coefs <- logistic_mains$finalModel$coefficients %>% round(2)
+```
+
+The logistic regression model is 
+
+$\log\left(\frac{\hat{p}}{1-\hat{p}}\right)=$ `r coefs[[1]]` + `r coefs[[2]]` ccf + `r coefs[[3]]` rough_cor + `r coefs[[4]]` D + `r coefs[[5]]` sd_D + `r coefs[[6]]` matches + `r coefs[[7]]` mismatches + `r coefs[[8]]` cms + `r coefs[[9]]` non_cms + `r coefs[[10]]` sum_peaks
+
+where $\hat{p}=P(\mbox{samesource = TRUE})$.
+
+I started trying to compare the results from LIME to the logistic regression model, but I realized that I need to standardize my test data before I use the model to make predictions.
+
+```{r}
+m = function(x) coefs[2:10] * x
+m(hamby224_test[1,] %>% select(rf_features))
+hamby224_test[1:4,] %>% select(rf_features)
+coefs
+hamby224_test[1:4,] %>% select(rf_features) * coefs[2:10]
+```
+
+
+```{r}
+mains_test_explain <- hamby224_test %>%
+  mutate(case = as.character(case)) %>%
+  full_join(lime_explain_mains$explain, by = "case") %>%
+  mutate(case = factor(case),
+         feature = factor(feature))
+```
+
+Below is a plot of the three chosen features for each of the cases faceted by set. The features are ordered by order they were chosen by lime (ordered by magnitude of the coefficients).
+
+```{r}
+mains_test_explain %>%
+  na.omit() %>%
+  arrange(case, desc(abs(feature_weight))) %>%
+  mutate(feature_order = rep(c("first", "second", "third"), n() / 3)) %>%
+  select(case, set, feature, feature_order) %>%
+  spread(feature_order, feature) %>%
+  arrange(set, first, second, third) %>%
+  mutate(order = 1:n()) %>%
+  gather(feature_order, feature, 3:5) %>%
+  ggplot(aes(x = feature_order, y = order, fill = feature)) + 
+  geom_tile() + 
+  facet_grid(set ~ ., scales = "free_y") +
+  theme_bw() +
+  gretchenalbrecht::scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  labs(x = "Order of Features Chosen", y = "Case", fill = "Feature")
+```
+
+```{r}
+pca_results <- princomp(hamby224_test %>% select(rf_features) %>% na.omit())
+pca_results$loadings
+z1 <- pca_results$scores[,1]
+z2 <- pca_results$scores[,2]
+ggplot(data.frame(z1, z2), aes(x = z1, y = z2)) + 
+  geom_point()
+biplot(pca_results)
+```
+
+# Visualizing All Input Options
+
+### Comparing Input Values by MSE and $R^2$
+
+In order to assess which lime implementation is doing the best job of capturing the predictions from the random forest model, I decided to calculate the mean squared error for each of the input situations. I defined the mean squared error as 
+  $$\frac{\sum_{i=1}^n (\hat{p}_{\mbox{simple},i}-\hat{p}_{\mbox{complex},i})^2}{n}$$
+where $n$ is the number of observations in the testing dataset (within a set). Additionally, I was curious to compare the fits of the ridge regression models across input values, so I calculated the average $R^2$ for each input situation.
+
+```{r}
+# Summarizing lime results
+logistic_lime_results <- logistic_lime_comparisons %>%
+  filter(!is.na(rfscore)) %>%
+  group_by(situation, bin_situation, bin_continuous, quantile_bins, nbins, use_density, 
+           bin_method, response, set) %>%
+  summarise(mse = (sum(diff^2)) / length(diff),
+            ave_r2 = mean(model_r2)) %>%
+  arrange(set) %>%
+  ungroup()
+```
+
+The plot below shows the mean squared errors for each of the input situations faceted by set. There is no one bin type that stands out as performing the best across all or most number of bins. This is unlike the results from the random forest model where the tree based bins usually performed the best.
+
+```{r}
+# Plot of MSEs
+logistic_lime_results %>%
+  mutate(bins = ifelse(nbins == 4 & bin_continuous == FALSE, "other", nbins)) %>%
+  ggplot(aes(x = bin_situation, y = mse, color = bin_situation)) +
+  geom_point() + 
+  facet_grid(set ~ bins, scales = "free_x", space = "free_x") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none") + 
+  labs(x = "Bin Type", y = "MSE", color = "") + 
+  scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
+```
+
+The plot below shows the average $R^2$ value for each of the input situations faceted by set. The results are very similar for each set, and the highest $R^2$ values occur for 2 quantile bins. With the logistic regression, the equally spaced bins or the quantile bins seem to perform the best in terms of $R^2$ across the different number of bins. The rfscore tree based bins are not as good as they were with the random forest model. However, all of the $R^2$ values are still very low for all cases.
+
+```{r}
+# Plot of R^2s
+logistic_lime_results %>%
+  mutate(bins = ifelse(nbins == 4 & bin_continuous == FALSE, "other", nbins)) %>%
+  ggplot(aes(x = bin_situation, y = ave_r2, color = bin_situation)) +
+  geom_point() + 
+  facet_grid(set ~ bins, scales = "free_x", space = "free_x") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  labs(x = "Bin Type", y = "Average R2", color = "") + 
+  scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
+```
+
+## Consistency
+
+I wanted to look at the consistency of features chosen by lime across the number of bins within different bin types. I would like the features chosen to not depend on the number of bins used. Otherwise, it will be difficult to know how many bins to use. Additionally, it would be nice if the features chosen differed across cases, so that the explanations are based on the locality of the observation and not general across all locations. The code below creates a dataset that identifies the order in which the features are chosen by lime.
+
+```{r}
+# Creates a dataset that creates columns of the chosen features by lime from first to third
+logistic_chosen_features <- logistic_test_explain %>%
+  filter(!(bin_situation %in% c("kernel density", "normal approximation"))) %>%
+  filter(!is.na(rfscore)) %>%
+  select(set, situation, bin_situation, nbins, case, samesource, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(situation, case, desc(feature_weight_abs)) %>%
+  mutate(explainer = rep(c("first", "second", "third"), length(situation) / 3)) %>%
+  select(-feature_weight, -feature_weight_abs) %>%
+  spread(explainer, feature)
+```
+
+### Fleiss's Kappa
+
+In order to access consistency, I have decided to compute Fleiss' kappa for each of the bin types. Fleiss' kappa is often used to assess the consistency across raters for any number of raters and with nominal ratings. It calculates the degree of agreement in classification over that which would be expected by chance. A description of how it is computed can be found on the wikipedia site: https://en.wikipedia.org/wiki/Fleiss%27_kappa
+
+I computed kappa for each bin situation separately for the top three features chosen. These values are plotted below for each set. For the first feature chosen by lime, the values of kappa suggest that quantile bins are the most consistent across all the number of bins followed by the samesource tree based bins.
+
+```{r}
+# Computes and plots the values of kappa
+logistic_chosen_features %>%
+  ungroup() %>%
+  select(-situation) %>%
+  gather(key = chosen, value = feature, first:third) %>%
+  spread(nbins, feature) %>%
+  select(-case) %>%
+  rename(bins2 = "2", bins3 = "3", bins4 = "4", bins5 = "5", bins6 = "6") %>%
+  group_by(set, bin_situation, chosen) %>%
+  summarise(kappa = 
+              irr::kappam.fleiss(matrix(c(bins2, bins3, bins4, bins5, bins6), 
+                                        ncol = 5))$value) %>%
+  arrange(chosen, set, bin_situation) %>%
+  ggplot(aes(x = bin_situation, y = kappa, color = chosen, group = chosen)) +
+  geom_point() + 
+  geom_line() +
+  facet_grid( ~ set) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_color_gretchenalbrecht(palette = "pink_cloud", discrete = TRUE) +
+  labs(x = "Bin Type", y = "Kappa", color = "Feature")
+```
+
+### Tile Plots of Features Chosen
+
+I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below. The results appear to be very different from the random forest results.
+
+```{r fig.height = 8, fig.width = 8}
+# Plots the top feature for each case for each bin situation
+logistic_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(first)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = nbins, y = order, fill = first)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "First Feature")
+
+# Plots the second feature for each case for each bin situation
+logistic_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(second)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = nbins, y = order, fill = second)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "Second Feature")
+
+# Plots the third feature for each case for each bin situation
+logistic_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(third)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = nbins, y = order, fill = third)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "Third Feature")
 ```
 
 # Session Info

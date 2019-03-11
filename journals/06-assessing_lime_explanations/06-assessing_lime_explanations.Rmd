@@ -21,7 +21,7 @@ This journal visualizes and compares the results from the different LIME impleme
 ```{r}
 # Load libraries
 library(gretchenalbrecht)
-library(seriation)
+#library(seriation)
 library(tidyverse)
 
 # Load in the testing data (Hamby Data 224 Sets 1 and 11)
