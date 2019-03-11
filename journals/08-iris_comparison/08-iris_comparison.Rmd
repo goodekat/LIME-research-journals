@@ -1,0 +1,356 @@
+---
+title: "08-iris_comparison"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+```
+
+I am interested in how lime performs on other random forest models. This journal applies all of the input lime options to a random forest model fit to the iris data.
+
+```{r}
+# Load libraries
+library(caret)
+library(furrr)
+library(future)
+library(gretchenalbrecht)
+
+# Source functions
+source("../../code/helper_functions.R")
+```
+
+# Training and Testing Data
+
+```{r}
+# Set a seed
+set.seed(20190311)
+
+# Randomly select two cases from within each of the three species of irises
+selected <- c(sample(1:50, 4), sample(51:100, 4), sample(101:151, 4))
+
+# Split up the features of the data into training and testing parts
+iris_train <- iris[-selected, ]
+iris_test <- iris[selected, ] %>% mutate(case = selected)
+```
+
+# Random Forest Model 
+
+```{r}
+# Random forest model run on the iris data
+iris_model <- train(iris_train %>% select(-Species), iris_train %>% pull(Species), method = 'rf') 
+
+# Predictions made using the random forest model on the testing data
+iris_model_predict <- predict(iris_model, iris_test)
+
+# Matrix of observed and predicted values
+iris_test_obs_pred <- matrix(c(iris_test %>% pull(Species), iris_model_predict), ncol = 2, byrow = FALSE)
+
+# Specify the column names
+colnames(iris_test_obs_pred) <- c("Observed", "Predicted")
+
+# Print the table
+knitr::kable(iris_test_obs_pred, align = 'c')
+```
+
+# Apply LIME
+
+```{r}
+# Apply the run_lime function if the lime results file does not already exist
+if(!file.exists("./data/iris_lime_inputs.rds")) {
+  
+  # Specify the input options to use with lime
+  iris_lime_inputs <- list(bin_continuous = c(rep(TRUE, 15), 
+                                                  rep(FALSE, 2)),
+                               quantile_bins = c(rep(TRUE, 5), 
+                                                 rep(FALSE, 5), 
+                                                 rep(TRUE, 7)),
+                               nbins = c(rep(2:6, 3), 
+                                         rep(4, 2)),
+                               use_density = c(rep(TRUE, 15), TRUE, FALSE),
+                               bin_method = c(rep("quantile_bins", 5),
+                                              rep("equally_spaced", 5),
+                                              rep("tree", 5),
+                                              rep("quantile_bins", 2)),
+                               response = c(rep(NA, 10), 
+                                            rep("Species", 5), 
+                                            rep(NA, 2)))
+  
+  # Tell R to run the upcoming code in parallel
+  plan(multiprocess)
+  
+  # Apply lime to the full training data with the specified input options
+  iris_lime_explain <- future_pmap(.l = iris_lime_inputs,
+             .f = run_lime, # run_lime is one of my helper functions
+             features = names(iris %>% select(-Species)),
+             train = iris_train,
+             test = iris_test %>% select(-case, -Species),
+             rfmodel = iris_model,
+             label = "virginica",
+             nfeatures = 3,
+             seed = TRUE)
+  
+  # Separate the lime and explain function results from the full data
+  iris_lime <- map(iris_lime_explain, function(list) list$lime)
+  iris_explain <- map_df(iris_lime_explain, function(list) list$explain)
+  
+  # Name the items in the lime list
+  names(iris_lime) <- map_chr(1:17, function(case) 
+      sprintf("case: bin_continuous = %s, quantile_bins = %s, nbins = %0.f, use_density = %s, bin_method = %s, response = %s",
+              iris_lime_inputs$bin_continuous[case],
+              iris_lime_inputs$quantile_bins[case],
+              iris_lime_inputs$nbins[case],
+              iris_lime_inputs$use_density[case],
+              iris_lime_inputs$bin_method[case],
+              iris_lime_inputs$response[case]))
+
+  # Turn the lime input options into a dataframe before saving it
+  iris_lime_inputs <- iris_lime_inputs %>%
+    unlist() %>%
+    matrix(ncol = length(iris_lime_inputs), 
+           dimnames = list(NULL, names(iris_lime_inputs))) %>%
+    as.data.frame() %>%
+    mutate(case = 1:length(iris_lime_inputs$quantile_bins)) %>%
+    select(case, bin_continuous:response)
+  
+  # Save the lime objects
+  saveRDS(iris_lime_inputs, "./data/iris_lime_inputs.rds")
+  saveRDS(iris_lime, "./data/iris_lime.rds")
+  saveRDS(iris_explain, "./data/iris_explain.rds")
+  
+} else {
+  
+  # Load in the lime objects
+  iris_lime_inputs <- readRDS("./data/iris_lime_inputs.rds")
+  iris_lime <- readRDS("./data/iris_lime.rds")
+  iris_explain <- readRDS("./data/iris_explain.rds")
+  
+}
+```
+
+```{r}
+# Create the test_explain combined data if the file does not already exist
+if(!file.exists("./data/iris_test_explain.rds")) {
+  
+  # Join the data and the explanations and edit and add additional variables
+  iris_test_explain <- iris_test %>%
+    mutate(case = as.character(case),
+           rfscore = predict(iris_model, iris_test, type = "prob") %>% pull(virginica)) %>%
+    full_join(iris_explain, by = "case") %>%
+    mutate(case = factor(case),
+           feature_desc = factor(feature_desc),
+           feature = factor(feature),
+           nbins = factor(nbins)) %>%
+    arrange(nbins) %>%
+    mutate(nbins = as.numeric(as.character(nbins)),
+           situation = ifelse(bin_continuous == TRUE & bin_method == "quantile_bins", 
+                              sprintf("%.0f quantile", nbins),
+                              ifelse(bin_continuous == TRUE & bin_method == "equally_spaced",
+                                     sprintf("%.0f equally spaced", nbins),
+                                     ifelse(bin_continuous == TRUE & bin_method == "tree" &
+                                              response == "Species",
+                                            sprintf("%.0f tree", nbins),
+                                            ifelse(bin_continuous == FALSE & 
+                                                   use_density == TRUE, 
+                                                   "kernel density", 
+                                                   "normal approximation")))) %>%
+             fct_relevel("2 quantile", "3 quantile", "4 quantile",
+                         "5 quantile", "6 quantile", "2 equally spaced",
+                         "3 equally spaced", "4 equally spaced",
+                         "5 equally spaced", "6 equally spaced",
+                         "2 Species tree", "3 Species tree",
+                         "4 Species tree", "5 Species tree",
+                         "6 Species tree")) %>%
+    mutate(bin_situation = ifelse(bin_method == "quantile_bins" & 
+                                  bin_continuous == TRUE,
+                                  "quantile",
+                                  ifelse(bin_method == "equally_spaced" & 
+                                         bin_continuous == TRUE,
+                                         "equally spaced", 
+                                         ifelse(bin_method == "tree" & 
+                                                bin_continuous == TRUE & 
+                                                response == "Species",
+                                                "Species tree", 
+                                                ifelse(bin_continuous == FALSE & 
+                                                       use_density == TRUE, 
+                                                       "kernel density", 
+                                                       "normal approximation"))))) %>%
+    mutate(bin_situation = factor(bin_situation))
+
+  # Save the combined test and explain data
+  saveRDS(iris_test_explain, "./data/iris_test_explain.rds")
+   
+} else {
+  
+  # Load in the data
+  iris_test_explain <- readRDS("./data/iris_test_explain.rds")
+  
+}
+```
+
+This code creates and saves a dataset with summaries of the explanations.
+
+```{r}
+# Create the lime comparison data if the file does not already exist
+if(!file.exists("./data/iris_lime_comparisons.rds")) {
+  
+  # Create a data frame with the interesting information relating to the different
+  # evaluations of lime and compute the difference and mean between the rf and rr
+  # model predictions
+  iris_lime_comparisons <- iris_test_explain %>%
+    select(-data, -prediction) %>%
+    group_by(case, bin_continuous, quantile_bins, nbins, use_density, bin_method) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(diff = rfscore - model_prediction,
+           mean = (rfscore + model_prediction) / 2)
+    
+  
+  # Save the lime comparison data frame
+  saveRDS(iris_lime_comparisons, "./data/iris_lime_comparisons.rds")
+  
+} else {
+  
+  # Load in the lime comparison data frame
+  iris_lime_comparisons <- readRDS("./data/iris_lime_comparisons.rds")
+  
+}
+```
+
+# Visualizing LIME Results
+
+```{r}
+# Summarizing lime results
+iris_lime_results <- iris_lime_comparisons %>%
+  group_by(situation, bin_situation, bin_continuous, quantile_bins, nbins, use_density, 
+           bin_method, response) %>%
+  summarise(mse = (sum(diff^2)) / length(diff),
+            ave_r2 = mean(model_r2)) %>%
+  ungroup()
+```
+
+```{r}
+# Plot of MSEs
+iris_lime_results %>%
+  mutate(bins = ifelse(nbins == 4 & bin_continuous == FALSE, "other", nbins)) %>%
+  ggplot(aes(x = bin_situation, y = mse, color = bin_situation)) +
+  geom_point() + 
+  facet_grid(~ bins, scales = "free_x", space = "free_x") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none") + 
+  labs(x = "Bin Type", y = "MSE", color = "") + 
+  scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
+```
+
+```{r}
+# Plot of R^2s
+iris_lime_results %>%
+  mutate(bins = ifelse(nbins == 4 & bin_continuous == FALSE, "other", nbins)) %>%
+  ggplot(aes(x = bin_situation, y = ave_r2, color = bin_situation)) +
+  geom_point() + 
+  facet_grid( ~ bins, scales = "free_x", space = "free_x") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  labs(x = "Bin Type", y = "Average R2", color = "") + 
+  scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
+```
+
+```{r}
+# Creates a dataset that creates columns of the chosen features by lime from first to third
+iris_chosen_features <- iris_test_explain %>%
+  filter(!(bin_situation %in% c("kernel density", "normal approximation"))) %>%
+  filter(!is.na(rfscore)) %>%
+  select(situation, bin_situation, nbins, case, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(situation, case, desc(feature_weight_abs)) %>%
+  mutate(explainer = rep(c("first", "second", "third"), length(situation) / 3)) %>%
+  select(-feature_weight, -feature_weight_abs) %>%
+  spread(explainer, feature)
+```
+
+```{r}
+# Computes and plots the values of kappa
+iris_chosen_features %>%
+  ungroup() %>%
+  select(-situation) %>%
+  gather(key = chosen, value = feature, first:third) %>%
+  spread(nbins, feature) %>%
+  select(-case) %>%
+  rename(bins2 = "2", bins3 = "3", bins4 = "4", bins5 = "5", bins6 = "6") %>%
+  group_by(bin_situation, chosen) %>%
+  summarise(kappa = 
+              irr::kappam.fleiss(matrix(c(bins2, bins3, bins4, bins5, bins6), 
+                                        ncol = 5))$value) %>%
+  arrange(chosen, bin_situation) %>%
+  ggplot(aes(x = bin_situation, y = kappa, color = chosen, group = chosen)) +
+  geom_point() + 
+  geom_line() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_color_gretchenalbrecht(palette = "pink_cloud", discrete = TRUE) +
+  labs(x = "Bin Type", y = "Kappa", color = "Feature")
+```
+
+```{r}
+# Plots the top feature for each case for each bin situation
+iris_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(first)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 3))) %>%
+  ggplot(aes(x = nbins, y = order, fill = first)) + 
+  geom_tile() + 
+  facet_grid( ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "First Feature")
+
+# Plots the second feature for each case for each bin situation
+iris_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(second)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 3))) %>%
+  ggplot(aes(x = nbins, y = order, fill = second)) + 
+  geom_tile() + 
+  facet_grid( ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "Second Feature")
+
+# Plots the third feature for each case for each bin situation
+iris_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(third)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 3))) %>%
+  ggplot(aes(x = nbins, y = order, fill = third)) + 
+  geom_tile() + 
+  facet_grid( ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "Third Feature")
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

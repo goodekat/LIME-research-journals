@@ -1,0 +1,17 @@
+base
+lattice
+ggplot2
+caret
+future
+furrr
+tidyverse
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+tree
+assertthat
+gretchenalbrecht
