@@ -6,22 +6,22 @@ TO DO LIST
 https://isu-csafe.stat.iastate.edu/rstudio/
 
 Questions:
-- conference money
-- hosting gg presentation
-- the paralle coordinate plot does not seem to help...
 
 Completed:
+- ran all implementations of lime with logistic regression models 
+- made better parallel coordinate plots
+- applied LIME to iris data
 
 Current Week:
 - change distance matrix in seriation to be 5-# of variables shared between two rows
 - fix issue with seriation
 - try fitting LASSO logistic model and leave one out approach (for multicollinarity)
 - assess lime results on logistic regression models
-- run all implementations of lime with logistic regression models 
 - think about how to implement a simulation with a random forest
-- make better parallel coordinate plots
+- add in feature selection methods to LIME input options
 
 Later:
+- turn repetitive code into functions
 - try retriculate to apply python version of lime
 - look at 'removing the blindfold' for ideas
 - read through Heike's new function
