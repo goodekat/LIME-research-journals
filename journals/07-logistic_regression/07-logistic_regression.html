@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2019-03-11" />
+<meta name="date" content="2019-03-12" />
 
 <title>07-logistic_regression</title>
 
@@ -285,7 +285,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">07-logistic_regression</h1>
 <h4 class="author"><em>Katherine Goode</em></h4>
-<h4 class="date"><em>March 11, 2019</em></h4>
+<h4 class="date"><em>March 12, 2019</em></h4>
 
 </div>
 
@@ -296,7 +296,9 @@ div.tocify {
 <pre class="r"><code># Load libraries
 library(furrr)
 library(future)
+library(glmnet)
 library(gretchenalbrecht)
+library(hierNet)
 library(lime)
 library(tidyverse)
 
@@ -400,7 +402,7 @@ if(!file.exists(&quot;./data/logistic_inters2.rds&quot;)) {
 
 } else{
   
-   # Load the model
+  # Load the model
   logistic_inters2 &lt;- readRDS(&quot;./data/logistic_inters2.rds&quot;)
   
 }</code></pre>
@@ -408,8 +410,41 @@ if(!file.exists(&quot;./data/logistic_inters2.rds&quot;)) {
 <pre class="r"><code># Summary of the model
 summary(logistic_inters2)</code></pre>
 </div>
-<div id="comparing-the-two-models" class="section level3">
-<h3>Comparing the Two Models</h3>
+<div id="lasso-model" class="section level3">
+<h3>LASSO Model</h3>
+<pre class="r"><code># Fit or load the lasso logistic regression model
+if(!file.exists(&quot;./data/logistic_lasso.rds&quot;)) {
+  
+  # Set a seed
+  set.seed(20190312)
+
+  # LASSO logistic regression model
+  logistic_lasso &lt;- cv.glmnet(x = hamby173and252_train %&gt;% select(rf_features) %&gt;% as.matrix(ncol = 9), 
+                              y = hamby173and252_train %&gt;% pull(samesource) %&gt;% as.numeric(),
+                              alpha = 1,
+                              family = &quot;binomial&quot;)
+
+  # Tell R to run the upcoming code in parallel
+  # plan(multiprocess)
+  
+  # LASSO logistic regression model with possible pairwise interactions
+  # logistic_lasso &lt;- 
+  #   hierNet.logistic.path(x = hamby173and252_train %&gt;% select(rf_features) %&gt;% as.matrix(ncol = 9), 
+  #                         y = hamby173and252_train %&gt;% pull(samesource) %&gt;% as.numeric(), 
+  #                         lamlist = logistic_lasso$lambda)
+  
+  # Save the model
+  saveRDS(logistic_lasso, &quot;./data/logistic_lasso.rds&quot;)
+  
+} else {
+  
+  # Load the model
+  logistic_lasso &lt;- readRDS(&quot;./data/logistic_lasso.rds&quot;)
+  
+}</code></pre>
+</div>
+<div id="comparing-the-models" class="section level3">
+<h3>Comparing the Models</h3>
 <p>The results as computed by caret on the training data are shown below for the two logistic regression models. The accuracy shows that the models with two way interactions performs better on the training data.</p>
 <pre class="r"><code># Results from the models
 data.frame(model = c(&quot;mains&quot;, &quot;inters2&quot;)) %&gt;%
@@ -830,7 +865,7 @@ logistic_chosen_features %&gt;%
 </div>
 <div id="tile-plots-of-features-chosen" class="section level3">
 <h3>Tile Plots of Features Chosen</h3>
-<p>I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below. The results appear to be very different from the random forest results.</p>
+<p>I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below. The results appear to be different from the random forest results, but it is still possible to se vertical stripes that suggest a global interpretation as opposed to a local interpretation. However, the samesource bins do have some horizontal stipes that show what we would like to see. It is also interesting to note that the vertical bins are the most pronounced with the rfscore tree. This does not suprise me considering that these explanations are for a logistic regression and not the random forest model.</p>
 <pre class="r"><code># Plots the top feature for each case for each bin situation
 logistic_chosen_features %&gt;%
   group_by(bin_situation, case) %&gt;%
@@ -905,35 +940,42 @@ logistic_chosen_features %&gt;%
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-##  [1] gretchenalbrecht_0.1.0 assertthat_0.2.0       tree_1.0-39           
-##  [4] forcats_0.2.0          stringr_1.4.0          dplyr_0.8.0.1         
-##  [7] purrr_0.3.0            readr_1.3.1            tidyr_0.8.2           
-## [10] tibble_2.0.1           ggplot2_3.1.0          tidyverse_1.2.1       
-## [13] lime_0.4.1             furrr_0.1.0            future_1.11.1.1       
+##  [1] hierNet_1.7            glmnet_2.0-16          foreach_1.4.4         
+##  [4] Matrix_1.2-14          gretchenalbrecht_0.1.0 assertthat_0.2.0      
+##  [7] tree_1.0-39            forcats_0.2.0          stringr_1.4.0         
+## [10] dplyr_0.8.0.1          purrr_0.3.0            readr_1.3.1           
+## [13] tidyr_0.8.2            tibble_2.0.1           ggplot2_3.1.0         
+## [16] tidyverse_1.2.1        lime_0.4.1             furrr_0.1.0           
+## [19] future_1.11.1.1       
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] Rcpp_1.0.0        lubridate_1.7.1   lattice_0.20-38  
-##  [4] listenv_0.7.0     glmnet_2.0-16     digest_0.6.18    
-##  [7] psych_1.7.8       foreach_1.4.4     mime_0.6         
-## [10] R6_2.4.0          cellranger_1.1.0  plyr_1.8.4       
-## [13] evaluate_0.13     httr_1.4.0        pillar_1.3.1     
-## [16] rlang_0.3.1       lazyeval_0.2.1    readxl_1.0.0     
-## [19] rstudioapi_0.7    Matrix_1.2-14     rmarkdown_1.11   
-## [22] labeling_0.3      shinythemes_1.1.2 gower_0.2.0      
-## [25] foreign_0.8-70    htmlwidgets_1.3   munsell_0.5.0    
-## [28] shiny_1.2.0       broom_0.4.3       compiler_3.4.4   
-## [31] httpuv_1.4.5.1    modelr_0.1.1      xfun_0.5         
-## [34] pkgconfig_2.0.2   mnormt_1.5-5      globals_0.12.4   
-## [37] htmltools_0.3.6   tidyselect_0.2.5  lpSolve_5.6.13   
-## [40] codetools_0.2-15  withr_2.1.2       crayon_1.3.4     
-## [43] later_0.8.0       grid_3.4.4        nlme_3.1-137     
-## [46] jsonlite_1.6      xtable_1.8-2      gtable_0.2.0     
-## [49] magrittr_1.5      scales_1.0.0      cli_1.0.1        
-## [52] stringi_1.3.1     reshape2_1.4.3    promises_1.0.1   
-## [55] xml2_1.2.0        irr_0.84.1        iterators_1.0.10 
-## [58] tools_3.4.4       glue_1.3.0        hms_0.4.2        
-## [61] parallel_3.4.4    yaml_2.2.0        colorspace_1.4-0 
-## [64] rvest_0.3.2       knitr_1.21        haven_1.1.0</code></pre>
+##  [1] nlme_3.1-137       lubridate_1.7.1    httr_1.4.0        
+##  [4] tools_3.4.4        R6_2.4.0           rpart_4.1-13      
+##  [7] irr_0.84.1         lazyeval_0.2.1     colorspace_1.4-0  
+## [10] nnet_7.3-12        withr_2.1.2        tidyselect_0.2.5  
+## [13] mnormt_1.5-5       compiler_3.4.4     cli_1.0.1         
+## [16] rvest_0.3.2        xml2_1.2.0         labeling_0.3      
+## [19] scales_1.0.0       psych_1.7.8        digest_0.6.18     
+## [22] foreign_0.8-70     rmarkdown_1.11     pkgconfig_2.0.2   
+## [25] htmltools_0.3.6    htmlwidgets_1.3    rlang_0.3.1       
+## [28] readxl_1.0.0       rstudioapi_0.7     shiny_1.2.0       
+## [31] generics_0.0.2     jsonlite_1.6       ModelMetrics_1.2.2
+## [34] magrittr_1.5       Rcpp_1.0.0         munsell_0.5.0     
+## [37] stringi_1.3.1      yaml_2.2.0         MASS_7.3-50       
+## [40] plyr_1.8.4         recipes_0.1.4      grid_3.4.4        
+## [43] parallel_3.4.4     listenv_0.7.0      promises_1.0.1    
+## [46] crayon_1.3.4       lattice_0.20-38    haven_1.1.0       
+## [49] splines_3.4.4      hms_0.4.2          knitr_1.21        
+## [52] pillar_1.3.1       lpSolve_5.6.13     reshape2_1.4.3    
+## [55] codetools_0.2-15   stats4_3.4.4       glue_1.3.0        
+## [58] evaluate_0.13      data.table_1.12.0  modelr_0.1.1      
+## [61] httpuv_1.4.5.1     cellranger_1.1.0   gtable_0.2.0      
+## [64] xfun_0.5           gower_0.2.0        mime_0.6          
+## [67] prodlim_2018.04.18 xtable_1.8-2       broom_0.4.3       
+## [70] later_0.8.0        class_7.3-14       survival_2.43-3   
+## [73] timeDate_3043.102  shinythemes_1.1.2  iterators_1.0.10  
+## [76] lava_1.6.5         globals_0.12.4     caret_6.0-81      
+## [79] ipred_0.9-8</code></pre>
 </div>
 
 

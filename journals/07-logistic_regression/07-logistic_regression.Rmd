@@ -21,7 +21,9 @@ I have been thinking a lot about it is difficult to determine whether LIME is pr
 # Load libraries
 library(furrr)
 library(future)
+library(glmnet)
 library(gretchenalbrecht)
+library(hierNet)
 library(lime)
 library(tidyverse)
 
@@ -112,7 +114,7 @@ if(!file.exists("./data/logistic_inters2.rds")) {
 
 } else{
   
-   # Load the model
+  # Load the model
   logistic_inters2 <- readRDS("./data/logistic_inters2.rds")
   
 }
@@ -125,7 +127,42 @@ The output from this model is not shown.
 summary(logistic_inters2)
 ```
 
-### Comparing the Two Models
+### LASSO Model
+
+```{r}
+# Fit or load the lasso logistic regression model
+if(!file.exists("./data/logistic_lasso.rds")) {
+  
+  # Set a seed
+  set.seed(20190312)
+
+  # LASSO logistic regression model
+  logistic_lasso <- cv.glmnet(x = hamby173and252_train %>% select(rf_features) %>% as.matrix(ncol = 9), 
+                              y = hamby173and252_train %>% pull(samesource) %>% as.numeric(),
+                              alpha = 1,
+                              family = "binomial")
+
+  # Tell R to run the upcoming code in parallel
+  # plan(multiprocess)
+  
+  # LASSO logistic regression model with possible pairwise interactions
+  # logistic_lasso <- 
+  #   hierNet.logistic.path(x = hamby173and252_train %>% select(rf_features) %>% as.matrix(ncol = 9), 
+  #                         y = hamby173and252_train %>% pull(samesource) %>% as.numeric(), 
+  #                         lamlist = logistic_lasso$lambda)
+  
+  # Save the model
+  saveRDS(logistic_lasso, "./data/logistic_lasso.rds")
+  
+} else {
+  
+  # Load the model
+  logistic_lasso <- readRDS("./data/logistic_lasso.rds")
+  
+}
+```
+
+### Comparing the Models
 
 The results as computed by caret on the training data are shown below for the two logistic regression models. The accuracy shows that the models with two way interactions performs better on the training data.
 
@@ -550,7 +587,7 @@ logistic_chosen_features %>%
 
 ### Tile Plots of Features Chosen
 
-I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below. The results appear to be very different from the random forest results.
+I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below. The results appear to be different from the random forest results, but it is still possible to se vertical stripes that suggest a global interpretation as opposed to a local interpretation. However, the samesource bins do have some horizontal stipes that show what we would like to see. It is also interesting to note that the vertical bins are the most pronounced with the rfscore tree. This does not suprise me considering that these explanations are for a logistic regression and not the random forest model.
 
 ```{r fig.height = 8, fig.width = 8}
 # Plots the top feature for each case for each bin situation

@@ -323,7 +323,7 @@ iris_chosen_features %>%
   labs(x = "Bin Type", y = "Kappa", color = "Feature")
 ```
 
-The following plots show the features chosen by each estimation method for all of the cases in the test dataset. The plots are created the by order the features are chosen (from first to third). I am not seeing the same patterns that I saw with the bullet data and `rtrees`.
+The following plots show the features chosen by each estimation method for all of the cases in the test dataset. The plots are created the by order the features are chosen (from first to third). I am not seeing the same patterns that I saw with the bullet data and `rtrees`. Heike pointed out that you really do not need a complex model to explain this situation. The iris data should be easy to predict. Maybe I could switch to using the problem points in the iris data for the test data and see how LIME performs with these.
 
 ```{r}
 # Plots the top feature for each case for each bin situation
