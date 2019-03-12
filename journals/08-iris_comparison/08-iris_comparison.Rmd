@@ -323,7 +323,7 @@ iris_chosen_features %>%
   labs(x = "Bin Type", y = "Kappa", color = "Feature")
 ```
 
-The following plots show the features chosen by each estimation method for all of the cases in the test dataset. The plots are created the by order the features are chosen (from first to third).
+The following plots show the features chosen by each estimation method for all of the cases in the test dataset. The plots are created the by order the features are chosen (from first to third). I am not seeing the same patterns that I saw with the bullet data and `rtrees`.
 
 ```{r}
 # Plots the top feature for each case for each bin situation

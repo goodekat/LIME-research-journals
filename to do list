@@ -11,9 +11,9 @@ Completed:
 - ran all implementations of lime with logistic regression models 
 - made better parallel coordinate plots
 - applied LIME to iris data
+- iris comparison
 
 Current Week:
-- iris comparison
 - change distance matrix in seriation to be 5-# of variables shared between two rows
 - fix issue with seriation
 - try fitting LASSO logistic model and leave one out approach (for multicollinarity)
