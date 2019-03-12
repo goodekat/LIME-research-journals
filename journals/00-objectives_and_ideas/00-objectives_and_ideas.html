@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2019-02-26" />
+<meta name="date" content="2019-03-12" />
 
 <title>00-objectives_and_ideas</title>
 
@@ -101,9 +101,6 @@ img {
 button.code-folding-btn:focus {
   outline: none;
 }
-summary {
-  display: list-item;
-}
 </style>
 
 
@@ -111,74 +108,14 @@ summary {
 <div class="container-fluid main-container">
 
 <!-- tabsets -->
-
-<style type="text/css">
-.tabset-dropdown > .nav-tabs {
-  display: inline-table;
-  max-height: 500px;
-  min-height: 44px;
-  overflow-y: auto;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.tabset-dropdown > .nav-tabs > li.active:before {
-  content: "";
-  font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-  content: "";
-  border: none;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "";
-  font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
-}
-
-.tabset-dropdown > .nav-tabs > li.active {
-  display: block;
-}
-
-.tabset-dropdown > .nav-tabs > li > a,
-.tabset-dropdown > .nav-tabs > li > a:focus,
-.tabset-dropdown > .nav-tabs > li > a:hover {
-  border: none;
-  display: inline-block;
-  border-radius: 4px;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
-  display: block;
-  float: none;
-}
-
-.tabset-dropdown > .nav-tabs > li {
-  display: none;
-}
-</style>
-
 <script>
 $(document).ready(function () {
   window.buildTabsets("TOC");
 });
-
-$(document).ready(function () {
-  $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
-  });
-});
 </script>
 
 <!-- code folding -->
+
 
 
 
@@ -285,7 +222,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">00-objectives_and_ideas</h1>
 <h4 class="author"><em>Katherine Goode</em></h4>
-<h4 class="date"><em>February 26, 2019</em></h4>
+<h4 class="date"><em>March 12, 2019</em></h4>
 
 </div>
 
@@ -297,6 +234,14 @@ div.tocify {
 <div id="objectives-of-the-research-project" class="section level1">
 <h1>Objectives of the Research Project</h1>
 <p>It is the hope that this research project will result in two papers. One will focus on a statistical assessment of LIME and the other will focus on the explanation of how the application of LIME to the Hamby bullet data can help firearm examiners understand the random forest model predictions.</p>
+<div id="statistical-paper-presenting-visual-diagnostic-tools-for-lime" class="section level3">
+<h3>Statistical Paper Presenting Visual Diagnostic Tools for LIME</h3>
+<p>Write a paper that introduces some visual diagnostics for LIME to assess its performance. Key points that will be made:</p>
+<ol style="list-style-type: decimal">
+<li>explainer model is really bad (probably due to the binning)</li>
+<li>local explanations at not local</li>
+</ol>
+</div>
 <div id="statistical-paper-assessing-lime" class="section level3">
 <h3>Statistical Paper Assessing LIME</h3>
 <p>While applying LIME to the bullet matching dataset, we found that the explanations were not as good as we wanted them to be. This has led us to try to understand why the LIME algorithm is not working well and to propose some new methods to improve the algorithm. This paper will discuss isusses we found with the current LIME agorithm, describe our proposed approaches, and compare the results.</p>
@@ -327,6 +272,7 @@ div.tocify {
 <li>could include interactions in the model</li>
 <li>does lime find the local models?</li>
 </ul></li>
+<li>Maybe we could come up with a test to compare between global and local explanations (but how would we do this?)</li>
 </ul>
 </div>
 <div id="general-thoughts-about-lime" class="section level1">

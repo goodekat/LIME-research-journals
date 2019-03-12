@@ -12,9 +12,11 @@ Completed:
 - made better parallel coordinate plots
 - applied LIME to iris data
 - iris comparison
+- mention rf interpretations discussed at consulting tea
 
 Current Week:
 - change distance matrix in seriation to be 5-# of variables shared between two rows
+  or try using distance matrix computed on the feature values
 - fix issue with seriation
 - try fitting LASSO logistic model and leave one out approach (for multicollinarity)
 - assess lime results on logistic regression models

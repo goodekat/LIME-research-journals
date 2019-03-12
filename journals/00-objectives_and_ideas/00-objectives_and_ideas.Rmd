@@ -21,6 +21,13 @@ This journal explains the objectives of the research project on applying LIME to
 
 It is the hope that this research project will result in two papers. One will focus on a statistical assessment of LIME and the other will focus on the explanation of how the application of LIME to the Hamby bullet data can help firearm examiners understand the random forest model predictions.
 
+### Statistical Paper Presenting Visual Diagnostic Tools for LIME
+
+Write a paper that introduces some visual diagnostics for LIME to assess its performance. Key points that will be made:
+
+1. explainer model is really bad (probably due to the binning)
+2. local explanations at not local
+
 ### Statistical Paper Assessing LIME
 
 While applying LIME to the bullet matching dataset, we found that the explanations were not as good as we wanted them to be. This has led us to try to understand why the LIME algorithm is not working well and to propose some new methods to improve the algorithm. This paper will discuss isusses we found with the current LIME agorithm, describe our proposed approaches, and compare the results.
@@ -46,6 +53,7 @@ The following are some of the concerns that we have with the current state of th
     - piece this together
     - could include interactions in the model
     - does lime find the local models?
+- Maybe we could come up with a test to compare between global and local explanations (but how would we do this?)
 
 # General Thoughts about LIME
 
