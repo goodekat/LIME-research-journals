@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, cache = TRUE)
 ```
 
 I am interested in how lime performs on other random forest models. This journal applies all of the input lime options to a random forest model fit to the iris data.
@@ -21,6 +21,7 @@ library(caret)
 library(furrr)
 library(future)
 library(gretchenalbrecht)
+library(lime)
 
 # Source functions
 source("../../code/helper_functions.R")
@@ -28,38 +29,48 @@ source("../../code/helper_functions.R")
 
 # Training and Testing Data
 
+Iris is randomly split into training and testing datasets such that all of the species are represented in the testing data.
+
 ```{r}
 # Set a seed
 set.seed(20190311)
 
 # Randomly select two cases from within each of the three species of irises
-selected <- c(sample(1:50, 4), sample(51:100, 4), sample(101:151, 4))
+selected <- c(sample(1:50, 4), sample(51:100, 4), sample(101:150, 4))
+
+# Determine the case numbers that were not selected
+cases <- 1:150
+not_selected <- cases[!(cases %in% selected)]
 
 # Split up the features of the data into training and testing parts
 iris_train <- iris[-selected, ]
-iris_test <- iris[selected, ] %>% mutate(case = selected)
+iris_test <- iris[selected, ] %>% mutate(case = 1:n())
 ```
 
 # Random Forest Model 
 
+A random forest model is fit to the iris data. The predictions from the model for the testing data are shown in the table below with the actual observed values. The model gets all of the predictions correct.
+
 ```{r}
-# Random forest model run on the iris data
-iris_model <- train(iris_train %>% select(-Species), iris_train %>% pull(Species), method = 'rf') 
+# Random forest model run on the iris training data
+iris_model <- train(x = iris_train %>% select(-Species), 
+                    y = iris_train %>% pull(Species), 
+                    method = 'rf') 
 
 # Predictions made using the random forest model on the testing data
-iris_model_predict <- predict(iris_model, iris_test)
+iris_model_predict <- predict(iris_model, iris_test %>% select(-Species, - case))
 
 # Matrix of observed and predicted values
-iris_test_obs_pred <- matrix(c(iris_test %>% pull(Species), iris_model_predict), ncol = 2, byrow = FALSE)
-
-# Specify the column names
-colnames(iris_test_obs_pred) <- c("Observed", "Predicted")
+iris_test_obs_pred <- data.frame(Observed = iris_test %>% pull(Species),
+                                 Predicted = iris_model_predict)
 
 # Print the table
 knitr::kable(iris_test_obs_pred, align = 'c')
 ```
 
 # Apply LIME
+
+LIME is applied using all density estimation methods with 2 to 5 bins for all of the bin based methods.
 
 ```{r}
 # Apply the run_lime function if the lime results file does not already exist
@@ -134,6 +145,8 @@ if(!file.exists("./data/iris_lime_inputs.rds")) {
 }
 ```
 
+The explanations from LIME are joined with the testing data. Additionally, the random forest scores for the probability that a case is species virginica are added to the dataset. This is the only species that will be considered (for now at least).
+
 ```{r}
 # Create the test_explain combined data if the file does not already exist
 if(!file.exists("./data/iris_test_explain.rds")) {
@@ -144,7 +157,6 @@ if(!file.exists("./data/iris_test_explain.rds")) {
            rfscore = predict(iris_model, iris_test, type = "prob") %>% pull(virginica)) %>%
     full_join(iris_explain, by = "case") %>%
     mutate(case = factor(case),
-           feature_desc = factor(feature_desc),
            feature = factor(feature),
            nbins = factor(nbins)) %>%
     arrange(nbins) %>%
@@ -164,9 +176,9 @@ if(!file.exists("./data/iris_test_explain.rds")) {
                          "5 quantile", "6 quantile", "2 equally spaced",
                          "3 equally spaced", "4 equally spaced",
                          "5 equally spaced", "6 equally spaced",
-                         "2 Species tree", "3 Species tree",
-                         "4 Species tree", "5 Species tree",
-                         "6 Species tree")) %>%
+                         "2 tree", "3 tree",
+                         "4 tree", "5 tree",
+                         "6 tree")) %>%
     mutate(bin_situation = ifelse(bin_method == "quantile_bins" & 
                                   bin_continuous == TRUE,
                                   "quantile",
@@ -176,7 +188,7 @@ if(!file.exists("./data/iris_test_explain.rds")) {
                                          ifelse(bin_method == "tree" & 
                                                 bin_continuous == TRUE & 
                                                 response == "Species",
-                                                "Species tree", 
+                                                "tree", 
                                                 ifelse(bin_continuous == FALSE & 
                                                        use_density == TRUE, 
                                                        "kernel density", 
@@ -194,7 +206,7 @@ if(!file.exists("./data/iris_test_explain.rds")) {
 }
 ```
 
-This code creates and saves a dataset with summaries of the explanations.
+Summaries of the explanations are computed and saved in a dataset.
 
 ```{r}
 # Create the lime comparison data if the file does not already exist
@@ -225,6 +237,10 @@ if(!file.exists("./data/iris_lime_comparisons.rds")) {
 
 # Visualizing LIME Results
 
+All of the results in this section are in terms of the species virginica. 
+
+The MSEs and average $R^2$ values are computed for each of the estimation methods.
+
 ```{r}
 # Summarizing lime results
 iris_lime_results <- iris_lime_comparisons %>%
@@ -234,6 +250,8 @@ iris_lime_results <- iris_lime_comparisons %>%
             ave_r2 = mean(model_r2)) %>%
   ungroup()
 ```
+
+A plot of the MSEs is shown below.
 
 ```{r}
 # Plot of MSEs
@@ -249,6 +267,8 @@ iris_lime_results %>%
   scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
 ```
 
+A plot of the $R^2$ values is shown below. The $R^2$ values are much higher than 
+
 ```{r}
 # Plot of R^2s
 iris_lime_results %>%
@@ -263,6 +283,8 @@ iris_lime_results %>%
   scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
 ```
 
+The features chosen are sorted below.
+
 ```{r}
 # Creates a dataset that creates columns of the chosen features by lime from first to third
 iris_chosen_features <- iris_test_explain %>%
@@ -275,6 +297,8 @@ iris_chosen_features <- iris_test_explain %>%
   select(-feature_weight, -feature_weight_abs) %>%
   spread(explainer, feature)
 ```
+
+A plot of Fleiss's kappa values is shown below.
 
 ```{r}
 # Computes and plots the values of kappa
@@ -298,6 +322,8 @@ iris_chosen_features %>%
   scale_color_gretchenalbrecht(palette = "pink_cloud", discrete = TRUE) +
   labs(x = "Bin Type", y = "Kappa", color = "Feature")
 ```
+
+The following plots show the features chosen by each estimation method for all of the cases in the test dataset. The plots are created the by order the features are chosen (from first to third).
 
 ```{r}
 # Plots the top feature for each case for each bin situation
