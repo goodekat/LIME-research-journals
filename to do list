@@ -8,8 +8,11 @@ https://isu-csafe.stat.iastate.edu/rstudio/
 Questions:
 
 Completed:
+- fixed parallel coordinate plots
 
 Current Week:
+- start writing paper
+- finish journal on understanding lime
 - change distance matrix in seriation to be 5-# of variables shared between two rows
   or try using distance matrix computed on the feature values
 - fix issue with seriation
