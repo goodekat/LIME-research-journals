@@ -1,5 +1,6 @@
 ---
-title: "An Assessment of LIME Explanations from a Random Forest Models"
+title: "Visual Diagnostics of a Model Explainer"
+subtitle: "Tools for the Assessment of LIME Explanations"
 author: "Katherine Goode and Heike Hofmann"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: 
@@ -9,12 +10,32 @@ output:
 
 ```{r setup, include=FALSE}
 # Set knitr options
-knitr::opts_chunk$set(echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE, 
-                      fig.pos = "center")
+knitr::opts_chunk$set(echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE)
 ```
+
+Intended journal: ASA Data Science Journal
 
 # Introduction
 
+- main objective of a model explainer: 
+    - understand and explain model performance
+- LIME does...
+    - conceptually: models at two levels
+        1. Simple = explainer model
+        2. Complex = original "black box model"
+    - usually: model predictions, maybe with ground truth
+        - type I error
+        - type II error
+        - model is wrong in both cases
+    - explanation is also a prediction
+        - how reliable is that explanation?
+          - we will present some tools that could help answer that question
+          - we will show an example using this tools (bullet data)
+          - we will mention some possible insights about LIME that these tools have shown us
+            - explainer model generally has very low $R^2$ (probably due to binning)
+            - "local" explanations are not local but are driven by the ("global") marginal distributions of covariates 
+- Describe LIME including details on binning and linear regression in binned features and motivation for the binning
+    
 # Data
 
 # Methods
