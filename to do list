@@ -8,11 +8,6 @@ https://isu-csafe.stat.iastate.edu/rstudio/
 Questions:
 
 Completed:
-- ran all implementations of lime with logistic regression models 
-- made better parallel coordinate plots
-- applied LIME to iris data
-- iris comparison
-- mention rf interpretations discussed at consulting tea
 
 Current Week:
 - change distance matrix in seriation to be 5-# of variables shared between two rows
