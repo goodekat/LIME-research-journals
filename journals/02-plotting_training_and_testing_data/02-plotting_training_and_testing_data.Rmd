@@ -354,6 +354,13 @@ style(subplot(p1, p2, p3, p4, p5, p6, p7, p8, p9,
 
 # Parallel Coordinate Plots
 
+```{r}
+# Create a dataframe with the random forest features ordered by importance
+rf_features_ordered <- data.frame(feature = rownames(bulletr::rtrees$importance), 
+                                  MeanDecreaseGini = bulletr::rtrees$importance) %>%
+  arrange(desc(MeanDecreaseGini))
+```
+
 Below is a parallel coordinate plot of the training dataset. It is facetted by `samesource` and colored by `rfscore`. The features are sorted by the variable importance scores (descending from left to right) from the `rtrees` model. It is interesting to see that the matches with low rfscores have feature values that are similar to the nonmatches.
 
 ```{r fig.width = 10}
@@ -362,7 +369,7 @@ hamby173and252_train %>%
   select(case, rfscore, samesource, ccf:sum_peaks) %>%
   mutate_at(rf_features, scale) %>%
   gather(variable, value, 4:12) %>%
-  mutate(variable = factor(variable, levels = rf_features)) %>%
+  mutate(variable = factor(variable, levels = rf_features_ordered$feature)) %>%
   ggplot(aes(x = variable, y = value, group = case, color = rfscore)) + 
   geom_point() + 
   geom_line(alpha = 0.2) + 
@@ -381,7 +388,7 @@ hamby224_test %>%
   select(case, set, rfscore, samesource, ccf:sum_peaks) %>%
   mutate_at(rf_features, scale) %>%
   gather(variable, value, 5:13) %>%
-  mutate(variable = factor(variable, levels = rf_features)) %>%
+  mutate(variable = factor(variable, levels = rf_features_ordered$feature)) %>%
   ggplot(aes(x = variable, y = value, group = case, color = rfscore)) + 
   geom_point() + 
   geom_line(alpha = 0.5) + 
@@ -404,8 +411,6 @@ biplot(pca, col = hamby224_test %>%
                        filter(set == "Set 1") %>% 
                        pull(rfscore))
 ```
-
-
 
 # Session Info
 
