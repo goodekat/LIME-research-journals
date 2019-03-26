@@ -6,13 +6,13 @@ TO DO LIST
 https://isu-csafe.stat.iastate.edu/rstudio/
 
 Questions:
-- how to site papers in stats journals?
 
 Completed:
-- fixed parallel coordinate plots
 
 Current Week:
-- start writing paper
+- look into bibText and add to paper
+- obtain Papers and move all papers there
+- work on paper
 - finish journal on understanding lime
 - change distance matrix in seriation to be 5-# of variables shared between two rows
   or try using distance matrix computed on the feature values
