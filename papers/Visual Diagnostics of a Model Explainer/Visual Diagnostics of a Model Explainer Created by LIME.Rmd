@@ -17,8 +17,10 @@ Intended journal: ASA Data Science Journal
 
 # Introduction
 
-- main objective of a model explainer: 
-    - understand and explain model performance
+Machine learning algorithms are have been proven to provide accurate predictions. However, this accuracy comes at a cost. With complicated algorithms, the ability to understand the mechanism in the data and the functional form of the model are lost. This has led for a push to be able to interpret machine learning algorithms. One approach to remedy this problem would be to develop a model explainer. The objective of such an explainer is to understand and explain model performance.
+
+LIME (locally interpretable model explanations) is one such model explainer that was developed for this purpose (reference). Conceptually, LIME 
+
 - LIME does...
     - conceptually: models at two levels
         1. Simple = explainer model
