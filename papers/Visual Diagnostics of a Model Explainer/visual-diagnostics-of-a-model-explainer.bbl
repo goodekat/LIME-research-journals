@@ -1,0 +1,14 @@
+\begin{thebibliography}{1}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{{\tt #1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname doiprefix\endcsname\relax\def\doiprefix{doi:}\fi
+
+\bibitem[{Elbaum et~al.(February 2002)Elbaum, Malishevsky, and
+  Rothermel}]{Elbaum2002}
+Elbaum, S., A.~G. Malishevsky, and G.~Rothermel, February 2002: Test case
+  prioritization: a family of empirical studies. {\it IEEE {T}ransactions on
+  {S}oftware {E}ngineering\/}, {\bf 28}, no. 2, 159--182, doi:12345.2345.
+
+\end{thebibliography}
