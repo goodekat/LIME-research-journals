@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  2 APR 2019 12:00
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  2 APR 2019 15:26
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1173,15 +1173,6 @@ Overfull \hbox (346.99213pt too wide) in paragraph at lines 43--43
 
 LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 43
 .
-LaTeX Font Info:    Try loading font information for TS1+aer on input line 77.
-(/Library/Frameworks/R.framework/Resources/share/texmf/tex/latex/ts1aer.fd
-File: ts1aer.fd 
-)
-LaTeX Font Info:    Font shape `TS1/aer/m/n' in size <10.03749> not available
-(Font)              Font shape `TS1/cmr/m/n' tried instead on input line 77.
-
-Overfull \vbox (2.91591pt too high) has occurred while \output is active []
-
 
 Overfull \vbox (6.41316pt too high) has occurred while \output is active []
 
@@ -1191,27 +1182,35 @@ Overfull \vbox (6.41316pt too high) has occurred while \output is active []
 \openout3 = `visual-diagnostics-of-a-model-explainer.pag'.
 
 ]
-[2]
-Overfull \hbox (13.0pt too wide) in paragraph at lines 162--162
+LaTeX Font Info:    Try loading font information for TS1+aer on input line 73.
+
+(/Library/Frameworks/R.framework/Resources/share/texmf/tex/latex/ts1aer.fd
+File: ts1aer.fd 
+)
+LaTeX Font Info:    Font shape `TS1/aer/m/n' in size <10.03749> not available
+(Font)              Font shape `TS1/cmr/m/n' tried instead on input line 73.
+
+[2] [3]
+Overfull \hbox (13.0pt too wide) in paragraph at lines 158--158
 [] [] 
  []
 
-(./visual-diagnostics-of-a-model-explainer.bbl [3])
-<empty.pdf, id=48, 114.43155pt x 86.162pt>
-LaTeX Font Info:    Try loading font information for T1+aett on input line 171.
+(./visual-diagnostics-of-a-model-explainer.bbl)
+<empty.pdf, id=47, 114.43155pt x 86.162pt>
+LaTeX Font Info:    Try loading font information for T1+aett on input line 167.
 
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/ae/t1aett.fd
 File: t1aett.fd 1997/11/16 Font definitions for T1/aett.
 )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 174.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 170.
  [4]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 174.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 170.
 
 (./visual-diagnostics-of-a-model-explainer.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 174.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 174.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 174.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 170.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 170.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 170.
  ) 
 Here is how much of TeX's memory you used:
  15310 strings out of 493089
@@ -1220,7 +1219,7 @@ Here is how much of TeX's memory you used:
  18401 multiletter control sequences out of 15000+600000
  99367 words of font info for 188 fonts, out of 8000000 for 9000
  1167 hyphenation exceptions out of 8191
- 43i,11n,40p,1227b,434s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 43i,10n,40p,1207b,384s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2015/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 }</usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmb10.pfb><
 /usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></
@@ -1242,7 +1241,7 @@ xmf-dist/fonts/type1/public/stix/stix-mathbb.pfb></usr/local/texlive/2015/texmf
 ist/fonts/type1/public/stix/stix-mathit.pfb></usr/local/texlive/2015/texmf-dist
 /fonts/type1/public/stix/stix-mathrm.pfb></usr/local/texlive/2015/texmf-dist/fo
 nts/type1/public/stix/stix-mathsf.pfb>
-Output written on visual-diagnostics-of-a-model-explainer.pdf (4 pages, 211857 
+Output written on visual-diagnostics-of-a-model-explainer.pdf (4 pages, 213401 
 bytes).
 PDF statistics:
  177 PDF objects out of 1000 (max. 8388607)

@@ -14,7 +14,7 @@
 \begin{document}
 \input{visual-diagnostics-of-a-model-explainer-concordance}
 
-\title{Visual Diagnostics of a Model Explainer -- Tools for the Assessment of LIME Explanations from a Random Forest Model}
+\title{Visual Diagnostics of a Model Explainer -- Tools for the Assessment of LIME Explanations}
 
 \author[1]{Katherine Goode*}
 
@@ -32,7 +32,7 @@
 
 \abstract[Summary]{This is sample abstract text.}
 
-\keywords{LIME, random forest, interpretability, diagnostics}
+\keywords{LIME, black box models, interpretability, diagnostics}
 
 \jnlcitation{\cname{%
 \author{Goode K.}, 
@@ -46,18 +46,14 @@
 
 Machine learning algorithms have been proven to provide accurate predictions. However, this accuracy comes at a cost. With complicated algorithms, the ability to understand the mechanism in the data and the functional form of the model are lost. This has led for a desire to be able to interpret machine learning algorithms. One approach to remedy this problem would be to develop a model explainer. The objective of such an explainer is to understand and explain model performance.
 
-LIME (locally interpretable model explanations) is one such model explainer that was developed for this purpose (reference). Conceptually, LIME 
+Locally interpretable model explanations (LIME) is one such model explainer that was developed for this purpose (reference). While some model explainers are focused on understanding a model at the global level, LIME was designed to explain the model for a single prediction of interest. Conceptually, LIME fits a simple interpretable model (the explainer) that is meant to capture the behavior of the complex "black box model" in a local region around the prediction. 
 
-- LIME does...
-  - conceptually: models at two levels
-  1. Simple = explainer model
-  2. Complex = original "black box model"
-- usually: model predictions, maybe with ground truth
-  - type I error
-  - type II error
-  - model is wrong in both cases
+Predictive models are used in both regression and classification settings. For this paper, we will focus on the classification setting, and in particular, we will only discuss the case with a dichotomous response variable. In any case, when a predictive model is being developed, the data is usually divided into training and testing portions. The training data is used to fit the complex model, and the testing data is used to assess the model. The complex model can applied to the features in the testing data, and the resulting predictions can be compared to ground truth. Of interest during this assessment are the cases when the model is wrong. In the dichotomous response classification case, there are two ways in which the model can be wrong. The model can make a type I error in which..., or the model can make a type II error in which...
+
+It does this by using the features from the training data to simulate a new dataset on which the simple model is fit. The complex model is applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the the simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
+
 - explanation is also a prediction
-- how reliable is that explanation?
+  - how reliable is that explanation?
 - we will present some tools that could help answer that question
 - we will show an example using this tools (bullet data)
 - we will mention some possible insights about LIME that these tools have shown us
