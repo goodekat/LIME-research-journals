@@ -5,17 +5,20 @@ TO DO LIST
 https://isu-csafe.stat.iastate.edu/rstudio/
 
 Talking points:
-- WSDS conference - do they offer funding? (for future years)
-- should I adjust my JSM abstract to focus more on diagnostics for LIME?
+- questions
+  - WSDS conference - do they offer funding? (for future years)
+  - Should I adjust my JSM abstract to focus more on diagnostics for LIME?
+- of interest
+  - this book - https://christophm.github.io/interpretable-ml-book/
+  - poster presentation at GPSRC
+- completed tasks
+  - submitted application to IMSM workshop
+  - registered for summer and fall credits
+  - moved all papers to read cube
 
 Current Week:
-- email possible professors for POSC:
-  - Sigurdur Olafsson olafsson@iastate.edu
-  - Kris
-  - Danica
-  - Dixon
+- obtain Papers (Thank you for submitting your request. A ReadCube Papers will review your request within 1 business day. If approved, you will receive your unique coupon code that will lock in your student rate of $36/year. If you have any question, drop us a note at: support@papersapp.com)
 - look into bibText and add to paper
-- obtain Papers and move all papers there
 - work on paper
 - finish journal on understanding lime
 - change distance matrix in seriation to be 5-# of variables shared between two rows
@@ -25,9 +28,9 @@ Current Week:
 - assess lime results on logistic regression models
 - think about how to implement a simulation with a random forest
 - add in feature selection methods to LIME input options
+- turn repetitive code into functions
 
 Later:
-- turn repetitive code into functions
 - try retriculate to apply python version of lime
 - look at 'removing the blindfold' for ideas
 - read through Heike's new function
