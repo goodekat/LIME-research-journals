@@ -19,6 +19,8 @@ Current Week:
 - think about how to implement a simulation with a random forest
 - add in feature selection methods to LIME input options
 - turn repetitive code into functions
+- look into iml (https://www.youtube.com/watch?v=jP6Rg13PEkQ)
+- look more into Molnar and his adviser Bernd
 
 Later:
 - try retriculate to apply python version of lime
