@@ -10,7 +10,9 @@ Current Week:
 - update JSM abstract
 - look into bibText and add to paper
 - work on paper
-- finish journal on understanding lime
+- finish journal on understanding lime (look at the RF in the local region
+  lime is considering to see if it agrees with the lime explanations)
+- think about how the argmin is accomplished by the LIME R package
 - change distance matrix in seriation to be 5-# of variables shared between two rows
   or try using distance matrix computed on the feature values
 - fix issue with seriation
@@ -23,6 +25,8 @@ Current Week:
 - look more into Molnar and his adviser Bernd
 
 Later:
+- look back at 601 notes from Kaiser and Hadley's removing the blindfold and
+  think about how this could be applied with random forests
 - try retriculate to apply python version of lime
 - look at 'removing the blindfold' for ideas
 - read through Heike's new function
