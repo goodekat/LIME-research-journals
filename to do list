@@ -26,6 +26,8 @@ Current Week:
 - turn repetitive code into functions
 - look into iml (https://www.youtube.com/watch?v=jP6Rg13PEkQ)
 - look more into Molnar and his adviser Bernd
+- Siggi suggests refitting the RF model to the perturbations and then continuing with LIME with the RF predictions from the new model - this may help to understand if the problems are due to the sampling procedure or LIME itself
+- he also suggested looking into SMOTE for dealing the inbalance in the classes with sampling
 
 Later:
 - look back at 601 notes from Kaiser and Hadley's removing the blindfold and
