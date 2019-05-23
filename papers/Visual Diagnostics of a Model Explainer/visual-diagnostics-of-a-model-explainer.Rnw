@@ -43,7 +43,7 @@
 
 \section{Introduction}
 
-Machine learning algorithms are known to provide accurate predictions. (include more about the usefulness of ml algorithms). However, this predictive ability comes at a cost. These algorithms are typically very complex and have no functional form. As a result, the ability to directly interpret the model is lost.
+Machine learning algorithms are known to provide accurate predictions. (include more about the usefulness of ml algorithms - site significance paper here). However, this predictive ability comes at a cost. These algorithms are typically very complex and have no functional form. As a result, the ability to directly interpret the model is lost.
 
 In many areas of application, the need to be able to explain the results from the model is critical. For example, in forensics science a machine learning model could be used to determine the probability that a shoe print found at the crime scene matches the shoe of a suspect. The model may return a high probability of a match, but without the ability to explain which factors in the model led to this high probability, it may be difficult for a jury to trust the results from the model when deciding whether or not to convice the suspect. (add sentence about Europe law) This has led to the desire to be able to interpret machine learning algorithms.
 
