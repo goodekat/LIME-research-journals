@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.4.16)  23 MAY 2019 12:39
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.4.16)  25 MAY 2019 14:09
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1071,7 +1071,7 @@ File: t1aer.fd 1997/11/16 Font definitions for T1/aer.
 ))))
 
 LaTeX Warning: Unused global option(s):
-    [AMS,STIX1COL].
+    [AMS,STIX2COL].
 
 (./visual-diagnostics-of-a-model-explainer.aux)
 \openout1 = `visual-diagnostics-of-a-model-explainer.aux'.
@@ -1189,12 +1189,12 @@ LaTeX Info: Redefining \nameref on input line 14.
 * \footskip=48.5pt
 * \marginparwidth=0.0pt
 * \marginparsep=0.0pt
-* \columnsep=0.0pt
+* \columnsep=12.0pt
 * \skip\footins=18.0pt plus 2.0pt minus 2.0pt
 * \hoffset=0.0pt
 * \voffset=0.0pt
 * \mag=1000
-* \@twocolumnfalse
+* \@twocolumntrue
 * \@twosidetrue
 * \@mparswitchtrue
 * \@reversemarginfalse
@@ -1270,6 +1270,11 @@ Overfull \hbox (346.99213pt too wide) in paragraph at lines 43--43
 LaTeX Font Info:    Calculating math sizes for size <10.03749> on input line 43
 .
 
+Overfull \hbox (259.75394pt too wide) has occurred while \output is active
+[][] 
+ []
+
+
 Overfull \vbox (6.41316pt too high) has occurred while \output is active []
 
 
@@ -1277,45 +1282,70 @@ Overfull \vbox (6.41316pt too high) has occurred while \output is active []
 
 \openout3 = `visual-diagnostics-of-a-model-explainer.pag'.
 
+
 ]
-LaTeX Font Info:    Try loading font information for TS1+aer on input line 77.
+LaTeX Font Info:    Try loading font information for TS1+aer on input line 78.
 
 (/Library/Frameworks/R.framework/Resources/share/texmf/tex/latex/ts1aer.fd
 File: ts1aer.fd 
 )
 LaTeX Font Info:    Font shape `TS1/aer/m/n' in size <10.03749> not available
-(Font)              Font shape `TS1/cmr/m/n' tried instead on input line 77.
+(Font)              Font shape `TS1/cmr/m/n' tried instead on input line 78.
 
-[2] [3]
-Overfull \hbox (13.0pt too wide) in paragraph at lines 148--148
+Overfull \hbox (259.75394pt too wide) has occurred while \output is active
+[][] 
+ []
+
+[2]
+Underfull \hbox (badness 1009) in paragraph at lines 143--146
+\T1/aer/m/n/10.03749 cal-cu-lated against the ERA Interim reanal-y-sis. The
+ []
+
+
+Overfull \hbox (13.0pt too wide) in paragraph at lines 152--152
 [] [] 
  []
 
-(./visual-diagnostics-of-a-model-explainer.bbl)
-<empty.pdf, id=48, 114.43155pt x 86.162pt>
-LaTeX Font Info:    Try loading font information for T1+aett on input line 157.
+
+Overfull \hbox (259.75394pt too wide) has occurred while \output is active
+[][] 
+ []
+
+[3] (./visual-diagnostics-of-a-model-explainer.bbl)
+<empty.pdf, id=49, 114.43155pt x 86.162pt>
+LaTeX Font Info:    Try loading font information for T1+aett on input line 161.
 
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/ae/t1aett.fd
 File: t1aett.fd 1997/11/16 Font definitions for T1/aett.
 )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 160.
- [4]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 160.
+Underfull \hbox (badness 5417) in paragraph at lines 161--161
+[]\T1/aer/bx/n/10.03749 Author Name. \T1/aer/m/n/10.03749 This is sam-ple
+ []
 
-(./visual-diagnostics-of-a-model-explainer.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 160.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 160.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 160.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 164.
+
+Overfull \hbox (259.75394pt too wide) has occurred while \output is active
+[][] 
+ []
+
+[4
+
+]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 164.
+ (./visual-diagnostics-of-a-model-explainer.aux)
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 164.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 164.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 164.
  ) 
 Here is how much of TeX's memory you used:
- 15589 strings out of 492649
- 219581 string characters out of 6129622
- 317593 words of memory out of 5000000
- 19067 multiletter control sequences out of 15000+600000
+ 15591 strings out of 492649
+ 219601 string characters out of 6129622
+ 320635 words of memory out of 5000000
+ 19068 multiletter control sequences out of 15000+600000
  105492 words of font info for 201 fonts, out of 8000000 for 9000
  1167 hyphenation exceptions out of 8191
- 43i,11n,40p,1206b,383s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 43i,10n,40p,1206b,421s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 }</usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmb10.pfb><
 /usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></
@@ -1338,11 +1368,11 @@ ist/fonts/type1/public/stix/stix-mathex.pfb></usr/local/texlive/2018/texmf-dist
 /fonts/type1/public/stix/stix-mathit.pfb></usr/local/texlive/2018/texmf-dist/fo
 nts/type1/public/stix/stix-mathrm.pfb></usr/local/texlive/2018/texmf-dist/fonts
 /type1/public/stix/stix-mathsf.pfb>
-Output written on visual-diagnostics-of-a-model-explainer.pdf (4 pages, 219700 
+Output written on visual-diagnostics-of-a-model-explainer.pdf (4 pages, 221700 
 bytes).
 PDF statistics:
- 181 PDF objects out of 1000 (max. 8388607)
- 150 compressed objects within 2 object streams
- 17 named destinations out of 1000 (max. 500000)
- 146 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 185 PDF objects out of 1000 (max. 8388607)
+ 154 compressed objects within 2 object streams
+ 18 named destinations out of 1000 (max. 500000)
+ 154 words of extra memory for PDF output out of 10000 (max. 10000000)
 

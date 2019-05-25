@@ -1,4 +1,4 @@
-\documentclass[AMS,STIX1COL]{WileyNJD-v2}
+\documentclass[AMS,STIX2COL]{WileyNJD-v2}
 
 \usepackage{amsmath,amsfonts}
 
@@ -44,28 +44,29 @@
 
 \section{Introduction}
 
-Machine learning algorithms are known to provide accurate predictions. (include more about the usefulness of ml algorithms - site significance paper here). However, this predictive ability comes at a cost. These algorithms are typically very complex and have no functional form. As a result, the ability to directly interpret the model is lost.
+Machine learning models have been proven to provide accurate predictions in many areas of applications. Carriquiry et. al. (source) discuss improvement in various pattern recognition analyses in the forensics sciences with the use of random forests and neural networks. (need a source) describe the numerous ways machine learning has been used in the medical field to advance healthcare. However, this predictive ability comes at a cost. 
 
-In many areas of application, the need to be able to explain the results from the model is critical. For example, in forensics science a machine learning model could be used to determine the probability that a shoe print found at the crime scene matches the shoe of a suspect. The model may return a high probability of a match, but without the ability to explain which factors in the model led to this high probability, it may be difficult for a jury to trust the results from the model when deciding whether or not to convice the suspect. (add sentence about Europe law) This has led to the desire to be able to interpret machine learning algorithms.
+These models are typically complex and have no simple functional form. As a result, the ability to directly interpret the model is lost. In many areas of application such as with forensics science and healthcare, the need to be able to explain the results from the model is critical. For example, a machine learning model could be used to determine the probability that a shoe print found at the crime scene matches the shoe belonging to a suspect in the investigation. The model may return a high probability of a match, but without the ability to explain which factors in the model led to this high probability, it may be difficult for a jury to trust the results from the model when deciding whether to convict the suspect. (add sentence about Europe law) The importance of interpretability has led to the desire to be able to explain the output from machine learning algorithms.
 
-One approach to remedy this problem would be to develop a model explainer that can provide insight into the model performance. A model explainer is a method that is separate from the model but uses the model to provide understanding into mechanism of how the model produces predictions. (try to think of a simple example of a model explainer) 
+One approach to remedy this problem would be to develop a model explainer that can provide insight into the performance of the complex model. A model explainer is a method that is separate from the model but uses the model to provide understanding into mechanism of how the model produces predictions. (try to think of a simple example of a model explainer) (mention some of the model explainers that have been developed recently)
 
-Locally interpretable model explanations (LIME) is one such model explainer (reference). While some model explainers are focused on understanding a model at the global level, LIME was designed to explain the model for a single prediction of interest. Conceptually, LIME fits a simple model that is able to be interpreted, which is referred to as the explainer, that is meant to capture the behavior of the complex "black box model" in a local region around a prediction of interest. (a good place to include an image to help with this explanation)
+LIME (local interpretable model explanations) is one such model explainer (reference). While some model explainers are focused on understanding a model at the global level, LIME was designed to explain the model at the local level for a single prediction of interest. Conceptually, LIME fits a simple model that can be interpreted, referred to as the explainer, that is meant to capture the behavior of the complex "black box model" in a local region around the prediction of interest. (a good place to include an image to help with this explanation)
+
+- explanation is also a prediction/model
+  - how reliable is that explanation?
+  - also, no current recommendations for LIME algorithm input options
 
 Predictive models are used in both regression and classification settings. For this paper, we will focus on the classification setting, and in particular, we will only discuss the case with a dichotomous response variable. In any case, when a predictive model is being developed, the data is usually divided into training and testing portions. The training data is used to fit the complex model, and the testing data is used to assess the model. The complex model can applied to the features in the testing data, and the resulting predictions can be compared to ground truth. Of interest during this assessment are the cases when the model is wrong. In the dichotomous response classification case, there are two ways in which the model can be wrong. The model can make a type I error in which..., or the model can make a type II error in which...
 
-It does this by using the features from the training data to simulate a new dataset on which the simple model is fit. The complex model is applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the the simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
-
-- explanation is also a prediction
-  - how reliable is that explanation?
 - we will present some tools that could help answer that question
 - we will show an example using this tools (bullet data)
 - we will mention some possible insights about LIME that these tools have shown us
-1. explainer model generally has very low $R^2$ (probably due to binning)
-2. "local" explanations are not local but are driven by the ("global") marginal distributions of covariates 
-- Describe LIME including details on binning and linear regression in binned features and motivation for the binning
 
 \section{Methods}
+
+\subsection{Overview of LIME}
+
+It does this by using the features from the training data to simulate a new dataset on which the simple model is fit. The complex model is applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the the simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
 
 \subsection{LIME Algorithm}
 
@@ -107,6 +108,9 @@ The methods of equally spaced bins and quantile bins also allow the user to spec
 \section{Data}
 
 \section{Results}
+
+1. explainer model generally has very low $R^2$ (probably due to binning)
+2. "local" explanations are not local but are driven by the ("global") marginal distributions of covariates
 
 \subsection{LIME Package Explanations Dependent on Sampling Method}
 
