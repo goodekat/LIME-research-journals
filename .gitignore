@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+data
 paper_cache
 paper_files
 01-training_and_testing_data_cache
