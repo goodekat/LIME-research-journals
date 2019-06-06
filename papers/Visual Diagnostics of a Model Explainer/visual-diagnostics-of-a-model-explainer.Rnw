@@ -64,7 +64,6 @@ One approach to remedy the problem of uninterpretable models is to develop a mod
 
 While some model explainers are focused on understanding a model at the global level, LIME was designed to explain the model at the local level for a single prediction of interest. Conceptually, LIME fits a simple interpretable model, referred to as the explainer, that is meant to capture the behavior of the complex "black box model" in a local region around a prediction of interest. (a good place to include an image to help with this explanation)
 
-<<<<<<< HEAD
 The explanation that is produced from the explainer is also a prediction or an element of a model. Since it is not directly extracted from the complex model, it is important to ask the question, ``How reliable is the explanation?". Currently, there are no recommendations for how to assess the explanations from LIME (need to check to make sure this is a true statement). In this paper, we will present some visualizations tools that can be used to assess the explanations from LIME in classification problems. Additionally, we will show an example using these tools on explanations from a forensics bullet matching dataset, and we will discuss how the results from the example provide some possible insights into the workings of LIME.
 \hh{still to come: outline of the remainder of the paper.}
 
