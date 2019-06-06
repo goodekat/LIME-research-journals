@@ -1,6 +1,13 @@
 \documentclass[AMS,STIX2COL]{WileyNJD-v2}
-
+\usepackage{natbib}
 \usepackage{amsmath,amsfonts}
+
+\usepackage{xcolor}
+\definecolor{blue}{rgb}{0.22, 0.42, 0.73}
+\definecolor{orange}{rgb}{0.94, 0.59, 0.19}
+\newcommand{\hh}[1]{\textcolor{orange}{#1}}
+\newcommand{\kg}[1]{\textcolor{blue}{#1}}
+
 
 \articletype{Article Type}%
 
@@ -11,7 +18,6 @@
 \raggedbottom
 
 \begin{document}
-\SweaveOpts{concordance=TRUE}
 
 \title{Visual Diagnostics of a Model Explainer -- Tools for the Assessment of LIME Explanations}
 
@@ -36,16 +42,19 @@
 \jnlcitation{\cname{%
 \author{Goode K.}, 
 \author{H. Hofmann}, 
-} (\cyear{2016}), 
-\ctitle{A regime analysis of Atlantic winter jet variability applied to evaluate HadGEM3-GC2}, \cjournal{Q.J.R. Meteorol. Soc.}, \cvol{2017;00:1--6}.}
+} (\cyear{2019}), 
+\ctitle{title}, \cjournal{journal}, \cvol{volume, number and page}.}
 
 \maketitle
 
+\hh{Generally: avoid 'can be'. Replace by 'is'.  }
+
 \section{Introduction}
 
+\hh{XXX make the intro a bit more gentle - how about something along the lines that in statistics there are two main uses for models: interpretation and prediction. In machine learning the focus of models is often on prediction ... while these models are highly predictive, this comes at the cost of interpretability.}
 Machine learning models have been proven to provide accurate predictions in a wide range of problems. This impressive predictive performance, however, comes at a cost. These models are typically complex and lack a functional form, so the ability to directly interpret the models is lost. This has led machine learning models be referred to as black box models. In many areas of application, the need to be able to explain the results from a model is critical. As a result, an area of research on how to explain the output from machine learning algorithms has emerged.
 
-The forensics sciences and the heath care industry are two areas that have benefitted from machine learning but have an obvious need for explainable predictions. For example, Carriquiry et al. (2019) discuss the use of a random forest model in the forensics sciences to determine whether two bullets were fired from the same gun. Yu, Beam, and Kohane (2018) describe how healthcare has advanced through the use of machine learning in various ways such as using neural networks to automate medical image diagnoses and implementing Bayesian networks to predict clinical outcomes. In all of these cases, the decisions made based on the results of the machine learning models can greatly impact the lives of human beings. If it is not possible to explain the output from a model, it becomes questionable whether the results from the model can be trusted to make important decisions.
+The forensics sciences and the heath care industry are two areas that have benefitted from machine learning but have an obvious need for explainable predictions. For example, \citet{aoas} discuss the use of a random forest model in the forensics sciences to determine whether two bullets were fired from the same gun. Yu, Beam, and Kohane (2018) describe how healthcare has advanced through the use of machine learning in various ways such as using neural networks to automate medical image diagnoses and implementing Bayesian networks to predict clinical outcomes. In \hh{both} of these cases, the decisions made based on the results of the machine learning models can greatly impact the lives of human beings. If it is not possible to explain the output from a model, it becomes questionable whether the results from the model can be trusted to make important decisions.
 
 As an example, suppose that forensics examiners are trying to determine if a bullet used in a crime was fired from the gun that belongs to a suspect in the investigaion. A random forest model could be used to produce a probability of the bullet being fired from the gun under question. Even if the model may return a high probability of a match, it may be difficult for a jury to trust the results from the model when deciding whether to convict the suspect without the forensics examiners having the ability to explain which factors in the model led to this high probability.
 
@@ -55,11 +64,14 @@ One approach to remedy the problem of uninterpretable models is to develop a mod
 
 While some model explainers are focused on understanding a model at the global level, LIME was designed to explain the model at the local level for a single prediction of interest. Conceptually, LIME fits a simple interpretable model, referred to as the explainer, that is meant to capture the behavior of the complex "black box model" in a local region around a prediction of interest. (a good place to include an image to help with this explanation)
 
+<<<<<<< HEAD
 The explanation that is produced from the explainer is also a prediction or an element of a model. Since it is not directly extracted from the complex model, it is important to ask the question, ``How reliable is the explanation?". Currently, there are no recommendations for how to assess the explanations from LIME (need to check to make sure this is a true statement). In this paper, we will present some visualizations tools that can be used to assess the explanations from LIME in classification problems. Additionally, we will show an example using these tools on explanations from a forensics bullet matching dataset, and we will discuss how the results from the example provide some possible insights into the workings of LIME.
+\hh{still to come: outline of the remainder of the paper.}
+
 
 \section{Methods}
 
-Predictive models are used in both regression and classification settings. For this paper, we will focus on the classification setting, and in particular, we will only discuss the case with a dichotomous response variable. In any case, when a predictive model is being developed, the data is usually divided into training and testing portions. The training data is used to fit the complex model, and the testing data is used to assess the model. The complex model can applied to the features in the testing data, and the resulting predictions can be compared to ground truth. Of interest during this assessment are the cases when the model is wrong. In the dichotomous response classification case, there are two ways in which the model can be wrong. The model can make a type I error in which..., or the model can make a type II error in which...
+Predictive models are used in both regression and classification settings. For this paper, we will focus on the classification setting, and in particular, we will only discuss the case with a dichotomous response variable. \hh{Accepted best practice for all}  predictive models is \hh{that during the model fitting process}, the data is divided into training and testing portions. The training data is used to fit the complex model, and the testing data is used to assess the model. \hh{This is done to prevent overfitting and to get a more accurate assessment of the prediction error of the model.} The complex model is then applied to the features in the testing data, and the resulting predictions are compared to ground truth. Of \hh{particular} interest during this assessment are the cases when the model is wrong. In the dichotomous response classification case, there are two ways in which the model can be wrong. The model can make a type I error in which..., or the model can make a type II error in which...
 
 \subsection{Overview of LIME}
 
@@ -67,7 +79,7 @@ It does this by using the features from the training data to simulate a new data
 
 \subsection{LIME Algorithm}
 
-The LIME algorithm is presented in the original paper in a general context that includes cases for text classification and feature recognition. For this paper, we are only considering a situation with a binary categorical response variable and continuous feature variables. The procedure below is defined in this context. Furthermore, the implementation of LIME used in this paper is via the lime R package, and the procedure describes the methods used by the R package. This deviates a bit from the original procedure described by Riberiro, Singh, and Guestrin (2016). We attempted to highlight these deviations.
+The LIME algorithm is presented in the original paper in a general context that includes cases for text classification and feature recognition. For this paper, we are only considering a situation with a binary categorical response variable and continuous feature variables. The procedure below is defined in this context. Furthermore, the implementation of LIME used in this paper is via the lime R package, and the procedure describes the methods used by the R package. This deviates a bit from the original procedure described by Riberio, Singh, and Guestrin (2016). We attempted to highlight these deviations.
 
 Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observations.
 
