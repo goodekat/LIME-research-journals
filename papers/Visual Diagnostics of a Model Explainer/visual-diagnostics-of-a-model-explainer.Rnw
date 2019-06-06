@@ -49,13 +49,13 @@ The forensics sciences and the heath care industry are two areas that have benef
 
 As an example, suppose that forensics examiners are trying to determine if a bullet used in a crime was fired from the gun that belongs to a suspect in the investigaion. A random forest model could be used to produce a probability of the bullet being fired from the gun under question. Even if the model may return a high probability of a match, it may be difficult for a jury to trust the results from the model when deciding whether to convict the suspect without the forensics examiners having the ability to explain which factors in the model led to this high probability.
 
-The European Union has taken the desire to provide explanations from machine learning models a step further. In May 2018, the General Data Protection Regulation (GDPR) went into effect (https://eugdpr.org/the-regulation/gdpr-faqs/). Part of the policies enforced by the regulation include the right for subjects affected by decisions made via automated algorithms to understand the logic behind the decisions being made. As Goodman and Flaxman (2016) point out, this regulation will have a great effect on the way that machine learning algorithms are used to make decisions. While there are different ways to interpret the statement in the regulation about the ability to understand the logic behind the decisions, Goodman and Flaxman claim a minimum would be to explain how the input variables relate to the predictions.
+The European Union has taken the desire to provide explanations from machine learning models a step further. In May 2018, the General Data Protection Regulation (GDPR) went into effect (https://eugdpr.org/the-regulation/gdpr-faqs/). The regulation includes a policy that gives the right for subjects affected by decisions made via automated algorithms to understand the logic behind the decisions being made. As Goodman and Flaxman (2016) point out, this regulation will have a great effect on the way that machine learning algorithms are used to make decisions. At minimum, it will require that an explanation of how the input variables relate to the predictions.
 
 One approach to remedy the problem of uninterpretable models is to develop a model explainer that can provide insight into the performance of the complex model. A model explainer is a method that is separate from the model but uses the model and output from the model to provide understanding into mechanism of how the model produces predictions. Recently, a handful of model explainers have been developed (reference). LIME (local interpretable model explanations) is one such model explainer (reference).
 
 While some model explainers are focused on understanding a model at the global level, LIME was designed to explain the model at the local level for a single prediction of interest. Conceptually, LIME fits a simple interpretable model, referred to as the explainer, that is meant to capture the behavior of the complex "black box model" in a local region around a prediction of interest. (a good place to include an image to help with this explanation)
 
-(should probably expand on this paragraph and mention something about the only discussing the classification setting in this paper) The explanation that is produced from the explainer is also a prediction or an element of a model. Since it is not directly extracted from the complex model, it is important to ask the question, ``How reliable is the explanation?". Currently, there are no recommendations for how to assess the explanations from LIME (need to check to make sure this is a true statement). In this paper, we will present some tools that could help answer that question for LIME. Additionally, we will show an example using these tools on a forensics bullet matching dataset, and we will discuss how the results from the example provide some possible insights into the workings of LIME.
+The explanation that is produced from the explainer is also a prediction or an element of a model. Since it is not directly extracted from the complex model, it is important to ask the question, ``How reliable is the explanation?". Currently, there are no recommendations for how to assess the explanations from LIME (need to check to make sure this is a true statement). In this paper, we will present some visualizations tools that can be used to assess the explanations from LIME in classification problems. Additionally, we will show an example using these tools on explanations from a forensics bullet matching dataset, and we will discuss how the results from the example provide some possible insights into the workings of LIME.
 
 \section{Methods}
 
@@ -85,9 +85,9 @@ Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observat
 (i.e. want to minimize $\mathcal{L}(f, g, \Pi_x)$ and keep $\Omega(g)$ low enough to be interpretable by humans)
 \end{itemize}
 
-\subsection{Application of LIME to Bullet Matching Data}
+\subsection{Implemention of LIME in R}
 
-\subsubsection{lime R Package Perturbation Creation Methods}
+(section describing the procedure that is currently used by the LIME R package)
 
 The LIME R package allows for the following four methods to sample the perturbations based on the distributions of the features from the training data.
 
@@ -100,9 +100,9 @@ The LIME R package allows for the following four methods to sample the perturbat
 
 The methods of equally spaced bins and quantile bins also allow the user to specify the number of bins. As of now, there are no recommendations or procedures provided for how to determine which method to use. By default, LIME uses four quantile bins. It was of interest to see how the explanations from LIME varied across the four sampling methods when applied to the bullet matching data. The LIME algorithm was applied to each prediction from the test data obtained from the 'rtrees' random forest model for each of the four sampling methods. Within the bin based sampling methods, the algorithm was applied for 2 to 6 bins. It was decided to only go up to 6 bins since the more bins used the more complex the explanation becomes.
 
-\subsubsection{Proposed Bin Creation Methods}
+\subsection{Visualization Diagnostic Tools for LIME}
 
-\section{Data}
+\section{Application of LIME to Bullet Matching Data}
 
 \section{Results}
 

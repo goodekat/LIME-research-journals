@@ -5,10 +5,16 @@ TO DO LIST
 https://isu-csafe.stat.iastate.edu/rstudio/
 
 Talking points:
-- one or two columns for the paper?
-- can you help me with one of the bibTex cases so I can see how it works?
-- I want to develop an image that shows a conceptual understanding of LIME. Is it okay for me to make something like this in R, or should I use another program?
-- more issues relating to R2 posted in the lime repository
+- paper
+    - one or two columns for the paper?
+    - could you look through intro?
+    - can you help me with one of the bibTex cases so I can see how it works?
+    - I want to develop an image that shows a conceptual understanding of LIME. Is it        okay for me to make something like this in R, or should I use another program?
+    - ask Heike about how she had envisioned the type I and type II errors being             included in the paper
+    - structure of the rest of the paper
+- other 
+    - more issues relating to R2 posted in the lime repository
+
 
 Current Week:
 - look into bibText and add to paper
