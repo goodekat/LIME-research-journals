@@ -18,6 +18,7 @@
 \raggedbottom
 
 \begin{document}
+\SweaveOpts{concordance=TRUE}
 
 \title{Visual Diagnostics of a Model Explainer -- Tools for the Assessment of LIME Explanations}
 
