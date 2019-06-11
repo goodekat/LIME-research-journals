@@ -1,5 +1,7 @@
 \documentclass[AMS,STIX2COL]{WileyNJD-v2}
 \usepackage{natbib}
+%\bibliographystyle{asa}
+
 \usepackage{amsmath,amsfonts}
 
 \usepackage{xcolor}
@@ -55,7 +57,7 @@
 \hh{XXX make the intro a bit more gentle - how about something along the lines that in statistics there are two main uses for models: interpretation and prediction. In machine learning the focus of models is often on prediction ... while these models are highly predictive, this comes at the cost of interpretability.}
 Machine learning models have been proven to provide accurate predictions in a wide range of problems. This impressive predictive performance, however, comes at a cost. These models are typically complex and lack a functional form, so the ability to directly interpret the models is lost. This has led machine learning models be referred to as black box models. In many areas of application, the need to be able to explain the results from a model is critical. As a result, an area of research on how to explain the output from machine learning algorithms has emerged.
 
-The forensics sciences and the heath care industry are two areas that have benefitted from machine learning but have an obvious need for explainable predictions. For example, \citet{aoas} discuss the use of a random forest model in the forensics sciences to determine whether two bullets were fired from the same gun. Yu, Beam, and Kohane (2018) describe how healthcare has advanced through the use of machine learning in various ways such as using neural networks to automate medical image diagnoses and implementing Bayesian networks to predict clinical outcomes. In \hh{both} of these cases, the decisions made based on the results of the machine learning models can greatly impact the lives of human beings. If it is not possible to explain the output from a model, it becomes questionable whether the results from the model can be trusted to make important decisions.
+The forensics sciences and the heath care industry are two areas that have benefitted from machine learning but have an obvious need for explainable predictions. For example, \citet{aoas} discuss the use of a random forest model in the forensics sciences to determine whether two bullets were fired from the same gun. \citet{yu:2018} describe how healthcare has advanced through the use of machine learning in various ways such as using neural networks to automate medical image diagnoses and implementing Bayesian networks to predict clinical outcomes. In \hh{both} of these cases, the decisions made based on the results of the machine learning models can greatly impact the lives of human beings. If it is not possible to explain the output from a model, it becomes questionable whether the results from the model can be trusted to make important decisions.
 
 As an example, suppose that forensics examiners are trying to determine if a bullet used in a crime was fired from the gun that belongs to a suspect in the investigaion. A random forest model could be used to produce a probability of the bullet being fired from the gun under question. Even if the model may return a high probability of a match, it may be difficult for a jury to trust the results from the model when deciding whether to convict the suspect without the forensics examiners having the ability to explain which factors in the model led to this high probability.
 
@@ -65,7 +67,6 @@ One approach to remedy the problem of uninterpretable models is to develop a mod
 
 While some model explainers are focused on understanding a model at the global level, LIME was designed to explain the model at the local level for a single prediction of interest. Conceptually, LIME fits a simple interpretable model, referred to as the explainer, that is meant to capture the behavior of the complex "black box model" in a local region around a prediction of interest. (a good place to include an image to help with this explanation)
 
-<<<<<<< HEAD
 The explanation that is produced from the explainer is also a prediction or an element of a model. Since it is not directly extracted from the complex model, it is important to ask the question, ``How reliable is the explanation?". Currently, there are no recommendations for how to assess the explanations from LIME (need to check to make sure this is a true statement). In this paper, we will present some visualizations tools that can be used to assess the explanations from LIME in classification problems. Additionally, we will show an example using these tools on explanations from a forensics bullet matching dataset, and we will discuss how the results from the example provide some possible insights into the workings of LIME.
 \hh{still to come: outline of the remainder of the paper.}
 
@@ -131,7 +132,7 @@ The variables of ccf and cms immediately show up as common variables chosen acro
 %\backmatter
 
 \section*{Acknowledgments}
-This is acknowledgment text~\cite{Elbaum2002}. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. 
+This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. 
 
 \subsection*{Author contributions}
 
@@ -164,7 +165,7 @@ The following supporting information is available as part of the online article:
 \section{Section title of first appendix\label{app1}}
 
 %\nocite{*}% Show all bib entries - both cited and uncited; comment this line to view only cited bib entries;
-\bibliography{wileyNJD-AMS}%
+\bibliography{references}%
 
 \section*{Author Biography}
 
