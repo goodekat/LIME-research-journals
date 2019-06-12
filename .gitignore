@@ -2,7 +2,7 @@
 # General
 *.DS_Store
 *.Rproj
-*.Rproj.user
+.Rproj.user/
 *.Rhistory
 *.RData
 *.Ruserdata
