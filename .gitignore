@@ -1,24 +1,23 @@
 # General
-*.DS_Store
 .RData
 .Rhistory
 .Rproj.user
 .Ruserdata
-*.Rproj
-data
-
-# Journals
-*_cache/
-*_files/
-journals/09-understanding_lime/data
-
-# Paper
 *.aux
 *.bbl
 *.blg
+*.DS_Store
 *.gz
 *.log
 *.pag
+*.Rproj
 *.tex
 *.toc
+*_cache/
+*_files/
+
+# Specific
+data
+journals/09-understanding_lime/data
+
 
