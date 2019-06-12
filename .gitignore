@@ -1,14 +1,16 @@
 
 # General
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
 *.DS_Store
+.RData
+.Rhistory
+.Rproj.user
+.Ruserdata
 *.Rproj
 data
 
 # Journals
+*_cache$
+06-assessing_lime_explanations_files
 06-assessing_lime_explanations_cache
 06-assessing_lime_explanations_files
 07-logistic_regression_cache
