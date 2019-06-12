@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1559844666976.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "C543793C",
+    "lastKnownWriteTime" : 1560359077,
+    "last_content_update" : 1560359077580,
+    "path" : "~/Desktop/projects/lime-diagnostics/papers/Visual Diagnostics of a Model Explainer/references.bib",
+    "project_path" : "papers/Visual Diagnostics of a Model Explainer/references.bib",
+    "properties" : {
+        "cursorPosition" : "7,40",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "text"
+}

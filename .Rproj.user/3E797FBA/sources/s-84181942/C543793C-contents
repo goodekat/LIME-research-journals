@@ -544,3 +544,16 @@ pages={99--110}
   publisher = "The National Academies Press",
   address   = "Washington, DC"
 }
+
+@article{yu:2018, 
+  title = {{Artificial intelligence in healthcare}}, 
+  author = {Yu, Kun-Hsing and Beam, Andrew L. and Kohane, Isaac S.}, 
+  journal = {Nature Biomedical Engineering}, 
+  abstract = {This Review summarizes the medical applications of artificial intelligence, and its economic, legal and social implications for healthcare.}, 
+  volume = {2}, 
+  pages = {719}, 
+  issn = {2157-846X}, 
+  eissn = {2157-846X}, 
+  doi = {10.1038/s41551-018-0305-z}, 
+  year = {2018}
+}
