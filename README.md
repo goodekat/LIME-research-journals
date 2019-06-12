@@ -1,17 +1,88 @@
 
-# Applying LIME to Bullet Data
+# LIME Research
 
-Repository for research project on assessing LIME by applying it to the
-Hamby bullet data. The contents of this respository are listed below.
+Repository for research projects on LIME applied to the Hamby bullet
+data.
 
-### app
+Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
+
+## Talking points
+
+## To Do List
+
+**Current Week**
+
+  - look into bibText and add to paper
+  - work on paper
+  - finish journal on understanding lime (look at the RF in the local
+    region lime is considering to see if it agrees with the lime
+    explanations)
+  - think about how the argmin is accomplished by the LIME R package
+  - change distance matrix in seriation to be 5-\# of variables shared
+    between two rows or try using distance matrix computed on the
+    feature values
+  - fix issue with seriation
+  - try fitting LASSO logistic model and leave one out approach (for
+    multicollinarity)
+  - assess lime results on logistic regression models
+  - think about how to implement a simulation with a random forest
+  - add in feature selection methods to LIME input options
+  - turn repetitive code into functions
+  - look into iml (<https://www.youtube.com/watch?v=jP6Rg13PEkQ>)
+  - look more into Molnar and his adviser Bernd
+  - Siggi suggests refitting the RF model to the perturbations and then
+    continuing with LIME with the RF predictions from the new model -
+    this may help to understand if the problems are due to the sampling
+    procedure or LIME itself
+  - he also suggested looking into SMOTE for dealing the inbalance in
+    the classes with sampling
+
+**Later**
+
+  - look back at 601 notes from Kaiser and Hadley’s removing the
+    blindfold and think about how this could be applied with random
+    forests
+  - try retriculate to apply python version of lime
+  - look at ‘removing the blindfold’ for ideas
+  - read through Heike’s new function
+  - think of a way to compute consistency across top two features
+  - compare the simple models based on different number of bins using an
+    F-test
+  - look into literature on binning methods
+  - think about why R^2 would be better for some binning methods
+  - look into computing a diversity or consistency measure for the
+    sensitivity analysis
+  - create distribution visualizations bins
+  - include a penalty for the number of parameters when choosing bins
+  - determine the best number of bins to use for each variable
+  - look at the AUC after binning
+  - write a draft of the examiners paper
+  - try out different weights
+  - read through LIME papers again
+  - compute a likelihood ratio prob TRUE / prob FALSE from the LIME
+    ridge regression
+  - try out logistic regression idea for bins (write own bin list to put
+    in explain)
+  - try out subsampling idea
+  - read new paper on Anchor
+  - read book Dr. Dixon lent me on sensativity analyses
+  - try visualizing the features from the test data using dimension
+    reduction and coloring them by variables suggested to be important
+    by lime
+  - look into papers by Giles Hooker and Lucas Mentch
+
+## Contents
+
+Descriptions of the materials in this respository are listed below.
+
+#### app
 
 This folder contains files for Shiny app for visualizing the LIME
 explanations associated with the bullet land comparisons:
 
   - **app.R**: code for the Shiny app
 
-### code
+#### code
 
 This folder is a place for storing code that is used throughout the
 project:
@@ -19,7 +90,7 @@ project:
   - **helper\_functions.R**: R script with functions that I use in the
     journals and will probably end up using in the papers as well
 
-### data
+#### data
 
 This folder is a location for storing raw and created data for the
 project:
@@ -59,7 +130,7 @@ project:
       - **h224-set1-features.rds**
       - **h224-set11-features.rds**
 
-### journals
+#### journals
 
 This folder contains folders with research journals.
 
@@ -89,7 +160,7 @@ This folder contains folders with research journals.
   - **notes from Heike.pdf**: scans of notes written by Heike for this
     project
 
-### papers
+#### papers
 
 This folder contains the statistics and firearm examiners papers:
 
