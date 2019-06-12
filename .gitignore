@@ -9,8 +9,8 @@
 data
 
 # Journals
-*_cache$
-*_files$
+*_cache/
+*_files/
 06-assessing_lime_explanations_files
 06-assessing_lime_explanations_cache
 06-assessing_lime_explanations_files
