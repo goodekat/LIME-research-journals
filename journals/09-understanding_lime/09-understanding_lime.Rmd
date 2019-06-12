@@ -1,0 +1,179 @@
+---
+title: "09-understanding_lime"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
+                      cache = TRUE)
+```
+
+
+# Overview 
+
+```{r}
+library(furrr)
+library(future)
+library(lime)
+library(randomForest)
+library(tidyverse)
+
+# Source functions
+source("../../code/helper_functions.R")
+```
+
+# The Data
+
+The cleaned training and testing datasets are loaded in below.
+
+```{r}
+# Load in the training data (Hamby Data 173 and 252)
+hamby173and252_train <- read.csv("../../data/hamby173and252_train.csv")
+
+# Load in the testing data (Hamby Data 224 Sets 1 and 11)
+hamby224_test <- read.csv("../../data/hamby224_test.csv")
+```
+
+A vector containing the features used in the random forest `rtrees` is created below that will be used when creating some of the plots in this journal.
+
+```{r}
+# Obtain features used when fitting the rtrees random forest
+rf_features_ordered <- data.frame(feature = rownames(bulletr::rtrees$importance), 
+                                  MeanDecreaseGini = bulletr::rtrees$importance) %>%
+  arrange(desc(MeanDecreaseGini))
+
+top2_features <- rf_features_ordered$feature[1:2]
+```
+
+# Random Forest Model
+
+```{r}
+# Fit a random forest model with the top two most important features in the model
+if(!file.exists("./data/rfmodel.rds")) {
+  
+  # Fit the random forest  
+  rfmodel <- randomForest(factor(samesource) ~ rough_cor + ccf, data = hamby173and252_train)
+
+  # Save the random forest
+  saveRDS(rfmodel, "./data/rfmodel.rds")
+  
+} else {
+  
+  # Load the rf model
+  rfmodel <- readRDS("./data/rfmodel.rds")
+}
+```
+
+```{r}
+# Create a dataset with the test data input to the random forest model 
+# and the predictions from the random forest model
+hamby224_test_subset <- hamby224_test %>%
+  na.omit() %>%
+  select(case:land2, rough_cor, ccf, samesource) %>%
+  mutate(rfpred = predict(rfmodel, 
+                           newdata = hamby224_test %>% select(rough_cor, ccf) %>% na.omit()),
+         rfscore = predict(rfmodel, 
+                           newdata = hamby224_test %>% select(rough_cor, ccf) %>% na.omit(),
+                           type = "prob")[,2])
+```
+
+# Applying LIME
+
+The functions `lime` and `explain` from the lime package are applied below to the random forest model.
+
+```{r}
+# Create or load the lime and explain objects for the main effects logisitic regression model
+if(!file.exists("./data/lime_explain_sub.rds")) {
+  
+  # Set a seed
+  set.seed(20190315)
+  
+  # Apply lime
+  lime_sub <- lime(x = hamby173and252_train %>% select(rough_cor, ccf), 
+                   model = as_classifier(rfmodel))
+  
+  # Apply explain
+  explain_sub <- explain(x = hamby224_test %>%
+                             select(rough_cor, ccf) %>% 
+                             na.omit(), 
+                           explainer = lime_sub, 
+                           n_labels = 1,
+                           n_features = 2)
+  
+  # Join the lime and explain objects in a list
+  lime_explain_sub <- list(lime = lime_sub, explain = explain_sub)
+  
+  # Save the lime and explain objects
+  saveRDS(lime_explain_sub, "./data/lime_explain_sub.rds")
+  
+} else {
+  
+  # Load the lime and explain objects
+  lime_explain_sub <- readRDS("./data/lime_explain_sub.rds")
+ 
+}
+```
+
+```{r}
+create_bin_df <- function(bin_cut) {
+ data.frame(quantile = c("0%", "25%", "50%", "75%", "100%"), 
+            bin_cut) 
+}
+
+bin_cuts <- purrr::map_df(lime_explain_sub$lime$bin_cuts, 
+                          create_bin_df,
+                          .id = "feature") %>%
+  spread(key = feature, value = bin_cut)
+
+bin_cuts
+```
+
+# Visualizations of Data, Model, and LIME
+
+```{r}
+(case1 <- lime_explain_sub$explain %>% filter(case == 1))
+```
+
+```{r}
+ggplot() +
+  geom_point(data = hamby173and252_train %>% filter(samesource == FALSE),
+             aes(x = rough_cor, y = ccf),
+             color = "darkgrey",
+             alpha = 0.2) +
+  geom_point(data = hamby173and252_train %>% filter(samesource == TRUE),
+             aes(x = rough_cor, y = ccf),
+             color = "darkorange") + 
+  geom_vline(xintercept = bin_cuts$rough_cor) + 
+  geom_hline(yintercept = bin_cuts$ccf) +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot() + 
+  geom_point(data = hamby224_test_subset, 
+             aes(x = rough_cor, y = ccf, color = rfscore),
+             alpha = 0.5) + 
+  scale_color_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) +
+  geom_point(data = lime_explain_sub$explain %>% 
+               filter(case == 1) %>%
+               select(feature, feature_value) %>%
+               spread(key = feature, value = feature_value),
+             aes(x = rough_cor, y = ccf)) +
+  geom_vline(xintercept = bin_cuts$rough_cor) + 
+  geom_hline(yintercept = bin_cuts$ccf) + 
+  theme_minimal()
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+

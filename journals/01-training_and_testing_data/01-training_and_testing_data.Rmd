@@ -1,0 +1,328 @@
+---
+title: "01-training and testing data"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
+                      cache = TRUE)
+```
+
+# Overview 
+
+This journal includes a description of the Hamby study datasets, and the code that is used to clean the Hamby training and testing datasets.
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(plotly)
+library(randomForest)
+```
+
+Both the training and the testing data will require the use of a vector of the names of the features used in the `rtrees` random forest included in the bulletr library. I create such a vector below to use in this journal.
+
+```{r}
+# Obtain features used when fitting the rtrees random forest
+rf_features <- rownames(bulletr::rtrees$importance)
+```
+
+# Description of the Hamby Data
+
+The Hamby data is based on several test sets of bullets from the study described in the paper "The Identification of Bullets Fired from 10 Consecutively Rifled 9mm Ruger Pistol Barrels: A Research Project Involving 507 Participants from 20 Countries" by James E. Hamby Et. Al. In this study, sets of bullets from both "known" and "unknown" gun barrels were sent to firearm examiners around the world. The examiners were asked to use the known bullets to identify which barrels the unknown bullets came from.
+
+The test sets were created using 1 pistol and 10 barrels. Each test set contains a total of 35 bullets, which are made up of 20 known bullets and 15 unknown bullets. The 20 known bullets were created by firing two bullets from each of the 10 barrels. These are referred to as known bullets, because when they were sent to the firearm examiners, the barrel number that each bullet was fired from was listed with the bullet. The 15 unknown bullets were created by firing 15 bullets in some manner from the 10 barrels such that at least one unknown bullet came from each barrel and no more than three unknown bullets came from the same barrel. These are referred to as the unknown bullets, because when they were sent to the firearm examiners, the barrel number that the bullet was fired from was not listed with the bullet. A total of 240 test sets were created for the study.
+
+CSAFE has access to test sets 44, 173, and 252. The bullets were scanned 6 times using a high powered microscope to obtain an image of each of the 6 lands from the bullets. The scans for test sets 173 and 252 were done by NIST, and the scans for test set 44 was done by CSAFE. The data from these images were processed to obtain a signature associated with each land. The paper "Automatic Matching of Bullet Land Impressions" by Hare, Hofmann, and Carriquiry (https://arxiv.org/abs/1601.05788) provides more descriptions of how the signatures were obtained.
+
+CSAFE aggregated the signatures from test sets 173 and 252 and left the signatures from test set 44 separate. Within these two groups, pairs of lands were evaluated to determine how similar the signatures from the two lands were. This was done by measuring a set of variables they determined that would capture how alike the two signatures where. Some of these variables are described in Hare, Hofmann, and Carriquiry. The vignette at https://github.com/heike/bulletxtrctr/blob/master/vignettes/features.Rmd includes some additional descriptions. Note that it was not possible to evaluate all pairs of lands due to tank rash on some of the lands. The data set created from the comparisons of test sets 173 and 252 will be referred to as `hamby173and252` throughout these journals. Hare, Hofmann, and Carriquiry used `hamby173and252` as a training data set to fit the random forest model `rtrees`. The data set created from the comparisons of test sets 44 will be referred to as `hamby44` and is not used in this research project.
+
+### Variable Definitions
+
+The definitions of the variables...
+
+- ccf: 
+- cms:
+- D: 
+- matches: 
+- mismatches:
+- non_cms:
+- rough_cor: 
+- sd_D:
+- sum_peaks:
+
+# Training Data
+
+This was originally a part of a journal entry that I wrote in my 'Case Studies with LIME' repository. I took the code that I used to clean the training dataset from that entry and updated it in this entry. It should still produce essentially the same dataset (with some possible changes to the level names of some of the barrels due to a 'factor' issue). The dataset that gets saved from this journal is the one that I am using for this research project.
+
+### The Raw Data
+
+The dataset loaded in below is the original Hamby 172 and 252 dataset that Heike gave to me. Note that when the `hamby173and252` dataset is read in, the studies called "Cary" are excluded. The data file contains rows based on bullet scans from a different study. These rows are no longer being included since Heike has found the study they came from to be poorly executed. 
+
+```{r}
+# Load in the Hamby 173 and 252 dataset
+hamby173and252_raw <- read.csv("../../data/raw/features-hamby173and252.csv") %>%
+  filter(study1 != "Cary", study2 != "Cary") %>%
+  mutate(study1 = factor(study1), 
+         study2 = factor(study2))
+```
+
+### Considering the Number of Rows in the Raw Data
+
+If we include symmetric comparisons, each set of test bullets should result in a dataset with
+  $$(35 \mbox{ bullets} \times 6 \mbox{ lands})^2=44100 \mbox{ rows},$$
+where a row would contain information on a pair of lands. If we do not include the symmetric comparisons, then the dataset should have
+  $$\frac{(44100 \mbox{ rows} - (35 \mbox{ bullets} \times 6))}{2} + (35 \mbox{ bullets} \times 6) = 22155 \mbox{ rows}.$$
+However, when I looked at the dimension of the datasets, neither of these seem to be the case. See the R code and output below. Note that `hamby173` is currently incorrectly labelled as `hamby44`. Both test sets have less than but close to 22,155 rows. This suggests that these do not include symmetric comparisons. When I checked with Heike, she confirmed that this is the case. This table also shows that there are comparisons across `hamby173` and `hamby252`. These missing observations will be explored more in the next section.
+
+```{r}
+# Summary of the number of observations in the Hamby173and252 datase
+table(hamby173and252_raw$study1, hamby173and252_raw$study2)
+```
+
+### Understanding the Missing Observations
+
+The plot below considers the number of observations within a barrel and bullet comparison from all known cases in the Hamby 173 and 252 data. We can see that the observations on the lower diagonals are missing in all cases which confirms that the symmetric comparisons were not included in the data. Additionally, a handful of cases have less than 36 observations. For the comparisons within the Hamby 173 or Hamby 252 study, the cells on the diagonals are less than 36, because none of the repeats from the symmetric comparisons of lands are included. The cells above the diagonal with less than 36 observations are missing some observations due to tank rash. For the comparisons across studies, the cases with less than expected are also due to tank rash. For some reason, the comparisons between bullets 1 from Hamby 173 and Hamby 252, the cells are being colored grey even though they have 36 observations. I am not sure why this is...
+
+```{r}
+# Create the plot to look at number of comparisons within the known bullets
+countplot <- hamby173and252_raw %>%
+  filter(barrel1 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+         barrel2 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")) %>%
+  group_by(study1, study2, barrel1, barrel2, bullet1, bullet2) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = barrel1, y = barrel2)) +
+  geom_tile(aes(fill = count)) + 
+  facet_grid(study1 + bullet1 ~ study2 + bullet2, scales = "free") +
+  theme_minimal() + 
+  scale_fill_distiller(palette = "GnBu", direction = 1)
+
+# Make the plot interactive
+ggplotly(countplot, width = 800, height = 700) %>%
+  shiny::div(align = "center")
+```
+
+### Cleaning the Trainng Data
+
+The code below cleans the training data. The cleaning involves:
+
+- correcting the study 173 labels
+- adjusting the bullet and barrel values for the unknowns
+- renaming the match variable as samesource
+- selecting the desired variables
+
+```{r}
+# Determine the letters associated with the unknown bullets
+letters <- levels(hamby173and252_raw$barrel1)[11:length(levels(hamby173and252_raw$barrel1))]
+
+# Cleaning the testing data
+hamby173and252_train_cleaning <- hamby173and252_raw %>%
+  mutate(study1 = fct_recode(study1, "Hamby173" = "Hamby44"),
+         study2 = fct_recode(study2, "Hamby173" = "Hamby44"),
+         bullet1 = factor(ifelse(barrel1 %in% letters,
+                                 as.character(barrel1),
+                                 as.character(bullet1))),
+         barrel1 = factor(ifelse(barrel1 %in% letters, 
+                                 as.character("Unknown"), 
+                                 as.character(barrel1))),
+         bullet2 = factor(ifelse(barrel2 %in% letters,
+                                 as.character(barrel2),
+                                 as.character(bullet2))),
+         barrel2 = factor(ifelse(barrel2 %in% letters, 
+                                 as.character("Unknown"), 
+                                 as.character(barrel2))),
+         land1 = factor(land1),
+         land2 = factor(land2),
+         rfscore = predict(bulletr::rtrees, hamby173and252_raw %>%
+                             select(rf_features), 
+                           type = "prob")[,2]) %>%
+  rename(samesource = match) %>%
+  select(study1, barrel1, bullet1, land1, study2, barrel2, bullet2, land2,
+         rf_features, samesource, rfscore)
+```
+
+### Removing Bullets with Tank Rash
+
+I discovered that the number of rtrees predictions does not match the length of my training data. I need to ask Heike about this.
+
+```{r}
+# Compare the dimensions of my training data and the number of predictions from rtrees
+dim(hamby173and252_train_cleaning)
+dim(predict(bulletr::rtrees, type = "prob"))
+```
+
+When I talked to Heike about this, she told me that this training dataset probably still contains the four land impressions that had tank ranks and were removed before `rtrees` was fit. When I looked in Eric's paper, it said that the lands that were removed were the following four: 
+
+- barrel 6 bullet 2-1
+- barrel 9 bullet 2-4
+- unknown bullet B-2
+- unknown bullet Q-4
+
+The code below removes any comparisons from the testing data that include one of these lands.
+
+```{r}
+# Remove the comparisons involving the four lands with tank rash
+hamby173and252_train <- hamby173and252_train_cleaning %>%
+  mutate(bbl1 = barrel1:bullet1:land1,
+         bbl2 = barrel2:bullet2:land2) %>%
+  filter(!(bbl1 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4") | 
+           bbl2 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4"))) %>%
+  select(-bbl1, -bbl2)
+```
+
+When I look at the dimensions of my training data now and the number of predictions from `rtrees`, then agree now!
+
+```{r}
+# Compare the dimensions of my further cleaned training data and the
+# number of predictions from rtrees
+dim(hamby173and252_train)
+dim(predict(bulletr::rtrees, type = "prob"))
+```
+
+It is possible that the labels that Eric was using are different from the labels in my training dataset. In order to check whether I removed the correct datapoints, Heike suggested that I look at a parallel coordinate plots to see if the observations that were removed stand out as being unusual compared to the rest of the data. The code below prepares the training data before observations were removed to be plotted.
+
+```{r}
+# Create dataset for creating the paralle coordinate plot
+par_data <- hamby173and252_train_cleaning %>%
+  mutate(bbl1 = barrel1:bullet1:land1,
+         bbl2 = barrel2:bullet2:land2) %>%
+  mutate(category = factor(ifelse(!(bbl1 %in% c("6:2:1", "9:2:4", "Unknown:B:2",
+                                                "Unknown:Q:4") | 
+                                      bbl2 %in% c("6:2:1", "9:2:4", "Unknown:B:2",
+                                                  "Unknown:Q:4")),
+                           "keep", "remove"))) %>%
+  arrange(category) %>%
+  mutate(samesource_colors = ifelse(samesource == TRUE, rgb(1, 0, 0, alpha = 0.05), 
+                                    rgb(0, 0, 0, alpha = 0.001)),
+         samesource_colors2 = ifelse(samesource == TRUE, rgb(1, 0, 0, alpha = 0.001), 
+                                    rgb(0, 0, 0, alpha = 0.01)),
+         tankrash_colors = ifelse(category == "keep", rgb(0, 0, 1, alpha = 0.05),
+                                  rgb(0, 0, 0, alpha = 0.01)))
+```
+
+The first plot shows the observations that were kept in black and the observations that were removed in blue. These observations do not stand out to me. It is not clear if these were the ones that were suppose to be removed or not. The second plot shows the observations from matches plotted in red, and the third plot shows the observations from nonmatches plotted in black.
+
+```{r}
+MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$tankrash_colors)
+MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$samesource_colors)
+MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$samesource_colors2)
+```
+
+### Saving the Training Data
+
+The cleaned data is saved and used as the training dataset for the rest of this research project.
+
+```{r}
+# Save the datasets and response variables as .csv files
+write.csv(hamby173and252_train, "../../data/hamby173and252_train.csv", row.names = FALSE)
+```
+
+# Testing Data
+
+### The Raw Data
+
+The original data files given to me by Heike are loaded in below. For now, we are working with only sets 1 and 11 from the Hamby 224 study. She may provide me with more in the future.
+
+```{r}
+# Load in the Hamby 224 datasets
+hamby224_set1 <- readRDS("../../data/raw/h224-set1-features.rds")
+hamby224_set11 <- readRDS("../../data/raw/h224-set11-features.rds")
+```
+
+### Cleaning the Testing Data
+
+The code below cleans the data from both sets 1 and 11. This involves:
+
+- selecting the desired variables
+- renaming the bullet and land variables
+- creating study and set variables
+- re-coding the bullet and land names
+
+```{r}
+# Clean the Hamby 224 set 1 data
+hamby224_set1_cleaned <- hamby224_set1 %>%
+  select(-bullet_score, -land1, -land2, -aligned, -striae, -features) %>%
+  rename(bullet1 = bulletA,
+         bullet2 = bulletB, 
+         land1 = landA,
+         land2 = landB) %>%
+  mutate(study = factor("Hamby 224"), 
+         set = factor("Set 1"),
+         bullet1 = recode(factor(bullet1), 
+                          "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
+         bullet2 = recode(factor(bullet2), 
+                          "1" = "Known 1", "2" = "Known 2", "Q" = "Questioned"),
+         land1 = recode(factor(land1), 
+                        "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
+                        "4" = "Land 4", "5" = "Land 5", "6" = "Land 6"),
+         land2 = recode(factor(land2), 
+                        "1" = "Land 1", "2" = "Land 2", "3" = "Land 3", 
+                        "4" = "Land 4", "5" = "Land 5", "6" = "Land 6")) %>%
+  select(study, set, bullet1:land2, rf_features, rfscore, samesource)
+
+# Clean the Hamby 224 set 11 data
+hamby224_set11_cleaned <- hamby224_set11 %>%
+  select(-bullet_score, -land1, -land2, -aligned, -striae, -features) %>%
+  rename(bullet1 = bulletA,
+         bullet2 = bulletB, 
+         land1 = landA,
+         land2 = landB) %>%
+  mutate(study = factor("Hamby 224"), 
+         set = factor("Set 11"),
+         bullet1 = recode(factor(bullet1), 
+                          "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
+                          "Bullet I" = "Questioned"),
+         bullet2 = recode(factor(bullet2), 
+                          "Bullet 1" = "Known 1", "Bullet 2" = "Known 2", 
+                          "Bullet I" = "Questioned")) %>%
+  select(study, set, bullet1:land2, rf_features, rfscore, samesource)
+```
+
+The cleaned data from sets 1 and 11 are combined below into the testing dataset. Rows are added for the missing comparisons from the Hamby 224 study, and some additional cleaning is done.
+
+```{r}
+# Create a dataset with all combinations of lands and bullets comparisons for each set
+combinations <- data.frame(set = factor(rep(c("Set 1", "Set 11"), each = 324)),
+                    expand.grid(land1 = factor(c("Land 1", "Land 2", "Land 3", 
+                                                 "Land 4", "Land 5", "Land 6")),
+                                land2 = factor(c("Land 1", "Land 2", "Land 3", 
+                                                 "Land 4", "Land 5", "Land 6")),
+                                bullet1 = factor(c("Known 1", "Known 2", "Questioned")),
+                                bullet2 = factor(c("Known 1", "Known 2", "Questioned"))))
+
+# Join the two cleaned Hamby 224 sets into one testing set
+hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
+                                            hamby224_set11_cleaned)) %>%
+  mutate(set = factor(set),
+         bullet1 = factor(bullet1),
+         bullet2 = factor(bullet2),
+         land1 = factor(land1),
+         land2 = factor(land2)) %>%
+  right_join(combinations, by = c("set", "land1", "land2", "bullet1", "bullet2")) %>%
+  filter(!(bullet1 == "Questioned" & bullet2 == "Known 1"),
+         !(bullet1 == "Questioned" & bullet2 == "Known 2"),
+         !(bullet1 == "Known 2" & bullet2 == "Known 1")) %>%
+  arrange(rfscore) %>%
+  mutate(case = factor(1:length(study))) %>%
+  select(case, study:samesource)
+```
+
+### Saving the Testing Data
+
+The testing data file is saved below.
+
+```{r}
+# Save the test data as a .csv file
+write.csv(hamby224_test, "../../data/hamby224_test.csv", row.names = FALSE)
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

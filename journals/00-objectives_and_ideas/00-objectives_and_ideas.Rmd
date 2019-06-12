@@ -1,0 +1,60 @@
+---
+title: "00-objectives_and_ideas"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+
+This journal explains the objectives of the research project on applying LIME to the Hamby bullet data that is detailed in this series of journals. 
+
+# Objectives of the Research Project
+
+It is the hope that this research project will result in two papers. One will focus on a statistical assessment of LIME and the other will focus on the explanation of how the application of LIME to the Hamby bullet data can help firearm examiners understand the random forest model predictions.
+
+### Statistical Paper Presenting Visual Diagnostic Tools for LIME
+
+Write a paper that introduces some visual diagnostics for LIME to assess its performance. Key points that will be made:
+
+1. explainer model is really bad (probably due to the binning)
+2. local explanations at not local
+
+### Statistical Paper Assessing LIME
+
+While applying LIME to the bullet matching dataset, we found that the explanations were not as good as we wanted them to be. This has led us to try to understand why the LIME algorithm is not working well and to propose some new methods to improve the algorithm. This paper will discuss isusses we found with the current LIME agorithm, describe our proposed approaches, and compare the results.
+
+### Firearm Examiner's Paper
+
+CSAFE is developing a predictive model that is able to match a bullet to the gun barrel that fired the bullet. They have acquired some sets of the data from the Hamby study. Part of this data was used to train a random forest model (`rtrees`), and the remaining portion of the data will be used as a testing dataset. CSAFE would now like to understand the predictions made by the random forest to be able to provide a better explanation of how the model works to the firearm examiners. Thus, it is of interest to apply the LIME algorithm to the predictions made by the random forest model on the testing data to see which variables LIME suggests are driving individual predictions.
+
+# Concerns with LIME
+
+The following are some of the concerns that we have with the current state of the LIME algorithm.
+
+- I'm nervous about the fact that the results can change due to the permutations. Is there a way to check for consistencey? Does this only happen if you have correlated variables, or can it also happen with uncorrelated variables?
+- When you have a large number of predictions to assess, would it be a good idea to focus in on the ones that have the best fitting linear model or produce the most consistent results?
+- What can be done to improve the linear regression model fit? Maybe adjusting the number of bins or the kernel width would help with this.
+- We think that the model explainer needs to be close enough to the complex model that it is trying to explain in order to do a good job of providing explanations. For example, the binned regression works okay with neural networks, but it does not work well with a random forest. Maybe a tree explainer or a logistic regression explainer would work better with a random forest.
+
+# Ideas to Try
+
+- Could try fitting a regression with interactions and see if LIME does a good job of explaining a model that is already interpretable.
+- Run a simulation to understand if LIME is working
+    - could implement a couple of local linear dependencies
+    - piece this together
+    - could include interactions in the model
+    - does lime find the local models?
+- Maybe we could come up with a test to compare between global and local explanations (but how would we do this?)
+
+# General Thoughts about LIME
+
+- LIME is kind of like a jacknife technique
