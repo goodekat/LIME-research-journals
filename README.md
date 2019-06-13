@@ -12,8 +12,12 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 **Current Week**
 
-  - look into bibText and add to paper
-  - work on paper
+  - finish writing and editing introduction
+  - draft background section
+  - fix outline of the rest of the paper now that I have a clear vision
+
+**Later**
+
   - finish journal on understanding lime (look at the RF in the local
     region lime is considering to see if it agrees with the lime
     explanations)
@@ -36,9 +40,6 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
     procedure or LIME itself
   - he also suggested looking into SMOTE for dealing the inbalance in
     the classes with sampling
-
-**Later**
-
   - look back at 601 notes from Kaiser and Hadley’s removing the
     blindfold and think about how this could be applied with random
     forests
