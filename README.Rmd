@@ -6,7 +6,7 @@ output: rmarkdown::github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# LIME Research
+# LIME Research <img align="right" height="200" src="./figures/lime.png">
 
 Repository for research projects on LIME applied to the Hamby bullet data. 
 
@@ -14,6 +14,8 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 
 ## Talking points
 
+- adding a random noise variable to the model to see if LIME ever chooses it as an important variable
+- is it okay if I change the repo name to "lime-research"?
 - can I remove some of the sources from the references file that I am not going to use?
 - I finished writing and editing the introduction - what do you think?
 
