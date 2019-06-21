@@ -24,51 +24,53 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 **Current**
 
 - draft background section
-- fix outline of the rest of the paper now that I have a clear vision
 - read through papers giving an overview of the current explanation methods
+- create first draft of JSM poster
 
 **Later**
 
-- finish journal on understanding lime (look at the RF in the local region
-  lime is considering to see if it agrees with the lime explanations)
-- think about how the argmin is accomplished by the LIME R package
-- change distance matrix in seriation to be 5-# of variables shared between two rows
-  or try using distance matrix computed on the feature values
-- fix issue with seriation
-- try fitting LASSO logistic model and leave one out approach (for multicollinarity)
-- assess lime results on logistic regression models
-- think about how to implement a simulation with a random forest
-- add in feature selection methods to LIME input options
-- turn repetitive code into functions
-- look into iml (https://www.youtube.com/watch?v=jP6Rg13PEkQ)
-- look more into Molnar and his adviser Bernd
-- Siggi suggests refitting the RF model to the perturbations and then continuing with LIME with the RF predictions from the new model - this may help to understand if the problems are due to the sampling procedure or LIME itself
-- he also suggested looking into SMOTE for dealing the inbalance in the classes with sampling
-- look back at 601 notes from Kaiser and Hadley's removing the blindfold and
-  think about how this could be applied with random forests
-- try retriculate to apply python version of lime
-- look at 'removing the blindfold' for ideas
-- read through Heike's new function
-- think of a way to compute consistency across top two features
-- compare the simple models based on different number of bins using an F-test
-- look into literature on binning methods
-- think about why R^2 would be better for some binning methods
-- look into computing a diversity or consistency measure for the sensitivity analysis
-- create distribution visualizations bins
-- include a penalty for the number of parameters when choosing bins
-- determine the best number of bins to use for each variable
-- look at the AUC after binning
-- write a draft of the examiners paper
-- try out different weights
-- read through LIME papers again
-- compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
-- try out logistic regression idea for bins (write own bin list to put in explain)
-- try out subsampling idea
-- read new paper on Anchor
-- read book Dr. Dixon lent me on sensativity analyses
-- try visualizing the features from the test data using dimension reduction and
+- LIME diganostics  
+    - turn repetitive code into functions
+    - try out different weights
+    - change distance matrix in seriation to be 5-# of variables shared between two rows
+    - try using distance matrix computed on the feature value with seriation
+    - add in feature selection methods to LIME input options
+    - think of a way to compute consistency across top two features
+    - Siggi suggests refitting the RF model to the perturbations and then continuing with LIME with the RF predictions from the new model - this may help to understand if the problems are due to the sampling procedure or LIME itself
+    - he also suggested looking into SMOTE for dealing the inbalance in the classes with sampling
+    - compare the simple models based on different number of bins using an F-test
+    - look into computing a diversity or consistency measure for the sensitivity analysis
+    - include a penalty for the number of parameters when choosing bins
+    - look at the AUC after binning
+    - compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression
+    - try visualizing the features from the test data using dimension reduction and
   coloring them by variables suggested to be important by lime
-- look into papers by Giles Hooker and Lucas Mentch
+- explainer models
+    - look into iml (https://www.youtube.com/watch?v=jP6Rg13PEkQ)
+    - look more into Molnar and his adviser Bernd
+- understanding LIME
+    - read through LIME papers again
+    - finish journal on understanding lime (look at the RF in the local region lime is considering to see if it agrees with the lime explanations)
+    - try fitting LASSO logistic model and leave one out approach (for multicollinarity)
+    - assess lime results on logistic regression models
+    - think about how the argmin is accomplished by the LIME R package
+    - try retriculate to apply python version of lime
+    - look into literature on binning methods
+    - think about why R^2 would be better for some binning methods
+    - read new paper on Anchor
+- simulation with RF
+    - think about how to implement a simulation with a random forest
+    - look back at 601 notes from Kaiser for model assessment
+    - look at Hadley's 'removing the blindfold' for ideas
+    - read book Dr. Dixon lent me on sensativity analyses
+- possible improvements to LIME
+    - determine the best number of bins to use for each variable
+    - try out subsampling idea
+- random forests confidence intervals
+    - look into papers by Giles Hooker and Lucas Mentch
+    - Dr. Nettleton paper
+
+
 
 
 ## Contents
