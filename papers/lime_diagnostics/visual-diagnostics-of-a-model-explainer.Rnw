@@ -104,9 +104,9 @@ Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observat
 
 \begin{itemize}
 \item $x=\left(\begin{array}{cccc}x_1 & x_2 & \hdots & x_p\end{array}\right)\in\mathbb{R}^p$: original representation of an instance being explained (e.g. observations from a set of $p$ continuous features for a specific case in the data) % the LIME paper uses d instead of p for the dimension
-\item $x'\in\mathbb{R}^{p'}$: \hh{what is $p'$ ? shouldn't $p$ and $p'$ be the same? I thought that you were trying to say that $x'$ explains $x$?} vector for the interpretable representation of the instance being explained (e.g. a vector of indicator variables associated with the features chosen through feature selection indicating whether or not the observed value is in the bin created by LIME for the feature)
-\item $G$: class of potentially \hh{why potentially?} interpretable models (e.g. linear models, decision trees, rule lists)
-\item $g$: explanation model where $g:\{0,1\}^{p'}\rightarrow\mathbb{R}$ and $g\in G$
+\item $x'\in\mathbb{R}^{p'}$: \hh{where $1 \le p' \le p$}  vector for the interpretable representation of the instance being explained (e.g. a vector of indicator variables associated with the features chosen through feature selection indicating whether or not the observed value is in the bin created by LIME for the feature)
+\item $G$: class of potentially interpretable models (e.g. linear models, decision trees, rule lists) \hh{in our case, we will use ridge regression}
+\item $g$: explanation model where $g:\{0,1\}^{p'}\rightarrow\mathbb{R}$ and $g\in G$ \hh{ do we need $\{0,1\}^{p'}$?}
 \item $\Omega(g)$: measure of complexity of $g$ (e.g. depth of a tree, number of non-zero coefficients in a linear model fit using LASSO)
 \item $f$: model that is being explained where $f:\mathbb{R}^p\rightarrow\mathbb{R}$ (In classification $f(x)$ is the probability that $x$ belongs to a certain class)
 \item $\pi_x(z)$: proximity measure between an instance $z$ to $x$ which defines a locality around $x$
