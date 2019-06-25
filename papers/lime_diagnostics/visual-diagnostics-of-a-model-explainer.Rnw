@@ -91,20 +91,21 @@ Section \ref{background} provides some background on explainer models that have 
 
 \subsection{Overview of LIME}
 
-It does this by using the features from the training data to simulate a new dataset on which the simple model is fit. The complex model is applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the the simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
+\hh{It does this -- XX references :) }
+It does this by using the features from the training data to simulate a new dataset on which the simple model is fit.  \hh{more on how the data is simulated - that's an important step.} The complex model is then applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the  simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. \hh{more on the weights} Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
 
 (a good place to include an image to help with this explanation)
 
 \subsection{LIME Algorithm}
 
-The LIME algorithm is presented in the original paper in a general context that includes cases for text classification and feature recognition. For this paper, we are only considering a situation with a binary categorical response variable and continuous feature variables. The procedure below is defined in this context. Furthermore, the implementation of LIME used in this paper is via the lime R package, and the procedure describes the methods used by the R package. This deviates a bit from the original procedure described by Riberio, Singh, and Guestrin (2016). We attempted to highlight these deviations.
+The LIME algorithm is presented in the original paper in a general context that includes cases for text classification and feature recognition. For this paper, we are only considering a situation with a binary categorical response variable and continuous feature variables. The procedure below is defined in this context. Furthermore, \hh{in this paper we are relying on the LIME implementation in R \citep{lime}. This implementation deviates at times from the original implementation by \citet{riberio}. Whenever the implementations differ, we will} highlight these deviations.
 
 Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observations.
 
 \begin{itemize}
 \item $x=\left(\begin{array}{cccc}x_1 & x_2 & \hdots & x_p\end{array}\right)\in\mathbb{R}^p$: original representation of an instance being explained (e.g. observations from a set of $p$ continuous features for a specific case in the data) % the LIME paper uses d instead of p for the dimension
-\item $x'\in\mathbb{R}^{p'}$: vector for the interpretable representation of the instance being explained (e.g. a vector of indicator variables associated with the features chosen through feature selection indicating whether or not the observed value is in the bin created by LIME for the feature)
-\item $G$: class of potentially interpretable models (e.g. linear models, decision trees, rule lists)
+\item $x'\in\mathbb{R}^{p'}$: \hh{what is $p'$ ? shouldn't $p$ and $p'$ be the same? I thought that you were trying to say that $x'$ explains $x$?} vector for the interpretable representation of the instance being explained (e.g. a vector of indicator variables associated with the features chosen through feature selection indicating whether or not the observed value is in the bin created by LIME for the feature)
+\item $G$: class of potentially \hh{why potentially?} interpretable models (e.g. linear models, decision trees, rule lists)
 \item $g$: explanation model where $g:\{0,1\}^{p'}\rightarrow\mathbb{R}$ and $g\in G$
 \item $\Omega(g)$: measure of complexity of $g$ (e.g. depth of a tree, number of non-zero coefficients in a linear model fit using LASSO)
 \item $f$: model that is being explained where $f:\mathbb{R}^p\rightarrow\mathbb{R}$ (In classification $f(x)$ is the probability that $x$ belongs to a certain class)
