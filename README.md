@@ -10,10 +10,8 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
   - adding a random noise variable to the model to see if LIME ever
     chooses it as an important variable
-  - is it okay if I change the repo name to “lime-research”?
   - can I remove some of the sources from the references file that I am
     not going to use?
-  - I finished writing and editing the introduction - what do you think?
 
 ## To Do List
 
