@@ -13,6 +13,8 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
     chooses it as an important variable
   - can I remove some of the sources from the references file that I am
     not going to use?
+  - have you heard of: Journal of Data Science, Statistics, and
+    Visualisation (jdssv.org)
 
 ## To Do List
 
