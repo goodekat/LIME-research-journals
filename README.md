@@ -8,6 +8,7 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
+  - see email from Shar
   - Have you heard of trelliscope:
     <https://hafen.github.io/trelliscopejs/#trelliscope>
   - I think I may have convinced Adam to talk at graphics group if we
