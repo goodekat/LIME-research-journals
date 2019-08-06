@@ -8,18 +8,44 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
-  - see email from Shar
-  - Have you heard of trelliscope:
-    <https://hafen.github.io/trelliscopejs/#trelliscope>
+JSM
+
+  - Lots of “enthusiasm” about interpreting random forest models from
+    individuals who stopped by the poster (the next presenter had to ask
+    me to leave)
+  - Many people seemed to agree that just using the default values of
+    LIME will not be enough to necessarily capture the local trend
+  - Shapley values were mentioned several times
+  - See email from Shar (references and possible collaborator)
   - I think I may have convinced Adam to talk at graphics group if we
     end up scheduling graphics group on Thursday
-  - opinions on saving pdf files to github - if no - what to do?
-  - adding a random noise variable to the model to see if LIME ever
+  - Saw Andrew - he has invited me to give a talk at Lawrence this
+    winter
+  - I updated my website while at JSM
+  - I realized that I left the CSAFE logo off the poster. Should I
+    always include this to acknowledge that there were the source of
+    funding for the dataset?
+
+SAMSI
+
+  - Have you heard of trelliscope:
+    <https://hafen.github.io/trelliscopejs/#trelliscope>
+  - Opinions on saving pdf files to github - if no - what to do?
+
+NCCC
+
+  - Adding a random noise variable to the model to see if LIME ever
     chooses it as an important variable
-  - can I remove some of the sources from the references file that I am
+
+Paper
+
+  - Can I remove some of the sources from the references file that I am
     not going to use?
-  - have you heard of: Journal of Data Science, Statistics, and
+  - Have you heard of: Journal of Data Science, Statistics, and
     Visualisation (jdssv.org)
+  - What are your recommendations for going forward in the month of
+    August?
+  - Should we start talking about a date for my oral prelim?
 
 ## To Do List
 
@@ -28,7 +54,6 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
   - draft background section
   - read through papers giving an overview of the current explanation
     methods
-  - create first draft of JSM poster
 
 **Later**
 
