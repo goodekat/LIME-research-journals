@@ -44,6 +44,7 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 - explainer models
     - look into iml (https://www.youtube.com/watch?v=jP6Rg13PEkQ)
     - look more into Molnar and his adviser Bernd
+    - look into [MAPLE](https://blog.ml.cmu.edu/2019/07/13/towards-interpretable-tree-ensembles/)
 - understanding LIME
     - read through LIME papers again
     - finish journal on understanding lime (look at the RF in the local region lime is considering to see if it agrees with the lime explanations)
