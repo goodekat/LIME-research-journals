@@ -1,0 +1,117 @@
+---
+title: "Figure Creation"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+# Overview
+
+This document contains the code for creating figures to be included in the LIME diagnostic paper.
+
+```{r}
+# Load packages
+library(cowplot)
+library(gower)
+library(graphics)
+library(tidyverse)
+```
+
+# Conceptual Depiction of LIME
+
+```{r}
+# Generate data
+set.seed(20190624)
+lime_data <- data.frame(feature1 = sort(runif(250, 0, 1)),
+                      feature2 = sample(x = 1:250, size = 250, replace = FALSE)) %>%
+  mutate(prediction = if_else(feature1 >= 0 & feature1 < 0.1, (0.3 * feature1) + rnorm(n(), 0, 0.01), 
+                      if_else(feature1 >= 0.1 & feature1 < 0.3, rbeta(n(), 1, 0.5), 
+                      if_else(feature1 >= 0.3 & feature1 < 0.5, sin(pi* feature1) + rnorm(n(), 0, 0.5),
+                      if_else(feature1 >= 0.5 & feature1 < 0.8, -(sin(pi* feature1) + rnorm(n(), 0, 0.1)) + 1,
+                      if_else(feature1 >= 0.8 & feature1 < 0.9, 0.5 + runif(n(), -0.5, 0.5), 
+                              0.5 + rnorm(n(), 0, 0.3)))))))
+
+# Specify a prediction of interest
+prediction_of_interest <- data.frame(feature1 = 0.07,
+                                feature2 = 200,
+                                prediction = 0.05, 
+                                color = factor("Prediction of Interest"))
+
+# Compute the distance between the prediction of interest 
+lime_data$distance <- (1 - gower_dist(x = prediction_of_interest, y = lime_data))^20
+
+# Fit the interpretable explainer model
+lime_explainer <- lm(prediction ~ feature1 + feature2, data = lime_data, weights = distance)
+
+# Predictions versus feature 1
+plot_feature1 <- ggplot(lime_data, aes(x = feature1, y = prediction, size = distance)) + 
+  geom_abline(intercept = coef(lime_explainer)[[1]] + coef(lime_explainer)[[3]]*prediction_of_interest$feature2, 
+              slope = coef(lime_explainer)[[2]], 
+              size = 1) +
+  geom_point() + 
+  geom_point(data = prediction_of_interest,
+             mapping = aes(x = feature1, y = prediction),
+             color = "#EFB084",
+             size = 5) +
+  theme_linedraw(base_family = "Times") +
+  labs(x = "Feature 1", 
+       y = "Black-Box Prediction") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")
+
+# Predictions versus feature 2
+plot_feature2 <- ggplot(lime_data, aes(x = feature2, y = prediction, size = distance)) +
+  geom_abline(intercept = coef(lime_explainer)[[1]] + coef(lime_explainer)[[2]]*prediction_of_interest$feature1,
+              slope = coef(lime_explainer)[[3]],
+              size = 1) +
+  geom_point() +
+  geom_point(data = prediction_of_interest,
+             mapping = aes(x = feature2, y = prediction),
+             color = "#EFB084",
+             size = 5) +
+  theme_linedraw(base_family = "Times") +
+  labs(x = "Feature 2",
+       y = "Black-Box Prediction") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")
+
+# Join the two feature plots
+lime_plots <- plot_grid(plot_feature1, plot_feature2)
+
+# Create a plot to extract a legend for the prediction of interest
+lime_legend_plot <- ggplot(prediction_of_interest, aes(x = feature1, y = prediction, color = color)) +
+  geom_point(size = 5) +
+  scale_color_manual(values = c("#EFB084")) +
+  theme_classic(base_family = "Times") +
+  labs(color = "") +
+  theme(legend.position = "bottom")
+
+# Extract the legend
+lime_legend <- get_legend(lime_legend_plot)
+
+# Join the title, plots, legend, and caption into one figure
+lime_concept <- plot_grid(lime_plots, lime_legend,
+                         ncol = 1,
+                         rel_heights = c(0.9, 0.1))
+
+# Preview the plot
+lime_concept
+
+# Save the plot
+ggsave(filename = "../figures/lime_concept.png",
+       plot = lime_concept,
+       height = 4, width = 8)
+```
+

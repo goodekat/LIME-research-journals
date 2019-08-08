@@ -19,6 +19,7 @@
 \raggedbottom
 
 \begin{document}
+\SweaveOpts{concordance=TRUE, echo = FALSE}
 
 \title{Visual Diagnostics of a Model Explainer -- Tools for the Assessment of LIME Explanations}
 
@@ -57,7 +58,7 @@ To check on when editing writing:
 
 \section{Introduction}
 
-In the field of statistics, there are two main uses for models: inference and prediction. Machine learning models are often used for the latter purpose. While these models have been proven to perform well in a wide range of prediction problems, their accuracy comes at the cost of interpretability. They are often complex algorithms that are good at identifying patterns in the data but lack a functional form, so it not possible to directly interpret them. As a result, they produce predictions that lack an explanation, which has earned them the reputation of being ``black box models".
+In the field of statistics, there are two main uses for models: inference and prediction. Machine learning models are often used for the latter purpose. While these models have been proven to perform well in a wide range of prediction problems, their accuracy comes at the cost of interpretability. They are often complex algorithms that are good at identifying patterns in the data but lack a functional form \kg{XXX Is it okay for me to make this statement about the functional form?}, so it not possible to directly interpret them. As a result, they produce predictions that lack an explanation, which has earned them the reputation of being ``black box models".
 
 The ability to interpret a model serves multiple purposes. When a model is first fit, interpretations help to diagnose the model. Knowing which variables influence a prediction makes it possible to determine if the predictions are based on reasonable variables. If not, appropriate adjustments to the model can be made. After a model has been diagnosed, the explanations for the predictions are used to understand the underlying mechanism that produced the data and provide an argument for why the predictions should be trusted. In some areas of application, this ability to be able to explain the results from a model is critical.
 
@@ -65,40 +66,46 @@ The forensics sciences and the heath care industry are two areas that have benef
 
 As an example, suppose that forensics examiners are trying to determine if a bullet used in a crime was fired from the gun that belongs to a suspect in the investigation. A random forest model could be used to produce a probability that the bullet was fired from the gun under question. Even if the model returns a high probability of a match, it will be difficult for a jury to trust the results from the model when deciding whether to convict the suspect without the forensics examiners having the ability to explain which factors in the model led to the high probability.
 
-The European Union has taken the desire to provide explanations from machine learning models a step further. In May 2018, the General Data Protection Regulation (GDPR) went into effect \footnote{https://eugdpr.org/the-regulation/gdpr-faqs/}. The regulation includes a policy that gives the right for individuals affected by decisions made via automated algorithms to understand the logic behind the decisions being made. As \citet{goodman:2016} point out, this regulation has a great effect on the way that machine learning algorithms are used to make decisions. The wording of the policy leaves room for interpretation, but the authors believe that, at a minimum, the regulations will require that an explanation of how the input variables relate to the predictions be provided.
+The European Union has taken the desire to provide explanations for machine learning model predictions a step further. In May 2018, the General Data Protection Regulation (GDPR) went into effect \footnote{https://eugdpr.org/the-regulation/gdpr-faqs/}. The regulation includes a policy that gives the right for individuals affected by decisions made via automated algorithms to understand the logic behind the decisions being made. As \citet{goodman:2016} point out, this regulation has a great effect on the way that machine learning algorithms are used to make decisions. The wording of the policy leaves room for interpretation, but the authors believe that, at a minimum, the regulations will require that an explanation of how the input variables relate to the predictions be provided.
 
 As a result of the movement to produce explainable predictions, an area of research has emerged focusing on developing ways to explain output from machine learning algorithms. One approach that is being taken is to develop model explainers that provide insight into the performance of the complex model (reference). A model explainer is a method that is separate from the model but uses the model and output from the model to shed light on the process that the model goes through to produce predictions. LIME (local interpretable model-agnostic explanations) is one such model explainer \citep{ribeiro:2016}.
 
-While some model explainers are focused on understanding a model at the global level, LIME is designed to explain the model locally for a single prediction of interest. \hh{Additionally, LIME} was designed to work with any model and to produce easily understandable explanations. \hh{XXX a citation might be good here for local and agnostic} Conceptually, LIME fits a simple interpretable model, referred to as the explainer, that is meant to capture the behavior of the complex ``black box model" in a local region around a prediction of interest. The interpretation of the simple model is then used to explain the variables that most influenced the prediction made by the complex model.
+While some model explainers are focused on understanding a model at the global level, LIME is designed provide a local explanations by focusing on a single prediction of interest. Additionally, LIME was designed to work with any model and to produce easily understandable explanations. \citep{ribeiro:2016} \hh{XXX a citation might be good here for local and agnostic} \kg{Is it okay to include the same reference to the original LIME paper again?} Conceptually, LIME fits a simple interpretable model, referred to as the explainer, that is meant to capture the behavior of the complex ``black box model" in a local region around a prediction of interest. The interpretation of the simple model is then used to explain the variables that most influenced the prediction made by the complex model. Figure \ref{fig:limeconcept} provides a visualization of this conceptual understanding of LIME.
 
-\hh{At a conceptual level, explainer models add another level of complexity to predictive models: in trying to explain the  black box model, a simpler explainer model is added. To be able to trust in the explanation it is imperative to check that the explainer model is reliable and does not over-simplify the black-box model. }
-It is important to keep in mind that the explanation produced by the explainer is not a direct interpretation of the complex model. Instead, it is based on a model that is trying to mimic a part of the complex model. Thus, it is necessary to ask the question, ``How reliable is the explanation?". One way to answer this question is to understand how well the explainer model approximates the complex model.
+\begin{figure}
+\begin{center}
+\includegraphics[width=3.25in]{figures/lime_concept.png}
+\caption{\kg{XXX This caption is getting too long. Will probably need to move some of this to the body of the text.} These figures show the predictions from a hypothetical black-box model plotted against the two features used to fit the black-box model. The orange point represent one prediction that is of interest to explain. The size of the points represent the proximity to the prediction of interest. The black lines represent the explainer model which is a weighted linear regression model in this case fit with the black-box predictions as the response variable and Feature 1 and Feature 2 as the covariates in the model where the proximity values used as the weights in the model. The image on the left shows that there is a complex relationship between black-box predictions and Feature 1. Here the explainer model is plotted with Feature 2 set to be the observed value of Feature 2 for the prediction of interest. The explainer model does a good job of capturing the relationship in the local region around the prediction of interest. The image on the right shows that there is no relationship between the black-box predictions and Feature 2 in either the global sense or local region around the prediction of interest. Here the explainer model is plotted with Feature 1 set to be the observed value of Feature 1 for the prediction of interest, and it has a slope of approximately 0. This explainer model would indicate that Feature 1 is driving the prediction made by the black box model for the prediction of interest.}
+\label{fig:limeconcept}
+\end{center}
+\end{figure}
+
+\kg{XXX Rework this paragraph so that it flows better} \hh{At a conceptual level, explainer models add another level of complexity to predictive models: in trying to explain the black box model, a simpler explainer model is added. To be able to trust in the explanation it is imperative to check that the explainer model is reliable and does not over-simplify the black-box model.} The explanation produced by the explainer is not a direct interpretation of the complex model. Instead, it is based on a model that is trying to mimic a part of the complex model. Thus, it is necessary to ask the question, ``How reliable is the explanation?". One way to answer this question is to understand how well the explainer model approximates the complex model.
 
 The current implementations of LIME use a linear regression model as the explainer model (references to R and Python packages). These implementations are relying on the assumption that the relationship between the complex model predictions and the features is linear in a local region. It is important to assess this assumption in the local region of interest in order to trust the explanations produced by LIME. Additionally, the implementations offer various input settings, but little work has been done to provide advice on how to specify the settings in practice (look more into this). An assessment of the explanations could also help to determine which settings produce the explainer model with the best approximation of the complex model.
 
 In this paper, we will present some visualizations tools to assess the explanations from LIME. While predictive models are used in both regression and classification settings, we will focus on the classification setting for this paper. For additional simplicity, we will only discuss the case with a dichotomous response variable, but we believe that the work is adaptable for other situations.
 
-Section \ref{background} provides some background on explainer models that have been developed, a description of the LIME algorithm, and the current implementations of LIME. In Section \ref{methods}, we discuss ways to assess the LIME explainer model and introduces our visualization tools. Section \ref{application} demonstrates the use of our diagnostic tools with a logistic regression model fit to the iris data (? \hh{urgh. but we can decide on that later} ) and a random forest model fit to a forensics bullet matching dataset. To conclude, Section \ref{discussion} reviews the importance of assessing the LIME explainer model, discusses how the results from the example provide possible insights into the workings of LIME, and suggests future research directions.
+Section \ref{background} provides some background on explainer models that have been developed, a description of the LIME algorithm, and the current implementations of LIME. In Section \ref{methods}, we discuss ways to assess the LIME explainer model and introduces our visualization tools. Section \ref{application} demonstrates the use of our diagnostic tools with a random forest model fit to a forensics bullet matching dataset (\kg{I went ahead and excluded the idea of including the iris data}). To conclude, Section \ref{discussion} reviews the importance of assessing the LIME explainer model, discusses how the results from the example provide possible insights into the workings of LIME, and suggests future research directions.
 
-\section{Background} \label{background}
+\section{Background on LIME} \label{background}
 
+%\kg{Just putting this here for now - needs lots of work or I may even remove it:} \hh{Accepted best practice for all} predictive models is \hh{that during the model fitting process}, the data is divided into training and testing portions. The training data is used to fit the complex model, and the testing data is used to assess the model. \hh{This is done to prevent overfitting and to get a more accurate assessment of the prediction error of the model.} The complex model is then applied to the features in the testing data, and the resulting predictions are compared to ground truth. Of \hh{particular} interest during this assessment are the cases when the model is wrong. In the dichotomous response classification case, there are two ways in which the model can be wrong. The model can make a type I error in which..., or the model can make a type II error in which...
 
+LIME was developed in 2017 by Ribeiro, Singh, and Guestrin. The authors were interested in developing a model explainer method that produced easily understandable explanations for individual predictions made by any predictive model \citep{ribeiro:2016}. It was initially implemented in a Python package\footnote{https://github.com/marcotcr/lime} by the original authors and was later adapted to an R package by Thomas Lin-Pedersen\footnote{https://github.com/thomasp85/lime}.
 
+The LIME algorithm is presented in the original paper in a general context that accounts for cases such as text classification and feature recognition. For this paper, we are only considering the tabular data situation with a binary categorical response variable and continuous feature variables. As a result, the following subsections are written in terms of this context.
 
-\kg{Just putting this here for now - needs lots of work or I may even remove it:} \hh{Accepted best practice for all} predictive models is \hh{that during the model fitting process}, the data is divided into training and testing portions. The training data is used to fit the complex model, and the testing data is used to assess the model. \hh{This is done to prevent overfitting and to get a more accurate assessment of the prediction error of the model.} The complex model is then applied to the features in the testing data, and the resulting predictions are compared to ground truth. Of \hh{particular} interest during this assessment are the cases when the model is wrong. In the dichotomous response classification case, there are two ways in which the model can be wrong. The model can make a type I error in which..., or the model can make a type II error in which...
+\subsection{Overview}
 
-\subsection{Model Explainers}
+The 
 
-\subsection{Overview of LIME}
-
-\hh{It does this -- XX references :) }
+\hh{It does this -- XX references :)}
 It does this by using the features from the training data to simulate a new dataset on which the simple model is fit.  \hh{more on how the data is simulated - that's an important step.} The complex model is then applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the  simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. \hh{more on the weights} Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
-
-(a good place to include an image to help with this explanation)
 
 \subsection{LIME Algorithm}
 
-The LIME algorithm is presented in the original paper in a general context that includes cases for text classification and feature recognition. For this paper, we are only considering a situation with a binary categorical response variable and continuous feature variables. The procedure below is defined in this context. Furthermore, \hh{in this paper we are relying on the LIME implementation in R \citep{lime}. This implementation deviates at times from the original implementation by \citet{riberio}. Whenever the implementations differ, we will} highlight these deviations.
+Furthermore, \hh{in this paper we are relying on the LIME implementation in R \citep{lime}. This implementation deviates at times from the original implementation by \citet{riberio}. Whenever the implementations differ, we will} highlight these deviations.
 
 Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observations.
 
@@ -149,8 +156,6 @@ Ways to understand if the LIME explainer is doing a good job:
 \subsection{etc...}
 
 \section{Application} \label{application}
-
-\subsection{Iris Data (?)}
 
 \subsection{Bullet Matching Data}
 
