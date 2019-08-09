@@ -132,7 +132,12 @@ The LIME algorithm is presented in the original paper in a general context that 
 
 \item Identify a class of potentially interpretable models such as linear models or decision trees. Denote this class of models by $G:\mathbb{R}^p\rightarrow[0,1]$. Section \ref{r package} describes the class of interpretable models used by the R package.
 
-\item Apply the class of models $G$ to $\textbf{X}$...
+\item Perform feature selection...
+
+\item Fit explainer model
+
+\item Interpret
+
 \end{enumerate}
 
 \kg{Somehow I need to mesh the procedure peformed by the R package and the description of LIME described in the original paper. The place where I left off in the procedure above is where the two start to disagree. Here are my old ``notes" on the LIME algorithm based on the paper:}
