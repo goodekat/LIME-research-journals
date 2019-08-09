@@ -1,51 +1,50 @@
 \documentclass[AMS,STIX2COL]{WileyNJD-v2}
+
+% Packages
+\usepackage{amsmath,amsfonts}
 \usepackage{natbib}
 %\bibliographystyle{asa}
 
-\usepackage{amsmath,amsfonts}
-
+% Colors for comments by authors
 \usepackage{xcolor}
 \definecolor{purple}{rgb}{0.5, 0.0, 0.5}
 \definecolor{orange}{rgb}{0.94, 0.59, 0.19}
 \newcommand{\hh}[1]{\textcolor{orange}{#1}}
 \newcommand{\kg}[1]{\textcolor{purple}{#1}}
 
-\articletype{Article Type}%
-
+% Set up for ASA dat science journal
+\articletype{Article Type}
 \received{26 April 2016}
 \revised{6 June 2016}
 \accepted{6 June 2016}
-
 \raggedbottom
 
 \begin{document}
-\SweaveOpts{concordance=TRUE, echo = FALSE}
 
+% R code chunk options
+\SweaveOpts{concordance = TRUE, echo = FALSE}
+
+% Paper header (title and authors)
 \title{Visual Diagnostics of a Model Explainer -- Tools for the Assessment of LIME Explanations}
-
 \author[1]{Katherine Goode*}
-
 \author[1,2]{Heike Hofmann}
-
 \authormark{Goode and Hofmann}
-
 \address[1]{\orgdiv{Department of Statistics}, \orgname{Iowa State University}, \orgaddress{\state{Iowa}, \country{United States}}}
-
 \address[2]{\orgdiv{Center for Statistics and Applications in Forensic Evidence (CSAFE)}, \orgname{Iowa State University}, \orgaddress{\state{Iowa}, \country{United States}}}
-
 \corres{*Corresponding author. \email{kgoode@iastate.edu}}
-
 \presentaddress{This is sample for present address text this is sample for present address text}
 
+% Abstract and keywords
 \abstract[Summary]{This is sample abstract text.}
+\keywords{LIME, black-box models, interpretability, diagnostics}
 
-\keywords{LIME, black box models, interpretability, diagnostics}
-
-\jnlcitation{\cname{%
-\author{Goode K.}, 
-\author{H. Hofmann}, 
-} (\cyear{2019}), 
-\ctitle{title}, \cjournal{journal}, \cvol{volume, number and page}.}
+% Citation information
+\jnlcitation{
+\cname{\author{Goode K.}, \author{H. Hofmann}, } 
+\cyear{2019}, 
+\ctitle{Visual Diagnostics of a Model Explainer -- Tools for the Assessment of LIME Explanations}, 
+\cjournal{Stat Anal Data Min: The ASA Data Sci Journal}, 
+\cvol{volume, number and page}.}
 
 \maketitle
 
@@ -58,7 +57,11 @@ To check on when editing writing:
 
 \section{Introduction}
 
-In the field of statistics, there are two main uses for models: inference and prediction. Machine learning models are often used for the latter purpose. While these models have been proven to perform well in a wide range of prediction problems, their accuracy comes at the cost of interpretability. They are often complex algorithms that are good at identifying patterns in the data but lack a functional form \kg{XXX Is it okay for me to make this statement about the functional form?}, so it not possible to directly interpret them. As a result, they produce predictions that lack an explanation, which has earned them the reputation of being ``black box models".
+\kg{*** I added some subsections to the introduction, because it was getting so long. What do you think? Would it be better to make the introduction shorter and move the details to a separate section?}
+
+In the field of statistics, there are two main uses for models: inference and prediction. Machine learning models are often used for the latter purpose. While these models have been proven to perform well in a wide range of prediction problems, their accuracy comes at the cost of interpretability. They are often complex algorithms that are good at identifying patterns in the data but lack a functional form \kg{*** Is it okay for me to make this statement about the functional form?}, so it not possible to directly interpret them. As a result, they produce predictions that lack an explanation, which has earned them the reputation of being ``black-box models".
+
+\subsection{The Importance of Explanability}
 
 The ability to interpret a model serves multiple purposes. When a model is first fit, interpretations help to diagnose the model. Knowing which variables influence a prediction makes it possible to determine if the predictions are based on reasonable variables. If not, appropriate adjustments to the model can be made. After a model has been diagnosed, the explanations for the predictions are used to understand the underlying mechanism that produced the data and provide an argument for why the predictions should be trusted. In some areas of application, this ability to be able to explain the results from a model is critical.
 
@@ -68,64 +71,85 @@ As an example, suppose that forensics examiners are trying to determine if a bul
 
 The European Union has taken the desire to provide explanations for machine learning model predictions a step further. In May 2018, the General Data Protection Regulation (GDPR) went into effect \footnote{https://eugdpr.org/the-regulation/gdpr-faqs/}. The regulation includes a policy that gives the right for individuals affected by decisions made via automated algorithms to understand the logic behind the decisions being made. As \citet{goodman:2016} point out, this regulation has a great effect on the way that machine learning algorithms are used to make decisions. The wording of the policy leaves room for interpretation, but the authors believe that, at a minimum, the regulations will require that an explanation of how the input variables relate to the predictions be provided.
 
+\subsection{Explainer Models}
+
 As a result of the movement to produce explainable predictions, an area of research has emerged focusing on developing ways to explain output from machine learning algorithms. One approach that is being taken is to develop model explainers that provide insight into the performance of the complex model (reference). A model explainer is a method that is separate from the model but uses the model and output from the model to shed light on the process that the model goes through to produce predictions. LIME (local interpretable model-agnostic explanations) is one such model explainer \citep{ribeiro:2016}.
 
-While some model explainers are focused on understanding a model at the global level, LIME is designed provide a local explanations by focusing on a single prediction of interest. Additionally, LIME was designed to work with any model and to produce easily understandable explanations. \citep{ribeiro:2016} \hh{XXX a citation might be good here for local and agnostic} \kg{Is it okay to include the same reference to the original LIME paper again?} Conceptually, LIME fits a simple interpretable model, referred to as the explainer, that is meant to capture the behavior of the complex ``black box model" in a local region around a prediction of interest. The interpretation of the simple model is then used to explain the variables that most influenced the prediction made by the complex model. Figure \ref{fig:limeconcept} provides a visualization of this conceptual understanding of LIME.
+While some model explainers are focused on understanding a model at the global level, LIME is designed provide a local explanations by focusing on a single prediction of interest. Additionally, LIME was designed to work with any model and to produce easily understandable explanations. \citep{ribeiro:2016} \hh{XXX a citation might be good here for local and agnostic} \kg{Is it okay to include the same reference to the original LIME paper again?} Conceptually, LIME fits a simple interpretable model, referred to as the explainer, that is meant to capture the behavior of the complex ``black-box model" in a local region around a prediction of interest. The interpretation of the simple model is then used to explain the variables that most influenced the prediction made by the complex model. 
 
-\begin{figure}
+\begin{figure}[t!]
 \begin{center}
 \includegraphics[width=3.25in]{figures/lime_concept.png}
-\caption{\kg{XXX This caption is getting too long. Will probably need to move some of this to the body of the text.} These figures show the predictions from a hypothetical black-box model plotted against the two features used to fit the black-box model. The orange point represent one prediction that is of interest to explain. The size of the points represent the proximity to the prediction of interest. The black lines represent the explainer model which is a weighted linear regression model in this case fit with the black-box predictions as the response variable and Feature 1 and Feature 2 as the covariates in the model where the proximity values used as the weights in the model. The image on the left shows that there is a complex relationship between black-box predictions and Feature 1. Here the explainer model is plotted with Feature 2 set to be the observed value of Feature 2 for the prediction of interest. The explainer model does a good job of capturing the relationship in the local region around the prediction of interest. The image on the right shows that there is no relationship between the black-box predictions and Feature 2 in either the global sense or local region around the prediction of interest. Here the explainer model is plotted with Feature 1 set to be the observed value of Feature 1 for the prediction of interest, and it has a slope of approximately 0. This explainer model would indicate that Feature 1 is driving the prediction made by the black box model for the prediction of interest.}
+\caption{Conceptual depiction of LIME. The black lines represent a weighted linear regression model being used as the explainer model for a hypothetical black-box model fit with two features. The explainer model suggests that Feature 1 is driving the prediction made by the black-box model for the case of interest since it has captured the slope in the local region around the prediction of interest.}
 \label{fig:limeconcept}
 \end{center}
 \end{figure}
 
-\kg{XXX Rework this paragraph so that it flows better} \hh{At a conceptual level, explainer models add another level of complexity to predictive models: in trying to explain the black box model, a simpler explainer model is added. To be able to trust in the explanation it is imperative to check that the explainer model is reliable and does not over-simplify the black-box model.} The explanation produced by the explainer is not a direct interpretation of the complex model. Instead, it is based on a model that is trying to mimic a part of the complex model. Thus, it is necessary to ask the question, ``How reliable is the explanation?". One way to answer this question is to understand how well the explainer model approximates the complex model.
+Figure \ref{fig:limeconcept} provides a visualization of this conceptual understanding of LIME. These figures show the predictions from a hypothetical black-box model plotted against the two features used to fit the black-box model. The orange point represent one prediction that is of interest to explain. The size of the points represent the proximity to the prediction of interest measured using the Gower distance metric \kg{(reference and add exponent value?)}. The black lines represent the explainer model which is a weighted linear regression model in this case fit with the black-box predictions as the response variable and Feature 1 and Feature 2 as the covariates in the model where the proximity values used as the weights in the model. The top image shows that there is a complex relationship between black-box predictions and Feature 1. Here the explainer model is plotted with Feature 2 set to be the observed value of Feature 2 for the prediction of interest. The explainer model does a good job of capturing the relationship in the local region around the prediction of interest. The bottom shows that there is no relationship between the black-box predictions and Feature 2 in either the global sense or local region around the prediction of interest. Here the explainer model is plotted with Feature 1 set to be the observed value of Feature 1 for the prediction of interest, and it has a slope of approximately 0. This explainer model would indicate that Feature 1 is driving the prediction made by the black-box model for the prediction of interest.
+
+\subsection{Motivation for Diagnosing LIME}
+
+At a conceptual level, explainer models add another level of complexity to predictive models: in trying to explain the black-box model, a simpler explainer model is added. To be able to trust in the explanation it is imperative to check that the explainer model is reliable and does not over-simplify the black-box model.
 
 The current implementations of LIME use a linear regression model as the explainer model (references to R and Python packages). These implementations are relying on the assumption that the relationship between the complex model predictions and the features is linear in a local region. It is important to assess this assumption in the local region of interest in order to trust the explanations produced by LIME. Additionally, the implementations offer various input settings, but little work has been done to provide advice on how to specify the settings in practice (look more into this). An assessment of the explanations could also help to determine which settings produce the explainer model with the best approximation of the complex model.
 
+Figure \ref{fig:limebadapprox} provides an example where the explainer model is doing a poor job of approximating the complex model. The plots were created using the same data as Figure \ref{fig:limeconcept}, but the Gower distance metric was adjusted \kg{(add exponent value)}, so that observations further away from the prediction of interest are given larger weights. In this case, the explainer model is doing a poor job of capturing the relationship between the black-box predictions and the feature for both Feature 1 and Feature 2. However, the magnitude of the slope of the line in the bottom figure appears to be larger than . As a result, this explainer model would return an explanation that Feature 2 is driving the prediction made by the black-box model for the case of interest, which is not an accurate explanation.
+
+\begin{figure}[t!]
+\begin{center}
+\includegraphics[width=3.25in]{figures/lime_figure_bad.png}
+\caption{A second version of explainer model applied to the data from Figure \ref{fig:limeconcept}. The model explainer is refit using an adjusted distance measure. It leads to an explainer model that is doing a poor job of approximating the complex model in the local region around the prediction of interest for both features.}
+\label{fig:limebadapprox}
+\end{center}
+\end{figure}
+
+In the scenario depicted in Figure \ref{fig:limeconcept}, the distance metric was adjusted until the explainer models produced a good local approximation of the complex model. For Figure \ref{fig:limebadapprox}, the default setting for distance measures was used by the LIME R package. Without these images, it would not be obvious that the explainer model used in Figure \ref{fig:limebadapprox} is a poor local approximation.
+
+\subsection{Overview of Paper}
+
 In this paper, we will present some visualizations tools to assess the explanations from LIME. While predictive models are used in both regression and classification settings, we will focus on the classification setting for this paper. For additional simplicity, we will only discuss the case with a dichotomous response variable, but we believe that the work is adaptable for other situations.
 
-Section \ref{background} provides some background on explainer models that have been developed, a description of the LIME algorithm, and the current implementations of LIME. In Section \ref{methods}, we discuss ways to assess the LIME explainer model and introduces our visualization tools. Section \ref{application} demonstrates the use of our diagnostic tools with a random forest model fit to a forensics bullet matching dataset (\kg{I went ahead and excluded the idea of including the iris data}). To conclude, Section \ref{discussion} reviews the importance of assessing the LIME explainer model, discusses how the results from the example provide possible insights into the workings of LIME, and suggests future research directions.
+Section \ref{background} provides some background on the LIME algorithm and the current implementations of LIME. In Section \ref{methods}, we discuss ways to assess the LIME explainer model and introduce our visualization tools. Section \ref{application} demonstrates the use of our diagnostic tools with a random forest model fit to a forensics bullet matching dataset (\kg{***I went ahead and excluded the idea of including the iris data}). To conclude, Section \ref{discussion} reviews the importance of assessing the LIME explainer model, discusses how the results from the example provide possible insights into the workings of LIME, and suggests future research directions.
 
 \section{Background on LIME} \label{background}
 
-%\kg{Just putting this here for now - needs lots of work or I may even remove it:} \hh{Accepted best practice for all} predictive models is \hh{that during the model fitting process}, the data is divided into training and testing portions. The training data is used to fit the complex model, and the testing data is used to assess the model. \hh{This is done to prevent overfitting and to get a more accurate assessment of the prediction error of the model.} The complex model is then applied to the features in the testing data, and the resulting predictions are compared to ground truth. Of \hh{particular} interest during this assessment are the cases when the model is wrong. In the dichotomous response classification case, there are two ways in which the model can be wrong. The model can make a type I error in which..., or the model can make a type II error in which...
+LIME was developed in 2016 by \citet{ribeiro:2016}. The authors were interested in developing a model explainer method that produced easily understandable explanations for individual predictions made by any predictive model \citep{ribeiro:2016}. It was initially implemented in a Python package\footnote{https://github.com/marcotcr/lime} by the original authors and was later adapted to an R package by Thomas Lin-Pedersen\footnote{https://github.com/thomasp85/lime}.
 
-LIME was developed in 2017 by Ribeiro, Singh, and Guestrin. The authors were interested in developing a model explainer method that produced easily understandable explanations for individual predictions made by any predictive model \citep{ribeiro:2016}. It was initially implemented in a Python package\footnote{https://github.com/marcotcr/lime} by the original authors and was later adapted to an R package by Thomas Lin-Pedersen\footnote{https://github.com/thomasp85/lime}.
+The LIME algorithm is presented in the original paper in a general context that accounts for cases such as text classification and feature recognition. For this paper, we are only considering the tabular data situation with a binary categorical response variable and continuous feature variables. As a result, the following subsections are written in terms of this context. Furthermore, in this paper we are relying on the LIME implementation in R \citep{lime}. This implementation deviates at times from the original implementation by \citet{ribeiro:2016}. Whenever the implementations differ, we will highlight these deviations.
 
-The LIME algorithm is presented in the original paper in a general context that accounts for cases such as text classification and feature recognition. For this paper, we are only considering the tabular data situation with a binary categorical response variable and continuous feature variables. As a result, the following subsections are written in terms of this context.
+\subsection{LIME Procedure in the Context of Tabular Data with a Dichotomous Response Variable}
 
-\subsection{Overview}
+\kg{***Need to clean up the notation.} Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observations, and let $x=\left(\begin{array}{cccc}x_1 & x_2 & \hdots & x_p\end{array}\right)\in\mathbb{R}^p$ be the observation of interest. Furthermore, let $\textbf{y}$ be a vector of length $n$ of response values and $y\in\{0, 1\}$ be the observed response value associated with $x$. Suppose that $f$ is a classification model where $f:\mathbb{R}^p\rightarrow[0,1]$ that is applied to $\textbf{X}$ and $\textbf{y}$. Let the predictions made by $f$ applied to $\textbf{X}$ be denoted as $\hat{\textbf{y}}$. It is of interest to explain the prediction made by $f$ when $f$ is applied to $x$. Note that $f(x)$ is equal to the probability that $y=1$. Given this setup, the LIME procedure is as follows.
 
-The 
+\begin{enumerate}
+\item Generate a new dataset $\textbf{X}^*$ of size $m$ by $p$ using the observed values in $\textbf{X}$. There are various ways to simulate the new dataset, and the methods currently used by the LIME R package will be described in more detail in Section \ref{r package}.
 
-\hh{It does this -- XX references :)}
-It does this by using the features from the training data to simulate a new dataset on which the simple model is fit.  \hh{more on how the data is simulated - that's an important step.} The complex model is then applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the  simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. \hh{more on the weights} Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
+\item Apply a transformation $T$ to $\textbf{X}^*$ that results in an interpretable representation. The transformation that is applied will depend on the simulation method used. Section \ref{r package} will discuss the transformations used by the LIME R package. Let $T(\textbf{X}^*)=\textbf{X}'$. Furthermore, apply $T$ to $x$ to obtain $T(x)=x'$. \noindent\kg{***I need to check if the predictions are made before or after the transformation.}
 
-\subsection{LIME Algorithm}
+\item Apply $f$ to $\textbf{X}'$ to obtain a vector of predictions $\hat{\textbf{y}}'$ of length $m$. Let the prediction made by $f$ when applied to the transformed case of interested be denoted as $f(x')=y'$.
 
-Furthermore, \hh{in this paper we are relying on the LIME implementation in R \citep{lime}. This implementation deviates at times from the original implementation by \citet{riberio}. Whenever the implementations differ, we will} highlight these deviations.
+\item Compute a proximity measure between $x$ and $\textbf{x}'_i$ for each $i\in 1,...,m$ denoted by $\pi_x(\textbf{x}'_i)$.
 
-Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observations.
+\item Identify a class of potentially interpretable models such as linear models or decision trees. Denote this class of models by $G:\mathbb{R}^p\rightarrow[0,1]$. Section \ref{r package} describes the class of interpretable models used by the R package.
+
+\item Apply the class of models $G$ to $\textbf{X}$...
+\end{enumerate}
+
+\kg{Somehow I need to mesh the procedure peformed by the R package and the description of LIME described in the original paper. The place where I left off in the procedure above is where the two start to disagree. Here are my old ``notes" on the LIME algorithm based on the paper:}
 
 \begin{itemize}
-\item $x=\left(\begin{array}{cccc}x_1 & x_2 & \hdots & x_p\end{array}\right)\in\mathbb{R}^p$: original representation of an instance being explained (e.g. observations from a set of $p$ continuous features for a specific case in the data) % the LIME paper uses d instead of p for the dimension
-\item $x'\in\mathbb{R}^{p'}$: \hh{where $1 \le p' \le p$}  vector for the interpretable representation of the instance being explained (e.g. a vector of indicator variables associated with the features chosen through feature selection indicating whether or not the observed value is in the bin created by LIME for the feature)
-\item $G$: class of potentially interpretable models (e.g. linear models, decision trees, rule lists) \hh{in our case, we will use ridge regression}
-\item $g$: explanation model where $g:\{0,1\}^{p'}\rightarrow\mathbb{R}$ and $g\in G$ \hh{ do we need $\{0,1\}^{p'}$?}
-\item $\Omega(g)$: measure of complexity of $g$ (e.g. depth of a tree, number of non-zero coefficients in a linear model fit using LASSO)
-\item $f$: model that is being explained where $f:\mathbb{R}^p\rightarrow\mathbb{R}$ (In classification $f(x)$ is the probability that $x$ belongs to a certain class)
-\item $\pi_x(z)$: proximity measure between an instance $z$ to $x$ which defines a locality around $x$
-\item $\mathcal{L}(f, g, \Pi_x)$: the fidelity functions which is a measure of how unfaithful $g$ is in approximating $f$ in the locality defined by $\pi_x$
-\item $\xi(x)$: explanation produced by LIME where
+\item \kg{$G$: class of potentially interpretable models (e.g. linear models, decision trees, rule lists) \hh{in our case, we will use ridge regression}}
+\item \kg{$g$: explanation model where $g:\{0,1\}^{p'}\rightarrow\mathbb{R}$ and $g\in G$ \hh{ do we need $\{0,1\}^{p'}$?}}
+\item \kg{$\Omega(g)$: measure of complexity of $g$ (e.g. depth of a tree, number of non-zero coefficients in a linear model fit using LASSO)}
+\item \kg{$\mathcal{L}(f, g, \Pi_x)$: the fidelity functions which is a measure of how unfaithful $g$ is in approximating $f$ in the locality defined by $\pi_x$}
+\item \kg{$\xi(x)$: explanation produced by LIME where
   $$\xi(x)=\underset{g\in G}{\arg\min} \ \mathcal{L}(f, g, \Pi_x)+\Omega(g)$$
-(i.e. want to minimize $\mathcal{L}(f, g, \Pi_x)$ and keep $\Omega(g)$ low enough to be interpretable by humans)
+(i.e. want to minimize $\mathcal{L}(f, g, \Pi_x)$ and keep $\Omega(g)$ low enough to be interpretable by humans)}
 \end{itemize}
 
-\subsection{Implementation of LIME in R}
+\hh{XX references :)} Features from the training data are used to simulate a new dataset on which the simple model is fit. \hh{more on how the data is simulated - that's an important step.} The complex model is then applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the  simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. \hh{more on the weights} Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
 
-(section describing the procedure that is currently used by the LIME R package)
+\subsection{Implementation of LIME in R} \label{r package}
 
 The LIME R package allows for the following four methods to sample the perturbations based on the distributions of the features from the training data.
 
@@ -137,6 +161,8 @@ The LIME R package allows for the following four methods to sample the perturbat
 \end{itemize}
 
 The methods of equally spaced bins and quantile bins also allow the user to specify the number of bins. As of now, there are no recommendations or procedures provided for how to determine which method to use. By default, LIME uses four quantile bins. It was of interest to see how the explanations from LIME varied across the four sampling methods when applied to the bullet matching data. The LIME algorithm was applied to each prediction from the test data obtained from the 'rtrees' random forest model for each of the four sampling methods. Within the bin based sampling methods, the algorithm was applied for 2 to 6 bins. It was decided to only go up to 6 bins since the more bins used the more complex the explanation becomes.
+
+\kg{make sure to include an output figure of a LIME explanation here}
 
 \section{Methods} \label{methods}
 
@@ -159,6 +185,8 @@ Ways to understand if the LIME explainer is doing a good job:
 
 \subsection{Bullet Matching Data}
 
+Of \hh{particular} interest during this assessment are the cases when the model is wrong.
+
 1. explainer model generally has very low $R^2$ (probably due to binning)
 2. "local" explanations are not local but are driven by the ("global") marginal distributions of covariates
 
@@ -168,10 +196,11 @@ The variables of ccf and cms immediately show up as common variables chosen acro
 
 \section{Discussion} \label{discussion}
 
-%\backmatter
+% Backmatter of Paper
 
 \section*{Acknowledgments}
-This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. This is acknowledgment text. Provide text here. 
+
+This is acknowledgment text. Provide text here.
 
 \subsection*{Author contributions}
 
@@ -185,30 +214,22 @@ None reported.
 
 The authors declare no potential conflict of interests.
 
-
 \section*{Supporting information}
 
 The following supporting information is available as part of the online article:
-
-\noindent
-\textbf{Figure S1.}
-{500{\uns}hPa geopotential anomalies for GC2C calculated against the ERA Interim reanalysis. The period is 1989--2008.}
-
-\noindent
-\textbf{Figure S2.}
-{The SST anomalies for GC2C calculated against the observations (OIsst).}
-
 
 \appendix
 
 \section{Section title of first appendix\label{app1}}
 
 %\nocite{*}% Show all bib entries - both cited and uncited; comment this line to view only cited bib entries;
-\bibliography{references}%
+\bibliography{references}
 
 \section*{Author Biography}
 
-\begin{biography}{\includegraphics[width=60pt,height=70pt,draft]{empty}}{\textbf{Author Name.} This is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text this is sample author biography text.}
+\begin{biography}
+{\includegraphics[width=60pt,height=70pt,draft]{empty}}
+{\textbf{Author Name.} This is sample author biography text this is sample author biography text}
 \end{biography}
 
 \end{document}

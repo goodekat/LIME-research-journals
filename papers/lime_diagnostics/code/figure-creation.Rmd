@@ -21,6 +21,8 @@ library(tidyverse)
 
 # Conceptual Depiction of LIME
 
+### Good Fit
+
 ```{r}
 # Generate data
 set.seed(20190624)
@@ -88,7 +90,7 @@ plot_feature2 <- ggplot(lime_data, aes(x = feature2, y = prediction, size = dist
         legend.position = "none")
 
 # Join the two feature plots
-lime_plots <- plot_grid(plot_feature1, plot_feature2)
+lime_plots <- plot_grid(plot_feature1, plot_feature2, ncol = 1)
 
 # Create a plot to extract a legend for the prediction of interest
 lime_legend_plot <- ggplot(prediction_of_interest, aes(x = feature1, y = prediction, color = color)) +
@@ -112,6 +114,74 @@ lime_concept
 # Save the plot
 ggsave(filename = "../figures/lime_concept.png",
        plot = lime_concept,
-       height = 4, width = 8)
+       height = 6, width = 4)
+```
+
+### Poor Fit
+
+```{r}
+# Compute the distance between the prediction of interest 
+lime_data$distance_bad <- (1 - gower_dist(x = prediction_of_interest, y = lime_data))^1
+
+# Fit the interpretable explainer model
+lime_explainer_bad <- lm(prediction ~ feature1 + feature2, data = lime_data, weights = distance_bad)
+
+# Predictions versus feature 1
+plot_feature1_bad <- ggplot(lime_data, aes(x = feature1, y = prediction, size = distance_bad)) + 
+  geom_point() + 
+  geom_abline(intercept = coef(lime_explainer_bad)[[1]] + coef(lime_explainer_bad)[[3]]*prediction_of_interest$feature2, 
+              slope = coef(lime_explainer_bad)[[2]], 
+              size = 1) +
+  geom_point(data = prediction_of_interest,
+             mapping = aes(x = feature1, y = prediction),
+             color = "#EFB084",
+             size = 6) +
+  theme_linedraw(base_family = "Times") +
+  labs(x = "Feature 1", 
+       y = "Black-Box Prediction") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")
+
+# Predictions versus feature 2
+plot_feature2_bad <- ggplot(lime_data, aes(x = feature2, y = prediction, size = distance_bad)) + 
+  geom_point() + 
+  geom_abline(intercept = coef(lime_explainer_bad)[[1]] + coef(lime_explainer_bad)[[2]]*prediction_of_interest$feature1, 
+              slope = coef(lime_explainer_bad)[[3]], 
+              size = 1) +
+  geom_point(data = prediction_of_interest,
+             mapping = aes(x = feature2, y = prediction),
+             color = "#EFB084",
+             size = 6) +
+  theme_linedraw(base_family = "Times") +
+  labs(x = "Feature 2", 
+       y = "Black-Box Prediction") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")
+
+# Join the two bad feature plots
+lime_plots_bad <- plot_grid(plot_feature1_bad, plot_feature2_bad, ncol = 1)
+
+# Join the title, plots, legend, and caption into one figure
+lime_figure_bad <- plot_grid(lime_plots_bad, lime_legend,
+                         ncol = 1, 
+                         rel_heights = c(0.9, 0.1))
+
+# View the figure
+lime_figure_bad
+
+# Save the plot
+ggsave(filename = "../figures/lime_figure_bad.png",
+       plot = lime_figure_bad,
+       height = 6, width = 4)
 ```
 
