@@ -3,16 +3,17 @@
 % Packages
 \usepackage{amsmath,amsfonts}
 \usepackage{natbib}
+\usepackage{xcolor}
 %\bibliographystyle{asa}
 
-% Colors for comments by authors
-\usepackage{xcolor}
+% Commands
 \definecolor{purple}{rgb}{0.5, 0.0, 0.5}
 \definecolor{orange}{rgb}{0.94, 0.59, 0.19}
 \newcommand{\hh}[1]{\textcolor{orange}{#1}}
 \newcommand{\kg}[1]{\textcolor{purple}{#1}}
+\newcommand{\comment}[1]{}
 
-% Set up for ASA dat science journal
+% Set up for ASA data science journal
 \articletype{Article Type}
 \received{26 April 2016}
 \revised{6 June 2016}
@@ -152,11 +153,11 @@ The LIME algorithm is presented in the original paper in a general context that 
 (i.e. want to minimize $\mathcal{L}(f, g, \Pi_x)$ and keep $\Omega(g)$ low enough to be interpretable by humans)}
 \end{itemize}
 
-\hh{XX references :)} Features from the training data are used to simulate a new dataset on which the simple model is fit. \hh{more on how the data is simulated - that's an important step.} The complex model is then applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the  simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. \hh{more on the weights} Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.
+\hh{XX references :)} \comment{Features from the training data are used to simulate a new dataset on which the simple model is fit. \hh{more on how the data is simulated - that's an important step.} The complex model is then applied to the simulated dataset to obtain predictions. The observations associated with predictions are used as the response variable in a ridge regression model with the  simulated features as the predictor variable with the highest weight given to observations closest to the prediction of interest. \hh{more on the weights} Feature selection is performed to identify the most important variables in the local region. A final ridge regression model is fit with the selected features, and the coefficients of the model are used to interpret the behavior of the complex model.}
 
 \subsection{Implementation of LIME in R} \label{r package}
 
-The LIME R package allows for the following four methods to sample the perturbations based on the distributions of the features from the training data.
+\comment{The LIME R package allows for the following four methods to sample the perturbations based on the distributions of the features from the training data.
 
 \begin{itemize}
 \item Equally Spaced Bins
@@ -165,20 +166,20 @@ The LIME R package allows for the following four methods to sample the perturbat
 \item Kernel Density Approximation
 \end{itemize}
 
-The methods of equally spaced bins and quantile bins also allow the user to specify the number of bins. As of now, there are no recommendations or procedures provided for how to determine which method to use. By default, LIME uses four quantile bins. It was of interest to see how the explanations from LIME varied across the four sampling methods when applied to the bullet matching data. The LIME algorithm was applied to each prediction from the test data obtained from the 'rtrees' random forest model for each of the four sampling methods. Within the bin based sampling methods, the algorithm was applied for 2 to 6 bins. It was decided to only go up to 6 bins since the more bins used the more complex the explanation becomes.
+The methods of equally spaced bins and quantile bins also allow the user to specify the number of bins. As of now, there are no recommendations or procedures provided for how to determine which method to use. By default, LIME uses four quantile bins. It was of interest to see how the explanations from LIME varied across the four sampling methods when applied to the bullet matching data. The LIME algorithm was applied to each prediction from the test data obtained from the 'rtrees' random forest model for each of the four sampling methods. Within the bin based sampling methods, the algorithm was applied for 2 to 6 bins. It was decided to only go up to 6 bins since the more bins used the more complex the explanation becomes.}
 
 \kg{make sure to include an output figure of a LIME explanation here}
 
 \section{Methods} \label{methods}
 
-Ways to understand if the LIME explainer is doing a good job:
+\comment{Ways to understand if the LIME explainer is doing a good job:
 
 \begin{itemize}
 \item diagnose the explainer to make sure that it is fitting the data well
 \item compare the prediction made by the explainer to the complex model prediction
 \item visualize all explanations to understand if the explanations are local or global
 \item compare results from different input options
-\end{itemize}
+\end{itemize}}
 
 \subsection{Diagnostic Tool 1}
 
@@ -190,14 +191,14 @@ Ways to understand if the LIME explainer is doing a good job:
 
 \subsection{Bullet Matching Data}
 
-Of \hh{particular} interest during this assessment are the cases when the model is wrong.
+\comment{Of \hh{particular} interest during this assessment are the cases when the model is wrong.
 
 1. explainer model generally has very low $R^2$ (probably due to binning)
 2. "local" explanations are not local but are driven by the ("global") marginal distributions of covariates
 
 In order to assess the LIME explanations created using different sampling methods, it was of interest to compare the top three features chosen as the important predictors by lime within a case from the test data across the different sampling methods. Figure ... is a heat map showing the top feature chosen by lime for each of the cases in the test data and different bin based sampling methods. The rows represent the cases in the test data, and the columns represent the sampling methods. There are twenty methods included in the plot. These include the equally spaced bins and quantile bins from the lime package and the random forest score tree based bins and the same source tree based bins proposed in this paper. The rows are faceted by the test set and whether or not the observation is a match or not. The columns are faceted by these methods, and the columns within a facet represent the number of bins. Each method has 2 to 6 bins. The colors represent the top feature chosen by lime.
 
-The variables of ccf and cms immediately show up as common variables chosen across all of the sampling methods. However, the patterns across the number of bins withing the sampling methods are different. When equally spaced bins are used, the top feature chosen is consistent across all cases within a number of bins category. For example, ccf is almost always chosen (change to actual number) with 2 equally spaced bins, matches is almost always chosen with 3 equally spaced bins, and non\_cms is always chosen for the nonmatches with 5 and 6 equally spaced bins. This shows that with the bullet matching data, the top feature chosen with equally spaced bins is an artifact of the number of bins used. With equally spaced bins, this figure suggest that LIME is providing global explanations as opposed to local explanations. It would be preferable that the top feature chosen was more consistent across the number of bins and more variable across the cases. This would suggest that the top feature chosen is dependent on the feature values associated with a particular case and not just on which feature is the best explainer when $b$ number of bins are used.
+The variables of ccf and cms immediately show up as common variables chosen across all of the sampling methods. However, the patterns across the number of bins withing the sampling methods are different. When equally spaced bins are used, the top feature chosen is consistent across all cases within a number of bins category. For example, ccf is almost always chosen (change to actual number) with 2 equally spaced bins, matches is almost always chosen with 3 equally spaced bins, and non\_cms is always chosen for the nonmatches with 5 and 6 equally spaced bins. This shows that with the bullet matching data, the top feature chosen with equally spaced bins is an artifact of the number of bins used. With equally spaced bins, this figure suggest that LIME is providing global explanations as opposed to local explanations. It would be preferable that the top feature chosen was more consistent across the number of bins and more variable across the cases. This would suggest that the top feature chosen is dependent on the feature values associated with a particular case and not just on which feature is the best explainer when $b$ number of bins are used.}
 
 \section{Discussion} \label{discussion}
 
