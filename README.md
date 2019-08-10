@@ -8,6 +8,9 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
+  - I am thinking about moving the paper to a new repository and then
+    renaming this repository as LIME-research-journals and using it more
+    as a place to try stuff out
   - Can I remove some of the sources from the references file that I am
     not going to use?
 
