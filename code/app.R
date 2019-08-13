@@ -14,10 +14,10 @@ library(gridExtra)
 ## ------------------------------------------------------------------------------------
 
 # Input data
-hamby224_test <- read.csv("../data/hamby224_test.csv")
-hamby224_test_explain <- readRDS("../data/hamby224_test_explain.rds")
-hamby224_bins <- readRDS("../data/hamby224_bins.rds")
-hamby224_lime_inputs <- readRDS("../data/hamby224_lime_inputs.rds")
+hamby224_test <- read.csv("../../data/hamby224_test.csv")
+hamby224_test_explain <- readRDS("../../data/hamby224_test_explain.rds")
+hamby224_bins <- readRDS("../../data/hamby224_bins.rds")
+hamby224_lime_inputs <- readRDS("../../data/hamby224_lime_inputs.rds")
 
 ## ------------------------------------------------------------------------------------
 ## Functions
