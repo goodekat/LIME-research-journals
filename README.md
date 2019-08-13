@@ -13,6 +13,9 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
     as a place to try stuff out
   - Can I remove some of the sources from the references file that I am
     not going to use?
+  - Can we talk about how best to present the LIME algorithm and some of
+    the terms from the original paper that do not make sense in the
+    context of the R package?
 
 ## To Do List
 

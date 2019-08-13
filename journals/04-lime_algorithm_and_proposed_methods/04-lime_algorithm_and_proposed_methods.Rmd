@@ -24,16 +24,37 @@ This journal contains a draft of the LIME algorithm and ideas for different binn
 source("../../code/helper_functions.R")
 ```
 
-# The Data
+# LIME Procedure 
 
-The cleaning training and testing datasets are loaded in below.
+### Original Paper
 
-```{r}
-# Load in the training data (Hamby Data 173 and 252)
-hamby173and252_train <- read.csv("../../data/hamby173and252_train.csv")
-```
+*Note: Most of the text in this section is copied from the original paper.*
 
-# Draft of LIME Procedure
+| Notation | Original Paper Definition | My Interpretation (in terms of a data table) |
+| -------- | ------------------------- | ------------------------- |
+| $x\in\mathbb{R}^d$ | Original representation of an instance being explained | Vector of observed features for one observation e.g. $(x_1, x_2,...,x_d)$ where $\textbf{X}$ is an $n$ by $d$ matrix | 
+| $f:\mathbb{R}^d→\mathbb{R}$ | The model being explained...In classification, $f(x)$ is the probability (or a binary indicator) that $x$ belongs to a certain class. | This is a random forest in our case. |
+| $x'\in\{0,1\}^{d'}$ | A binary vector for interpretable representation (where interpretable explanations are defined as "use a representation that is understandable by humans") | Varies based on the simulation method used - note that $1\le d' \le d$ since it is possible that feature selection may be performed to choose a smaller set of variables than originally in $x$ (One example: vector of indicator variables that indicate whether the observed value falls in the same bin as the instance being explained e.g. $x'_i = I[x_i\in \mbox{same variable } i \mbox{ bin as the instance being explained}]$) | In our example, this is the random forest model. |
+|$G$ | A class of potentially interpretable models, such as linear models, decision trees, or falling rule lists |  <span style="color:blue"> I'm not sure what is considered $G$ in the R package - the fitting of the final ridge regression model or the ridge regression model used for feature selection? </span>|
+| $g$ | An explanation as a model...can be readily presented to the user with visual or textual artifacts...The domain of $g$ is $\{0,1\}^{d′}$, i.e. $g$ acts over absence/presence of the interpretable components | This could be a ridge regression model with the form $f(x) \sim x'_1 + x'_2 + \cdots + x'_{d'}$ |
+| $\Omega(g)$ | A measure of complexity of the explanation $g\in G$. For example, for decision trees $\Omega(g)$ may be the depth of the tree, while for linear models, $\Omega(g)$ may be the number of non-zero weights. | Seemingly, this is based on how the weights are assigned to the data points. |
+| $\pi_x(z)$ | A proximity measure between an instance $z$ to $x$, so as to define locality around $x$. | This could be the Gower distance. |
+| $\mathcal{L}(f,g,\pi_x)$ | A measure of how unfaithful $g$ is in approximating $f$ in the locality defined by $\pi_x$. | <span style="color:blue"> Does the LIME R package ever consider this? </span> |
+
+**Goal of LIME**: In order to ensure both interpretability and local fidelity, we must minimize $\mathcal{L}(f,g,\pi_x)$ while having $\Omega(g)$ below enough to be interpretable by humans. The explanation produced by LIME is obtained by the following:
+  $$\xi(x) = \underset{g∈G}{\arg\min} \ \mathcal{L}(f,g,\pi_x) + \Omega(g)$$
+This  formulation  can  be  used  with  different  explanation families $G$, fidelity functions $\mathcal{L}$, and complexity measures $\Omega$. Here we focus on sparse linear models as explanations, and on performing the search using perturbations.
+
+**Procedure**: We want to minimize the locality-aware loss $\mathcal{L}(f,g, \pi_x)$ without making any assumptions about $f$, since we want the explainer to be model-agnostic.  
+
+1. In order to learn the local behavior of $f$ as the interpretable inputs vary, we approximate $\mathcal{L}(f,g,\pi_x)$ by drawing samples, weighted by $\pi_x$. 
+2. We sample instances around $x'$ by drawing nonzero elements of $x'$ uniformly at random (where the number of such draws is also uniformly sampled).
+3. Given a perturbed sample $z'\in\{0,1\}^{d′}$ (which contains a fraction of the nonzero elements of $x'$), we recover the sample in the original representation $z\in\mathbb{R}^d$ and obtain $f(z)$, which is used as a label for the explanation model. 
+4. Given this data set $\mathcal{Z}$ of perturbed samples with the associated labels, we optimize $\mathcal{L}(f,g,\pi_x) + \Omega(g)$ to get an explanation $\xi(x)$.  
+
+It is worth noting that our method is fairly robust to sampling noise since the samples are weighted by $\pi_x$.
+
+### R Package (Draft)
 
 I wrote this up to start thinking about how to describe the procedure that the `lime` R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner's paper will be much simpler...
 
@@ -110,6 +131,15 @@ For our research project, the number of labels (`n_labels`) for the response var
 - `kernel_width = NULL`: If `dist_fun` is not set to `gower`, then this is the kernel width that will be used in the distance function.
 
 # Proposed Bin Creation Methods
+
+### The Data
+
+The cleaning training and testing datasets are loaded in below.
+
+```{r}
+# Load in the training data (Hamby Data 173 and 252)
+hamby173and252_train <- read.csv("../../data/hamby173and252_train.csv")
+```
 
 ### Subsampled Bins
 

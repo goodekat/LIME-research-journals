@@ -120,14 +120,14 @@ The LIME algorithm is presented in the original paper in a general context that 
 
 \subsection{LIME Procedure in the Context of Tabular Data with a Dichotomous Response Variable}
 
-\kg{***Need to clean up the notation.} Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observations, and let $x=\left(\begin{array}{cccc}x_1 & x_2 & \hdots & x_p\end{array}\right)\in\mathbb{R}^p$ be the observation of interest. Furthermore, let $\textbf{y}$ be a vector of length $n$ of response values and $y\in\{0, 1\}$ be the observed response value associated with $x$. Suppose that $f$ is a classification model where $f:\mathbb{R}^p\rightarrow[0,1]$ that is applied to $\textbf{X}$ and $\textbf{y}$. Let the predictions made by $f$ applied to $\textbf{X}$ be denoted as $\hat{\textbf{y}}$. It is of interest to explain the prediction made by $f$ when $f$ is applied to $x$. Note that $f(x)$ is equal to the probability that $y=1$. Given this setup, the LIME procedure is as follows.
+\kg{***Need to clean up the notation. Should I use the same notation as the original paper?} Let $\textbf{X}$ be an $n$ by $p$ data matrix with $p$ features and $n$ observations, and let $x=\left(\begin{array}{cccc}x_1 & x_2 & \hdots & x_p\end{array}\right)\in\mathbb{R}^p$ be the observation of interest. Furthermore, let $\textbf{y}$ be a vector of length $n$ of response values and $y\in\{0, 1\}$ be the observed response value associated with $x$. Suppose that $f$ is a classification model where $f:\mathbb{R}^p\rightarrow[0,1]$ that is applied to $\textbf{X}$ and $\textbf{y}$. Let the predictions made by $f$ applied to $\textbf{X}$ be denoted as $\hat{\textbf{y}}$. It is of interest to explain the prediction made by $f$ when $f$ is applied to $x$. Note that $f(x)$ is equal to the probability that $y=1$. Given this setup, the LIME procedure is as follows.
 
 \begin{enumerate}
 \item Generate a new dataset $\textbf{X}^*$ of size $m$ by $p$ using the observed values in $\textbf{X}$. There are various ways to simulate the new dataset, and the methods currently used by the LIME R package will be described in more detail in Section \ref{r package}.
 
-\item Apply a transformation $T$ to $\textbf{X}^*$ that results in an interpretable representation. The transformation that is applied will depend on the simulation method used. Section \ref{r package} will discuss the transformations used by the LIME R package. Let $T(\textbf{X}^*)=\textbf{X}'$. Furthermore, apply $T$ to $x$ to obtain $T(x)=x'$. \noindent\kg{***I need to check if the predictions are made before or after the transformation.}
+\item Apply $f$ to $\textbf{X}^*$ to obtain a vector of predictions $\hat{\textbf{y}}'$ of length $m$. Let the prediction made by $f$ when applied to the transformed case of interested be denoted as $f(x')=\hat{y}'$.
 
-\item Apply $f$ to $\textbf{X}'$ to obtain a vector of predictions $\hat{\textbf{y}}'$ of length $m$. Let the prediction made by $f$ when applied to the transformed case of interested be denoted as $f(x')=y'$.
+\item Apply a transformation $T$ to $\textbf{X}^*$ that results in an interpretable representation. The transformation that is applied will depend on the simulation method used. Section \ref{r package} will discuss the transformations used by the LIME R package. Let $T(\textbf{X}^*)=\textbf{X}'$. Furthermore, apply $T$ to $x$ to obtain $T(x)=x'$.
 
 \item Compute a proximity measure between $x$ and $\textbf{x}'_i$ for each $i\in 1,...,m$ denoted by $\pi_x(\textbf{x}'_i)$.
 
