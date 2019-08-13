@@ -1,5 +1,5 @@
 ---
-title: "04-lime_algorithm_and_proposed_methods"
+title: "Lime Algorithm and Proposed Methods"
 author: "Katherine Goode"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
@@ -15,18 +15,18 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE
 
 # Overview
 
-This journal contains a draft of the LIME algorithm and ideas for different binning methods that may be better than the ones currently implemented in the LIME package.
+This journal contains a description of the LIME procedure from the original paper, my write-up of the LIME algorithm used in the R package, and ideas for different binning methods that may be better than the ones currently implemented in the R package.
 
 ```{r}
-# Load libraries
-
 # Source functions
 source("../../code/helper_functions.R")
 ```
 
-# LIME Procedure 
+# Original Paper
 
-### Original Paper
+Here, I have copied in the section of the original paper that describes LIME and put it in a more orgainzed format. I have also added in some comments explaining my interpretation of the text and questions where I am not sure what is meant by the text.
+
+### Notation
 
 *Note: Most of the text in this section is copied from the original paper.*
 
@@ -40,21 +40,43 @@ source("../../code/helper_functions.R")
 | $\Omega(g)$ | A measure of complexity of the explanation $g\in G$. For example, for decision trees $\Omega(g)$ may be the depth of the tree, while for linear models, $\Omega(g)$ may be the number of non-zero weights. | Seemingly, this is based on how the weights are assigned to the data points. |
 | $\pi_x(z)$ | A proximity measure between an instance $z$ to $x$, so as to define locality around $x$. | This could be the Gower distance. |
 | $\mathcal{L}(f,g,\pi_x)$ | A measure of how unfaithful $g$ is in approximating $f$ in the locality defined by $\pi_x$. | <span style="color:blue"> Does the LIME R package ever consider this? </span> |
+| $z'\in\{0,1\}^{d′}$ | A perturbed sample...(which contains a fraction of the nonzero elements of $x′$) | <span style="color:blue"> It appears that they are creating the perturbations in a different way than the R package. </span> |
+| $z\in\mathbb{R}^d$ | The sample in the original representation | <span style="color:blue"> Again, this seems to be different than the R package. </span> |
+| $f(z)$ | Used as a label for the explanation model | This is the application of the complex model to the perturbed sample. |
+| $\mathcal{Z}$ | Data set...of perturbed samples with the associated labels | This is the full simulated dataset of perturbations and complex model predictions. |
+| $\xi(x)$ | The explanation produced by LIME...$\underset{g∈G}{\arg\min} \ \mathcal{L}(f,g,\pi_x) + \Omega(g)$ | The output from the explanation model which is found through an optimiation process. |
 
-**Goal of LIME**: In order to ensure both interpretability and local fidelity, we must minimize $\mathcal{L}(f,g,\pi_x)$ while having $\Omega(g)$ below enough to be interpretable by humans. The explanation produced by LIME is obtained by the following:
+### Goal of LIME
+
+In order to ensure both interpretability and local fidelity, we must minimize $\mathcal{L}(f,g,\pi_x)$ while having $\Omega(g)$ below enough to be interpretable by humans. The explanation produced by LIME is obtained by the following:
   $$\xi(x) = \underset{g∈G}{\arg\min} \ \mathcal{L}(f,g,\pi_x) + \Omega(g)$$
 This  formulation  can  be  used  with  different  explanation families $G$, fidelity functions $\mathcal{L}$, and complexity measures $\Omega$. Here we focus on sparse linear models as explanations, and on performing the search using perturbations.
 
-**Procedure**: We want to minimize the locality-aware loss $\mathcal{L}(f,g, \pi_x)$ without making any assumptions about $f$, since we want the explainer to be model-agnostic.  
+### Procedure
 
-1. In order to learn the local behavior of $f$ as the interpretable inputs vary, we approximate $\mathcal{L}(f,g,\pi_x)$ by drawing samples, weighted by $\pi_x$. 
-2. We sample instances around $x'$ by drawing nonzero elements of $x'$ uniformly at random (where the number of such draws is also uniformly sampled).
-3. Given a perturbed sample $z'\in\{0,1\}^{d′}$ (which contains a fraction of the nonzero elements of $x'$), we recover the sample in the original representation $z\in\mathbb{R}^d$ and obtain $f(z)$, which is used as a label for the explanation model. 
-4. Given this data set $\mathcal{Z}$ of perturbed samples with the associated labels, we optimize $\mathcal{L}(f,g,\pi_x) + \Omega(g)$ to get an explanation $\xi(x)$.  
+We want to minimize the locality-aware loss $\mathcal{L}(f,g, \pi_x)$ without making any assumptions about $f$, since we want the explainer to be model-agnostic.  
 
-It is worth noting that our method is fairly robust to sampling noise since the samples are weighted by $\pi_x$.
+| Step Number | Paper Description | My Interpretation |
+| :----: | ----------------- | ----------------- |
+| 1 | In order to learn the local behavior of $f$ as the interpretable inputs vary, we approximate $\mathcal{L}(f,g,\pi_x)$ by drawing samples, weighted by $\pi_x$. | <span style="color:blue"> I don't understand how drawing these samples approximates $\mathcal{L}(f,g,\pi_x)$ </span> |
+| 2 | We sample instances around $x'$ by drawing nonzero elements of $x'$ uniformly at random (where the number of such draws is also uniformly sampled).| <span style="color:blue"> What is meant by drawing elements of $x'$? Is this different than what the R package is doing? </span> I'm wondering if the idea is that $x'=(x'_1, x'_2,...,x'_{d'})=(1, 1, ...., 1)$, and then a sample is taken such as $z'=(0, x'_2, 0, 0, x'_5,...,x'_{d'}) =(0, 1, 0, 0, 1, ..., 1)$. <span style="color:blue"> However, this doesn't really make sense in terms of why $d'$ is different from $d$ </span> | 
+| 3 | Given a perturbed sample $z'\in\{0,1\}^{d′}$ (which contains a fraction of the nonzero elements of $x'$), we recover the sample in the original representation $z\in\mathbb{R}^d$ and obtain $f(z)$, which is used as a label for the explanation model. | <span style="color:blue"> How is the original sample recovered? </span> Maybe based on my example in the last step $z=(0, x_2, 0, 0, x_5, ..., x_d)$|
+| 4 | Given this data set $\mathcal{Z}$ of perturbed samples with the associated labels, we optimize $\mathcal{L}(f,g,\pi_x) + \Omega(g)$ to get an explanation $\xi(x)$. | <span style="color:blue"> Where is this done in the R package? </span> | 
 
-### R Package (Draft)
+It is worth noting that our method is fairly robust to sampling noise since the samples are weighted by $\pi_x$. <span style="color:blue"> Okay - but this will really depend on how $\pi_x$ is chosen </span>
+
+...let $G$ be the class of linear models, such that $g(z′)=w_g\cdot z′$. <span style="color:blue"> (What is $w_g$? Is this suppose to be a linear model where $w_g$ are the coefficients?) </span> We use the locally weighted square loss as $\mathcal{L}$...where we let 
+  $$\pi_x(z)=exp(−D(x,z)^2/\sigma^2)$$ 
+be an exponential kernel defined on some distance function $D$ (e.g. cosine distance for text, $L2$ distancef or images) with width $\sigma$.
+  $$\mathcal{L}(f,g,\pi_x)=\sum_{z, z'\in\mathcal{Z}}\pi_x(z)\left(f(z)-g(z')\right)^2$$
+
+### Comment on Faithfulness
+
+...our choice of $G$ (sparse linear models) means that if the underlying model is highly non-linear even in the locality of the prediction, there may not be a faithful explanation.  However, we can estimate the faithfulness of the explanation on $\mathcal{Z}$, and present this information to the user. This estimate of faithfulness can also be used for selecting an appropriate family of explanations from a set of multiple interpretable model classes, thus adapting to the given dataset and the classifier. We leave such exploration for future work, as linear explanations work quite well for multiple black-box models in our experiments.
+
+# R Package 
+
+### Procedure (Draft)
 
 I wrote this up to start thinking about how to describe the procedure that the `lime` R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner's paper will be much simpler...
 
@@ -103,11 +125,11 @@ For the prediction of interest,
 Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
 
 
-# Inputs for LIME Functions
+### Function Inputs
 
 The default input settings for the `lime` and `explain` functions in the lime package are described below.
 
-### `lime` function 
+##### `lime` function 
 
 The default settings for the `lime` function are as follows.
 
@@ -116,7 +138,7 @@ The default settings for the `lime` function are as follows.
 - `quantile_bins = TRUE`: If set to `TRUE`, the bins will be be based on `n_bins` quantiles. Otherwise, the bins will be spread evenly over the range of the training data.
 - `use_density = TRUE`: If `bin_continuous` is set to `FALSE` and this is set to `TRUE`, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.
 
-### `explain` function 
+##### `explain` function 
 
 For our research project, the number of labels (`n_labels`) for the response variable will be set to 1 and the number of features to include in the explanations (`n_features`) will be set to 2. The default values for the other options are as follows. 
 
