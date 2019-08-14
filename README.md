@@ -13,6 +13,9 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## To Do List
 
+*First draft of paper due two weeks into the semester (Tuesday,
+September 10)*
+
 **Current**
 
   - keep the LIME procedure at a higher level in the paper
@@ -21,14 +24,10 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
   - change to computing the \(\mathcal{L}\) metric from the paper
   - check if Python package outputs the locality metric
   - add figure descriptions in both caption and text
-  - move sentence on various settings to back of paper
   - go back through LIME procedure and update with new understanding
     (such as d’ can be larger than d)
-  - get rid of current implementation in text (change to original paper
-    and mention doing this for model agnostic reasons)
   - add an assert\_that statement in the code to check if the LIME
     package is changing
-  - first draft of paper due two weeks into the semester (September 10)
   - read through papers giving an overview of the current explanation
     methods
 
