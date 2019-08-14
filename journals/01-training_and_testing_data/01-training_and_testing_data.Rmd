@@ -10,7 +10,10 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE, 
+                      eval = TRUE, 
                       cache = TRUE)
 ```
 
@@ -66,7 +69,7 @@ The dataset loaded in below is the original Hamby 172 and 252 dataset that Heike
 
 ```{r}
 # Load in the Hamby 173 and 252 dataset
-hamby173and252_raw <- read.csv("../../data/raw/features-hamby173and252.csv") %>%
+hamby173and252_raw <- read.csv("../../../data/raw/features-hamby173and252.csv") %>%
   filter(study1 != "Cary", study2 != "Cary") %>%
   mutate(study1 = factor(study1), 
          study2 = factor(study2))
@@ -217,7 +220,7 @@ MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$samesource_col
 
 The cleaned data is saved and used as the training dataset for the rest of this research project.
 
-```{r}
+```{r eval = FALSE}
 # Save the datasets and response variables as .csv files
 write.csv(hamby173and252_train, "../../data/hamby173and252_train.csv", row.names = FALSE)
 ```
@@ -230,8 +233,8 @@ The original data files given to me by Heike are loaded in below. For now, we ar
 
 ```{r}
 # Load in the Hamby 224 datasets
-hamby224_set1 <- readRDS("../../data/raw/h224-set1-features.rds")
-hamby224_set11 <- readRDS("../../data/raw/h224-set11-features.rds")
+hamby224_set1 <- readRDS("../../../data/raw/h224-set1-features.rds")
+hamby224_set11 <- readRDS("../../../data/raw/h224-set11-features.rds")
 ```
 
 ### Cleaning the Testing Data
@@ -316,7 +319,7 @@ hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
 
 The testing data file is saved below.
 
-```{r}
+```{r eval = FALSE}
 # Save the test data as a .csv file
 write.csv(hamby224_test, "../../data/hamby224_test.csv", row.names = FALSE)
 ```
