@@ -8,8 +8,21 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
+  - Paper
+      - I found ridge regression models in Python code (see journal 04)
+      - Show the plots using the ridge regression in journal 09
+      - What should I do about computing the generalized R2 value?
+      - Show this paper: <https://arxiv.org/pdf/1806.07498.pdf>
+      - Can you help to show me your vision with the minipage format?
+      - I could not find a locality metric output from Python. There was
+        a section in their vignettes that seemed to be referring to some
+        sort of assessment about the models, but I’m not sure what was
+        happening.
+        <https://marcotcr.github.io/lime/tutorials/Tutorial%20-%20continuous%20and%20categorical%20features.html>
   - Graphics Group
       - email list (should I be added as an admin?)
+      - send out another email and plan for first week?
+      - updates on schedule since last meeting
 
 ## To Do List
 
@@ -19,10 +32,7 @@ September 10)*
 **Current**
 
   - keep the LIME procedure at a higher level in the paper
-  - check for ridge regression model in Python code
-  - compute generalized \(R^2\) for my images
   - change to computing the \(\mathcal{L}\) metric from the paper
-  - check if Python package outputs the locality metric
   - add figure descriptions in both caption and text
   - go back through LIME procedure and update with new understanding
     (such as d’ can be larger than d)
@@ -33,7 +43,7 @@ September 10)*
 
 **Later**
 
-  - LIME diganostics
+  - LIME diagnostics
       - turn repetitive code into functions
       - try out different weights
       - change distance matrix in seriation to be 5-\# of variables
@@ -46,7 +56,7 @@ September 10)*
         then continuing with LIME with the RF predictions from the new
         model - this may help to understand if the problems are due to
         the sampling procedure or LIME itself
-      - he also suggested looking into SMOTE for dealing the inbalance
+      - he also suggested looking into SMOTE for dealing the imbalance
         in the classes with sampling
       - compare the simple models based on different number of bins
         using an F-test
@@ -82,7 +92,7 @@ September 10)*
       - think about how to implement a simulation with a random forest
       - look back at 601 notes from Kaiser for model assessment
       - look at Hadley’s ‘removing the blindfold’ for ideas
-      - read book Dr. Dixon lent me on sensativity analyses
+      - read book Dr. Dixon lent me on sensitivity analyses
   - possible improvements to LIME
       - determine the best number of bins to use for each variable
       - try out subsampling idea
@@ -92,7 +102,7 @@ September 10)*
 
 ## Contents
 
-Descriptions of the materials in this respository are listed below.
+Descriptions of the materials in this repository are listed below.
 
 **code**
 
@@ -126,7 +136,7 @@ This folder contains folders with research journals.
   - `04-lime_algorithm_and_proposed_methods`: rough draft of the lime
     algorithm as implemented in the lime R package and proposed methods
     for improving the lime algorithm
-  - `05-applying_lime_to_rtrees`: application of lime and sensativity
+  - `05-applying_lime_to_rtrees`: application of lime and sensitivity
     analysis for many different input options
   - `06-assessing_lime_explanations`: assessment of the lime
     explanations

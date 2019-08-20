@@ -152,6 +152,16 @@ For our research project, the number of labels (`n_labels`) for the response var
 - `dist_fun = 'gower'`: The distance function to be used for determining how close a perturbation is to the test point.
 - `kernel_width = NULL`: If `dist_fun` is not set to `gower`, then this is the kernel width that will be used in the distance function.
 
+# Python Package
+
+I have not spent a lot of time going through the Python package code, but I wanted to check to see if it uses a ridge regression for the feature selection and the explainer model. This [article](https://towardsdatascience.com/how-to-perform-lasso-and-ridge-regression-in-python-3b3b75541ad8) describes that ridge regression can be fit in Python using the sklearn "package". These images below of the code from the Python lime [GitHub repository](https://github.com/marcotcr/lime/blob/master/lime/lime_base.py) seem to imply that it is using ridge regression for both of these steps.
+
+![](../../figures/python-ridge1.png)
+
+![](../../figures/python-ridge2.png)
+
+![](../../figures/python-ridge3.png)
+
 # Proposed Bin Creation Methods
 
 ### The Data
@@ -160,7 +170,7 @@ The cleaning training and testing datasets are loaded in below.
 
 ```{r}
 # Load in the training data (Hamby Data 173 and 252)
-hamby173and252_train <- read.csv("../../data/hamby173and252_train.csv")
+hamby173and252_train <- read.csv("../../../data/hamby173and252_train.csv")
 ```
 
 ### Subsampled Bins
