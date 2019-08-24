@@ -1,0 +1,534 @@
+---
+title: "Understanding LIME"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, cache = TRUE)
+```
+
+This journal contains a description of the LIME procedure from the original paper, my write-up of the LIME algorithm used in the R package, and ideas for different binning methods that may be better than the ones currently implemented in the R package.
+
+```{r}
+# Load packages
+library(cowplot)
+library(furrr)
+library(future)
+library(glmnet)
+library(gower)
+library(lime)
+library(randomForest)
+library(tidyverse)
+
+# Source functions
+source("../../code/helper_functions.R")
+```
+
+# Original Paper
+
+Here, I have copied in the section of the original paper that describes LIME and put it in a more orgainzed format. I have also added in some comments explaining my interpretation of the text and questions where I am not sure what is meant by the text.
+
+### Notation
+
+*Note: Most of the text in this section is copied from the original paper.*
+
+| Notation | Original Paper Definition | My Interpretation (in terms of a data table) |
+| -------- | ------------------------- | ------------------------- |
+| $x\in\mathbb{R}^d$ | Original representation of an instance being explained | Vector of observed features for one observation e.g. $(x_1, x_2,...,x_d)$ where $\textbf{X}$ is an $n$ by $d$ matrix | 
+| $f:\mathbb{R}^d→\mathbb{R}$ | The model being explained...In classification, $f(x)$ is the probability (or a binary indicator) that $x$ belongs to a certain class. | This is a random forest in our case. |
+| $x'\in\{0,1\}^{d'}$ | A binary vector for interpretable representation (where interpretable explanations are defined as "use a representation that is understandable by humans") | Varies based on the simulation method used - note that $1\le d' \le d$ since it is possible that feature selection may be performed to choose a smaller set of variables than originally in $x$ (One example: vector of indicator variables that indicate whether the observed value falls in the same bin as the instance being explained e.g. $x'_i = I[x_i\in \mbox{same variable } i \mbox{ bin as the instance being explained}]$) | In our example, this is the random forest model. |
+|$G$ | A class of potentially interpretable models, such as linear models, decision trees, or falling rule lists |  <span style="color:blue"> I'm not sure what is considered $G$ in the R package - the fitting of the final ridge regression model or the ridge regression model used for feature selection? </span>|
+| $g$ | An explanation as a model...can be readily presented to the user with visual or textual artifacts...The domain of $g$ is $\{0,1\}^{d′}$, i.e. $g$ acts over absence/presence of the interpretable components | This could be a ridge regression model with the form $f(x) \sim x'_1 + x'_2 + \cdots + x'_{d'}$ |
+| $\Omega(g)$ | A measure of complexity of the explanation $g\in G$. For example, for decision trees $\Omega(g)$ may be the depth of the tree, while for linear models, $\Omega(g)$ may be the number of non-zero weights. | Seemingly, this is based on how the weights are assigned to the data points. |
+| $\pi_x(z)$ | A proximity measure between an instance $z$ to $x$, so as to define locality around $x$. | This could be the Gower distance. |
+| $\mathcal{L}(f,g,\pi_x)$ | A measure of how unfaithful $g$ is in approximating $f$ in the locality defined by $\pi_x$. | <span style="color:blue"> Does the LIME R package ever consider this? </span> |
+| $z'\in\{0,1\}^{d′}$ | A perturbed sample...(which contains a fraction of the nonzero elements of $x′$) | <span style="color:blue"> It appears that they are creating the perturbations in a different way than the R package. </span> |
+| $z\in\mathbb{R}^d$ | The sample in the original representation | <span style="color:blue"> Again, this seems to be different than the R package. </span> |
+| $f(z)$ | Used as a label for the explanation model | This is the application of the complex model to the perturbed sample. |
+| $\mathcal{Z}$ | Data set...of perturbed samples with the associated labels | This is the full simulated dataset of perturbations and complex model predictions. |
+| $\xi(x)$ | The explanation produced by LIME...$\underset{g∈G}{\arg\min} \ \mathcal{L}(f,g,\pi_x) + \Omega(g)$ | The output from the explanation model which is found through an optimiation process. |
+
+### Goal of LIME
+
+In order to ensure both interpretability and local fidelity, we must minimize $\mathcal{L}(f,g,\pi_x)$ while having $\Omega(g)$ below enough to be interpretable by humans. The explanation produced by LIME is obtained by the following:
+  $$\xi(x) = \underset{g∈G}{\arg\min} \ \mathcal{L}(f,g,\pi_x) + \Omega(g)$$
+This  formulation  can  be  used  with  different  explanation families $G$, fidelity functions $\mathcal{L}$, and complexity measures $\Omega$. Here we focus on sparse linear models as explanations, and on performing the search using perturbations.
+
+### Procedure
+
+We want to minimize the locality-aware loss $\mathcal{L}(f,g, \pi_x)$ without making any assumptions about $f$, since we want the explainer to be model-agnostic.  
+
+| Step Number | Paper Description | My Interpretation |
+| :----: | ----------------- | ----------------- |
+| 1 | In order to learn the local behavior of $f$ as the interpretable inputs vary, we approximate $\mathcal{L}(f,g,\pi_x)$ by drawing samples, weighted by $\pi_x$. | <span style="color:blue"> I don't understand how drawing these samples approximates $\mathcal{L}(f,g,\pi_x)$ </span> |
+| 2 | We sample instances around $x'$ by drawing nonzero elements of $x'$ uniformly at random (where the number of such draws is also uniformly sampled).| <span style="color:blue"> What is meant by drawing elements of $x'$? Is this different than what the R package is doing? </span> I'm wondering if the idea is that $x'=(x'_1, x'_2,...,x'_{d'})=(1, 1, ...., 1)$, and then a sample is taken such as $z'=(0, x'_2, 0, 0, x'_5,...,x'_{d'}) =(0, 1, 0, 0, 1, ..., 1)$. <span style="color:blue"> However, this doesn't really make sense in terms of why $d'$ is different from $d$ </span> | 
+| 3 | Given a perturbed sample $z'\in\{0,1\}^{d′}$ (which contains a fraction of the nonzero elements of $x'$), we recover the sample in the original representation $z\in\mathbb{R}^d$ and obtain $f(z)$, which is used as a label for the explanation model. | <span style="color:blue"> How is the original sample recovered? </span> Maybe based on my example in the last step $z=(0, x_2, 0, 0, x_5, ..., x_d)$|
+| 4 | Given this data set $\mathcal{Z}$ of perturbed samples with the associated labels, we optimize $\mathcal{L}(f,g,\pi_x) + \Omega(g)$ to get an explanation $\xi(x)$. | <span style="color:blue"> Where is this done in the R package? </span> | 
+
+It is worth noting that our method is fairly robust to sampling noise since the samples are weighted by $\pi_x$. <span style="color:blue"> Okay - but this will really depend on how $\pi_x$ is chosen </span>
+
+...let $G$ be the class of linear models, such that $g(z′)=w_g\cdot z′$. <span style="color:blue"> (What is $w_g$? Is this suppose to be a linear model where $w_g$ are the coefficients?) </span> We use the locally weighted square loss as $\mathcal{L}$...where we let 
+  $$\pi_x(z)=exp(−D(x,z)^2/\sigma^2)$$ 
+be an exponential kernel defined on some distance function $D$ (e.g. cosine distance for text, $L2$ distancef or images) with width $\sigma$.
+  $$\mathcal{L}(f,g,\pi_x)=\sum_{z, z'\in\mathcal{Z}}\pi_x(z)\left(f(z)-g(z')\right)^2$$
+
+### Comment on Faithfulness
+
+...our choice of $G$ (sparse linear models) means that if the underlying model is highly non-linear even in the locality of the prediction, there may not be a faithful explanation.  However, we can estimate the faithfulness of the explanation on $\mathcal{Z}$, and present this information to the user. This estimate of faithfulness can also be used for selecting an appropriate family of explanations from a set of multiple interpretable model classes, thus adapting to the given dataset and the classifier. We leave such exploration for future work, as linear explanations work quite well for multiple black-box models in our experiments.
+
+# Concept Visualizations 
+
+The images in this section were created using simulated data that I knew had a local trend around the point of interest. I consider both a linear regression and a ridge regression as the explainer model.
+
+### Data and Model
+
+This code generates the data and predictions from a hypothetical complex model.
+
+```{r}
+# Generate features and predictions from a hypothetical complex model
+set.seed(20190624)
+lime_data <- data.frame(feature1 = sort(runif(250, 0, 1)),
+                        feature2 = sample(x = 1:250, 
+                                          size = 250, 
+                                          replace = FALSE)) %>%
+  mutate(prediction = if_else(feature1 >= 0 & feature1 < 0.1, 
+                              (0.3 * feature1) + rnorm(n(), 0, 0.01), 
+                      if_else(feature1 >= 0.1 & feature1 < 0.3, 
+                              rbeta(n(), 1, 0.5), 
+                      if_else(feature1 >= 0.3 & feature1 < 0.5, 
+                              sin(pi* feature1) + rnorm(n(), 0, 0.5),
+                      if_else(feature1 >= 0.5 & feature1 < 0.8, 
+                              -(sin(pi* feature1) + rnorm(n(), 0, 0.1)) + 1,
+                      if_else(feature1 >= 0.8 & feature1 < 0.9, 
+                              0.5 + runif(n(), -0.5, 0.5), 
+                              0.5 + rnorm(n(), 0, 0.3)))))))
+```
+
+```{r}
+# Specify a prediction of interest
+prediction_of_interest <- data.frame(feature1 = 0.07, 
+                                     feature2 = 200,
+                                     prediction = 0.05, 
+                                     color = factor("Prediction of Interest"))
+```
+
+```{r}
+# Compute the distance between the prediction of interest and 
+# all other observations
+lime_data$distance <- (1 - gower_dist(x = prediction_of_interest, 
+                                      y = lime_data))^20
+```
+
+### Linear Regression Explainer
+
+These visualizations are based on a weighted linear regression model used as the explainer.
+
+```{r}
+# Fit the interpretable explainer model (weighted linear regression)
+linear_explainer <- lm(formula = prediction ~ feature1 + feature2, 
+                       data = lime_data, 
+                       weights = distance)
+```
+
+```{r}
+# Extract the coefficients from the explainer
+linear_b0 <- coef(linear_explainer)[[1]]
+linear_b1 <- coef(linear_explainer)[[2]]
+linear_b2 <- coef(linear_explainer)[[3]]
+```
+
+```{r}
+# Predictions versus feature 1
+linear_plot_feature1 <- ggplot(data = lime_data,
+                        mapping = aes(x = feature1, 
+                                      y = prediction, 
+                                      size = distance)) + 
+  geom_point(color = "grey30",
+             alpha = 0.75) + 
+  geom_abline(intercept = linear_b0 +
+                linear_b2*prediction_of_interest$feature2, 
+              slope = linear_b1, 
+              size = 1) +
+  geom_point(data = prediction_of_interest,
+             mapping = aes(x = feature1, y = prediction),
+             fill = "#EFB084",
+             color = "black",
+             size = 5, 
+             shape = 23) +
+  theme_linedraw(base_family = "Times") +
+  labs(x = "Feature 1", 
+       y = "Black-Box Prediction") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")
+```
+
+```{r}
+# Predictions versus feature 1
+linear_plot_feature2 <- ggplot(data = lime_data,
+                        mapping = aes(x = feature2, 
+                                      y = prediction, 
+                                      size = distance)) + 
+  geom_point(color = "grey30",
+             alpha = 0.75) + 
+  geom_abline(intercept = linear_b0 + 
+                linear_b1*prediction_of_interest$feature1,
+              slope = linear_b2,
+              size = 1) +
+  geom_point(data = prediction_of_interest,
+             mapping = aes(x = feature2, y = prediction),
+             fill = "#EFB084",
+             color = "black",
+             size = 5, 
+             shape = 23) +
+  theme_linedraw(base_family = "Times") +
+  labs(x = "Feature 2", 
+       y = "Black-Box Prediction") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")
+```
+
+```{r}
+# Plot that creates a size legend
+size_legend_plot <- lime_data %>%
+  gather(key = feature, value = value, 1:2) %>%
+  ggplot(mapping = aes(x = value, 
+                       y = prediction,
+                       size = distance)) + 
+  geom_point(color = "grey30",
+             alpha = 0.75) +
+  labs(size = "Weight") +
+  theme_linedraw(base_family = "Times") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+# Extract the legend
+size_legend <- get_legend(size_legend_plot)
+```
+
+```{r}
+# Join the two feature plots
+lime_linear_plots <- plot_grid(linear_plot_feature1, 
+                               linear_plot_feature2, 
+                               size_legend,
+                               ncol = 3, 
+                               rel_widths = c(0.4, 0.4, 0.1))
+```
+
+```{r}
+# Create a plot to extract a legend for the prediction of interest
+lime_legend_plot <- ggplot(data = prediction_of_interest, 
+                           mapping = aes(x = feature1, 
+                                         y = prediction, 
+                                         fill = color)) +
+  geom_point(size = 5, shape = 23) +
+  scale_fill_manual(values = c("#EFB084")) +
+  theme_classic(base_family = "Times") +
+  labs(fill = "") +
+  theme(legend.position = "bottom")
+
+# Extract the legend
+lime_legend <- get_legend(lime_legend_plot)
+```
+
+```{r}
+# Join the title, plots, legend, and caption into one figure
+lime_linear_concept <- plot_grid(lime_linear_plots, lime_legend,
+                         ncol = 1,
+                         rel_heights = c(0.9, 0.1))
+```
+
+This example shows that the explainer model is doing a good job of capturing the local trend.
+
+```{r}
+# View the plot
+lime_linear_concept
+```
+
+### Ridge Regression Explainer
+
+```{r}
+# Fits the explainer model (weighted ridge regression)
+ridge_explainer <- glmnet(x = lime_data %>% 
+                            select(feature1, feature2) %>%
+                            as.matrix(), 
+                          y = lime_data %>% pull(prediction),
+                          weights = lime_data$distance,
+                          family = "gaussian", 
+                          alpha = 0, 
+                          lambda = 1, 
+                          standardize = FALSE)
+```
+
+```{r}
+# Extract the coefficients from the explainer
+ridge_b0 <- ridge_explainer$a0[[1]]
+ridge_b1 <- ridge_explainer$beta[1,1]
+ridge_b2 <- ridge_explainer$beta[2,1]
+```
+
+```{r}
+# Predictions versus feature 1
+ridge_plot_feature1 <- ggplot(data = lime_data,
+                        mapping = aes(x = feature1, 
+                                      y = prediction, 
+                                      size = distance)) + 
+  geom_point(color = "grey30",
+             alpha = 0.75) + 
+  geom_abline(intercept = ridge_b0 +
+                ridge_b2*prediction_of_interest$feature2, 
+              slope = ridge_b1, 
+              size = 1) +
+  geom_point(data = prediction_of_interest,
+             mapping = aes(x = feature1, y = prediction),
+             fill = "#EFB084",
+             color = "black",
+             size = 5, 
+             shape = 23) +
+  theme_linedraw(base_family = "Times") +
+  labs(x = "Feature 1", 
+       y = "Black-Box Prediction") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")
+```
+
+```{r}
+# Predictions versus feature 2
+ridge_plot_feature2 <- ggplot(data = lime_data,
+                        mapping = aes(x = feature2, 
+                                      y = prediction, 
+                                      size = distance)) + 
+  geom_point(color = "grey30",
+             alpha = 0.75) + 
+  geom_abline(intercept = ridge_b0 + 
+                ridge_b1*prediction_of_interest$feature1,
+              slope = ridge_b2,
+              size = 1) +
+  geom_point(data = prediction_of_interest,
+             mapping = aes(x = feature2, y = prediction),
+             fill = "#EFB084",
+             color = "black",
+             size = 5, 
+             shape = 23) +
+  theme_linedraw(base_family = "Times") +
+  labs(x = "Feature 2", 
+       y = "Black-Box Prediction") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none")
+```
+
+```{r}
+# Join the two feature plots
+lime_ridge_plots <- plot_grid(ridge_plot_feature1, 
+                              ridge_plot_feature2, 
+                              size_legend,
+                              ncol = 3,
+                              rel_widths = c(0.4, 0.4, 0.1))
+```
+
+```{r}
+# Join the title, plots, legend, and caption into one figure
+lime_ridge_concept <- plot_grid(lime_ridge_plots, 
+                                lime_legend,
+                                ncol = 1,
+                                rel_heights = c(0.9, 0.1))
+```
+
+This example shows that the explainer model is **not** doing a good job of capturing the local trend.
+
+```{r}
+# Preview the plot
+lime_ridge_concept
+```
+
+# R Package 
+
+### Procedure (Draft)
+
+I wrote this up to start thinking about how to describe the procedure that the `lime` R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner's paper will be much simpler...
+
+The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.
+
+Let
+  $$Y_{jk} = \begin{cases} 
+  1 & \mbox{ if bullets } j \mbox{ and } k \mbox{ were fired from the same gun barrel }\\
+  0 & \mbox{otherwise}
+  \end{cases}$$
+be the response variable in the training dataset, and $X_1,...,X_9$ correspond to the nine features in the training dataset. Let $X'_1,...,X'_9$ be the 
+
+1. Distributions for each of the features in the training data are obtained. 
+    + The method that `lime` uses to obtain the distribution differs based on the feature type. All of the features in the Hamby datasets are numeric. For numeric features, the default option in `lime` (`quantile_bins = TRUE`) computes the quantiles of each feature based on the number of bins selected. The default number of bins is 4 (`n_bins = 4`).
+
+2. Many ($n$) samples from each of the feature distributions are drawn.
+     + To do this, `lime` has several options (mostly quoted from `lime` package for now):
+      * bin\_continuous = TRUE should continuous variables be binned?
+      * quantile\_bins = TRUE should the ins for n\_bins be based on quantiles or spread evenly
+      * n\_bins = 4 number of bins if bin\_continuous is TRUE
+      * use\_density = TRUE if bin\_continuous is FALSE, should continuous data be sampled using kernel density estimation (if not, then will assume normal for continuous variable)
+
+3. Predictions for the testing data using the random forest model are computed.
+     + The random forest model `rtrees` is used to make a prediction for the observation from the test dataset and each of the $n=5000$ samples as to whether or not the comparison of the two bullets in the test case are a match. Since the random forest is a classification model, `lime` is set to return the prediction probabilities.
+
+4. Similarity score between the observation in the testing data and each of the $n=5000$ sampled values are obtained.
+    + The way that the similarity score is computed depends on the type of feature. Since all of the features in the Hamby 224 test dataset are continuous, the simulated values are first converted into 0-1 features where a 1 indicates that the feature from the simulated value falls in the same bin as the observed data point and a 0 indicates that the feature is not in the same bin as the observed data point. Then, by default, the Gower distance is used to compute the similarity score. (using the `gower` package in R)
+
+5. Feature selection is performed by fitting some type of regression model weighted by the similarity scores is to the simulated data and the observed value. The 0-1 versions of the features are used.
+    + The user can specify the number of features, $m$, they would like to select to explain the prediction. `lime` supports the following options for feature selection
+      * forward selection with ridge regression
+      * highest weight with ridge regression
+      * LASSO model
+      * tree model
+      * default: forward selection if $m\le6$ with a ridge regression model, highest weight with ridge regression otherwise
+
+6. A ridge regression model is fit as the simple model by regressing the prediction probabilities on the $m$ selected predictor variables and weighted by the similarity scores. If the response is categorical, the user can select how many categories and which categories they want to explain.
+  $$P(Match = TRUE) = \beta_0 + 
+  \beta_1 \cdot I\left[X_1 \in \mbox{obs bin}\right] + 
+  \beta_2 \cdot I\left[X_2 \in \mbox{obs bin}\right] + 
+  \beta_3 \cdot I\left[X_3 \in \mbox{obs bin}\right]$$
+For the prediction of interest, 
+  $$P(Match = TRUE) = \beta_0 + \beta_1 + \beta_2 + \beta_3.$$
+7. The feature weights are extracted and used as the explanations.
+
+Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
+
+
+### Function Inputs
+
+The default input settings for the `lime` and `explain` functions in the lime package are described below.
+
+##### `lime` function 
+
+The default settings for the `lime` function are as follows.
+
+- `bin_continuous = TRUE`: If set to `TRUE`, the continuous variables will be binned when making the explanations. If they are not binned, then perturbations will be obtained by either simulating using kernel density estimation or a normal distribution depending on what the option of `use_density` is set to. 
+- `bins = 4`: The number of bins to divide the continuous variables into. The default is 4 bins.
+- `quantile_bins = TRUE`: If set to `TRUE`, the bins will be be based on `n_bins` quantiles. Otherwise, the bins will be spread evenly over the range of the training data.
+- `use_density = TRUE`: If `bin_continuous` is set to `FALSE` and this is set to `TRUE`, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.
+
+##### `explain` function 
+
+For our research project, the number of labels (`n_labels`) for the response variable will be set to 1 and the number of features to include in the explanations (`n_features`) will be set to 2. The default values for the other options are as follows. 
+
+- `n_permutations = 5000`: The number of perturbations generated for each feature.
+- `feature_select = 'auto'`: This is the feature selection method for choosing the number of features specified. This uses forward selection if $m\le 6$ and otherwise highest weights. The other feature selection options are as follows.
+    - `none`: Use all features for the explanation. Not advised unless you have very few features.
+    - `forward selection`: Features are added one by one based on their improvements to a ridge regression fit of the complex model outcome.
+    - `highest weights`: The m features with highest absolute weight in a ridge regression fit of the complex model outcome are chosen.
+    - `lasso`: The m features that are least prone to shrinkage based on the regularization path of a lasso fit of the complex model outcome is chosen.
+    - `tree`: A tree is fitted with log2(m) splits, to use at max m features. It may possibly select less.
+- `dist_fun = 'gower'`: The distance function to be used for determining how close a perturbation is to the test point.
+- `kernel_width = NULL`: If `dist_fun` is not set to `gower`, then this is the kernel width that will be used in the distance function.
+
+# Python Package
+
+I have not spent a lot of time going through the Python package code, but I wanted to check to see if it uses a ridge regression for the feature selection and the explainer model. This [article](https://towardsdatascience.com/how-to-perform-lasso-and-ridge-regression-in-python-3b3b75541ad8) describes that ridge regression can be fit in Python using the sklearn "package". These images below of the code from the Python lime [GitHub repository](https://github.com/marcotcr/lime/blob/master/lime/lime_base.py) seem to imply that it is using ridge regression for both of these steps.
+
+![](../../figures/python-ridge1.png)
+
+![](../../figures/python-ridge2.png)
+
+![](../../figures/python-ridge3.png)
+
+# Proposed Bin Creation Methods
+
+### The Data
+
+The cleaning training and testing datasets are loaded in below.
+
+```{r}
+# Load in the training data (Hamby Data 173 and 252)
+hamby173and252_train <- read.csv("../../../data/hamby173and252_train.csv")
+```
+
+### Subsampled Bins
+
+One idea that I had to try to improve the lime explanations was to subsample from the training dataset before computing the quantiles. The proportion of observations with `samesource = FALSE` is very large in the training dataset, so that overwhelms the observations with `samesource = TRUE`. By subsampling, it might allow for better locations to bin the data. I wrote the code below to attempt to apply lime to a subsampled version of the training dataset.
+
+```{r eval = FALSE}
+# Code saved for future use for the sampling data
+
+# Create the data (with a set seed)
+set.seed(20181128)
+hamby173and252_train_sub <- hamby173and252_train %>%
+  filter(samesource == FALSE) %>%
+  slice(sample(1:length(hamby173and252_train$barrel1), 4500, replace = FALSE)) %>%
+  bind_rows(hamby173and252_train %>% filter(samesource == TRUE))
+
+# Save the subsampled data
+write.csv(hamby173and252_train_sub, "../../data/hamby173and252_train_sub.csv", row.names = FALSE)
+
+# Apply lime to the subsampled training data with the specified input options
+hamby224_lime_explain_sub <- future_pmap(.l = as.list(hamby224_lime_inputs %>%
+                                                        select(-case)),
+                                         .f = run_lime, # run_lime is one of my helper functions
+                                         train = hamby173and252_train_sub %>% select(rf_features),
+                                         test = hamby224_test %>% arrange(case) %>% select(rf_features) %>% na.omit(),
+                                         rfmodel = as_classifier(rtrees),
+                                         label = "TRUE",
+                                         nfeatures = 3,
+                                         seed = TRUE) %>%
+  mutate(training_data = factor("Subsampled"))
+
+# Separate the lime and explain function results from the subsampled data
+hamby224_lime_sub <- map(hamby224_lime_explain_sub, function(list) list$lime)
+hamby224_explain_sub <- map_df(hamby224_lime_explain_sub, function(list) list$explain)
+
+# Join the lime results from the full and subsampled training data
+hamby224_lime <- c(hamby224_lime_full, hamby224_lime_sub)
+hamby224_explain <- bind_rows(hamby224_explain_full, hamby224_explain_sub)
+```
+
+### Tree Based Bins
+
+Heike suggested the idea of using classification trees to choose the cutoffs for the lime bins. That is, the divisions in the tree could be used as the bin cuts. This would allow us to automate the process and to obtain a penalty parameter since the trees give us nesting. (MSE + lambda * p where p is the from the number of trees multiplied by the number of ...)
+
+Heike wrote the function `treebink` to take x and y variables for fitting a tree and returning the cuts for $k$ bins based on the splits from the tree. The function is stored in the file   `helper_functions.R`. Here is an example using the function below with the predictor variable of ccf.
+
+```{r}
+# Example using treebink
+treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 5)
+```
+
+However, there seems to be a problem with `treebink`. For certain variables, when a high number of bins is requested, the function returns more than the desired number of bins. Heike is going to look into this.
+
+She recently updated the function `treebink` to run using the tree package. Here are some comments from her about the code: 
+
+"I've moved it from rpart to tree. I am not quite sure that the two packages are doing the exact same thing. They claim they do but they might be implemented a bit differently. What we are doing now is if there are too many splits, we look at the order in which the splits are made and roll back some of them. I haven't found a case that doesn't work, but obviously that doesn't show that there isn't any :)"
+
+I wrote the function `mylime`, which adds an option in the `lime` function from the LIME package to use Heike's function `treebink` to obtain tree based bins. This function is also included in the file `helper_functions.R`. The output from `mylime` can then be input into the `explain` function to obtain explanations. I was able to rerun all of the code for creating the `hamby224_test_explain` dataset with the explanations from the tree based bins included for 2 to 6 bins.
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

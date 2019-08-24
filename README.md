@@ -9,20 +9,16 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 ## Talking points
 
   - Paper
-      - I found ridge regression models in Python code (see journal 04)
-      - Show the plots using the ridge regression in journal 09
-      - What should I do about computing the generalized R2 value?
-      - Show this paper: <https://arxiv.org/pdf/1806.07498.pdf>
-      - Can you help to show me your vision with the minipage format?
-      - I could not find a locality metric output from Python. There was
-        a section in their vignettes that seemed to be referring to some
-        sort of assessment about the models, but I’m not sure what was
-        happening.
-        <https://marcotcr.github.io/lime/tutorials/Tutorial%20-%20continuous%20and%20categorical%20features.html>
+      - Can you re-explain your vision with the minipage format?
+  - Internship
+      - Dixon said he is fine with me switching to 10 hours in the
+        spring (as long as Dr. Caragea agrees)
   - Graphics Group
       - email list (should I be added as an admin?)
-      - send out another email and plan for first week?
-      - updates on schedule since last meeting
+      - emailed Min (waiting for a response)
+      - show updated schedule
+      - Susan’s idea (could we ask Joe, Erin, and/or Charlotte if they
+        would be interested in preparing this talk?)
 
 ## To Do List
 
@@ -31,6 +27,15 @@ September 10)*
 
 **Current**
 
+  - finish organizing journals and update contents in readme
+  - send out an email about graphics group plan for the first week
+  - finish reading new paper
+  - set up meeting with Danny on Friday once Heike sends me her
+    availability
+  - add generalized R2 values to plots
+  - code up Laugel et al’s work
+  - point out differences and similarities from the other paper (such as
+    normal sampling)
   - keep the LIME procedure at a higher level in the paper
   - change to computing the \(\mathcal{L}\) metric from the paper
   - add figure descriptions in both caption and text
