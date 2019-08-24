@@ -25,8 +25,13 @@ This journal visualizes and compares the results from the different LIME impleme
 ```{r}
 # Load libraries
 library(gretchenalbrecht)
+library(lime)
 #library(seriation)
 library(tidyverse)
+library(randomForest)
+
+# Load in the training data 
+hamby173and252_train <- read.csv("../../../data/hamby173and252_train.csv")
 
 # Load in the testing data (Hamby Data 224 Sets 1 and 11)
 hamby224_test <- read.csv("../../../data/hamby224_test.csv") # created in the paper
@@ -736,18 +741,18 @@ joined_results %>%
 
 ```{r}
 # Fit a random forest model with the top two most important features in the model
-if(!file.exists("./data/rfmodel.rds")) {
+if(!file.exists("../../../data/rfmodel.rds")) {
   
   # Fit the random forest  
   rfmodel <- randomForest(factor(samesource) ~ rough_cor + ccf, data = hamby173and252_train)
 
   # Save the random forest
-  saveRDS(rfmodel, "./data/rfmodel.rds")
+  saveRDS(rfmodel, "../../../data/rfmodel.rds")
   
 } else {
   
   # Load the rf model
-  rfmodel <- readRDS("./data/rfmodel.rds")
+  rfmodel <- readRDS("../../../data/rfmodel.rds")
 }
 ```
 
@@ -768,9 +773,9 @@ hamby224_test_subset <- hamby224_test %>%
 
 The functions `lime` and `explain` from the lime package are applied below to the random forest model.
 
-```{r eval = FALSE}
+```{r}
 # Create or load the lime and explain objects for the main effects logisitic regression model
-if(!file.exists("./data/lime_explain_sub.rds")) {
+if(!file.exists("../../../data/lime_explain_sub.rds")) {
   
   # Set a seed
   set.seed(20190315)
@@ -791,17 +796,17 @@ if(!file.exists("./data/lime_explain_sub.rds")) {
   lime_explain_sub <- list(lime = lime_sub, explain = explain_sub)
   
   # Save the lime and explain objects
-  saveRDS(lime_explain_sub, "./data/lime_explain_sub.rds")
+  saveRDS(lime_explain_sub, "../../../data/lime_explain_sub.rds")
   
 } else {
   
   # Load the lime and explain objects
-  lime_explain_sub <- readRDS("./data/lime_explain_sub.rds")
+  lime_explain_sub <- readRDS("../../../data/lime_explain_sub.rds")
  
 }
 ```
 
-```{r eval = FALSE}
+```{r}
 create_bin_df <- function(bin_cut) {
  data.frame(quantile = c("0%", "25%", "50%", "75%", "100%"), 
             bin_cut) 
@@ -817,11 +822,11 @@ bin_cuts
 
 ### Visualizations of Data, Model, and LIME
 
-```{r eval = FALSE}
+```{r eval = TRUE}
 (case1 <- lime_explain_sub$explain %>% filter(case == 1))
 ```
 
-```{r eval = FALSE}
+```{r eval = TRUE}
 ggplot() +
   geom_point(data = hamby173and252_train %>% filter(samesource == FALSE),
              aes(x = rough_cor, y = ccf),
@@ -835,7 +840,7 @@ ggplot() +
   theme_minimal()
 ```
 
-```{r eval = FALSE}
+```{r eval = TRUE}
 ggplot() + 
   geom_point(data = hamby224_test_subset, 
              aes(x = rough_cor, y = ccf, color = rfscore),

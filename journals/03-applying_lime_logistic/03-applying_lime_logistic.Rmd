@@ -13,8 +13,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, 
                       message = FALSE, 
                       warning = FALSE, 
-                      eval = TRUE, 
-                      cache = TRUE)
+                      eval = TRUE)
 ```
 
 # Overview
@@ -75,12 +74,12 @@ if(!file.exists("./data/logistic_mains.rds")) {
                                  family = "binomial")
 
   # Save the model
-  saveRDS(logistic_mains, "./data/logistic_mains.rds")
+  saveRDS(logistic_mains, "../../../data/logistic_mains.rds")
 
 } else{
   
   # Load the model
-  logistic_mains <- readRDS("./data/logistic_mains.rds")
+  logistic_mains <- readRDS("../../../data/logistic_mains.rds")
   
 }
 ```
@@ -98,7 +97,7 @@ The code below fits a logistic regression model to the training data using the `
 
 ```{r}
 # Fit or load the logistic regression model with all two way interactions
-if(!file.exists("./data/logistic_inters2.rds")) {
+if(!file.exists("../../../data/logistic_inters2.rds")) {
   
   # Set a seed
   set.seed(20190226)
@@ -113,12 +112,12 @@ if(!file.exists("./data/logistic_inters2.rds")) {
                                      family = "binomial")
   
   # Save the model
-  saveRDS(logistic_inters2, "./data/logistic_inters2.rds")
+  saveRDS(logistic_inters2, "../../../data/logistic_inters2.rds")
 
 } else{
   
   # Load the model
-  logistic_inters2 <- readRDS("./data/logistic_inters2.rds")
+  logistic_inters2 <- readRDS("../../../data/logistic_inters2.rds")
   
 }
 ```
@@ -134,7 +133,7 @@ summary(logistic_inters2)
 
 ```{r}
 # Fit or load the lasso logistic regression model
-if(!file.exists("./data/logistic_lasso.rds")) {
+if(!file.exists("../../../data/logistic_lasso.rds")) {
   
   # Set a seed
   set.seed(20190312)
@@ -155,12 +154,12 @@ if(!file.exists("./data/logistic_lasso.rds")) {
   #                         lamlist = logistic_lasso$lambda)
   
   # Save the model
-  saveRDS(logistic_lasso, "./data/logistic_lasso.rds")
+  saveRDS(logistic_lasso, "../../../data/logistic_lasso.rds")
   
 } else {
   
   # Load the model
-  logistic_lasso <- readRDS("./data/logistic_lasso.rds")
+  logistic_lasso <- readRDS("../../../data/logistic_lasso.rds")
   
 }
 ```
@@ -204,13 +203,14 @@ The functions `lime` and `explain` from the lime package are applied below to th
 
 ```{r}
 # Create or load the lime and explain objects for the main effects logisitic regression model
-if(!file.exists("./data/lime_explain_mains.rds")) {
+if(!file.exists("../../../data/lime_explain_mains.rds")) {
   
   # Set a seed
   set.seed(20190226)
   
   # Apply lime
-  lime_mains <- lime(x = hamby173and252_train %>% select(rf_features), 
+  lime_mains <- lime(x = hamby173and252_train %>%
+                       select(rf_features), 
                      model = logistic_mains)
   
   # Apply explain
@@ -225,12 +225,12 @@ if(!file.exists("./data/lime_explain_mains.rds")) {
   lime_explain_mains <- list(lime = lime_mains, explain = explain_mains)
   
   # Save the lime and explain objects
-  saveRDS(lime_explain_mains, "./data/lime_explain_mains.rds")
+  saveRDS(lime_explain_mains, "../../../data/lime_explain_mains.rds")
 
 } else {
   
   # Load the lime and explain objects
-  lime_explain_mains <- readRDS("./data/lime_explain_mains.rds")
+  lime_explain_mains <- readRDS("../../../data/lime_explain_mains.rds")
   
 }
 ```
@@ -250,7 +250,7 @@ It applies LIME using my function `run_lime` to specify the different input valu
 
 ```{r}
 # Apply the run_lime function if the lime results file does not already exist
-if(!file.exists("./data/logistic_lime_inputs.rds")) {
+if(!file.exists("../../../data/logistic_lime_inputs.rds")) {
   
   # Specify the input options to use with lime
   logistic_lime_inputs <- list(bin_continuous = c(rep(TRUE, 20), 
@@ -311,23 +311,23 @@ if(!file.exists("./data/logistic_lime_inputs.rds")) {
     select(case, bin_continuous:response)
   
   # Save the lime objects
-  saveRDS(logistic_lime_inputs, "./data/logistic_lime_inputs.rds")
-  saveRDS(logistic_lime, "./data/logistic_lime.rds")
-  saveRDS(logistic_explain, "./data/logistic_explain.rds")
+  saveRDS(logistic_lime_inputs, "../../../data/logistic_lime_inputs.rds")
+  saveRDS(logistic_lime, "../../../data/logistic_lime.rds")
+  saveRDS(logistic_explain, "../../../data/logistic_explain.rds")
   
 } else {
   
   # Load in the lime objects
-  logistic_lime_inputs <- readRDS("./data/logistic_lime_inputs.rds")
-  logistic_lime <- readRDS("./data/logistic_lime.rds")
-  logistic_explain <- readRDS("./data/logistic_explain.rds")
+  logistic_lime_inputs <- readRDS("../../../data/logistic_lime_inputs.rds")
+  logistic_lime <- readRDS("../../../data/logistic_lime.rds")
+  logistic_explain <- readRDS("../../../data/logistic_explain.rds")
   
 }
 ```
 
 ```{r}
 # Create the test_explain combined data if the file does not already exist
-if(!file.exists("./data/logistic_test_explain.rds")) {
+if(!file.exists("../../../data/logistic_test_explain.rds")) {
   
   # Join the data and the explanations and edit and add additional variables
   logistic_test_explain <- hamby224_test %>%
@@ -381,12 +381,12 @@ if(!file.exists("./data/logistic_test_explain.rds")) {
     mutate(bin_situation = factor(bin_situation))
 
   # Save the combined test and explain data
-  saveRDS(logistic_test_explain, "./data/logistic_test_explain.rds")
+  saveRDS(logistic_test_explain, "../../../data/logistic_test_explain.rds")
    
 } else {
   
   # Load in the data
-  logistic_test_explain <- readRDS("./data/logistic_test_explain.rds")
+  logistic_test_explain <- readRDS("../../../data/logistic_test_explain.rds")
   
 }
 ```
@@ -395,7 +395,7 @@ This code creates and saves a dataset with summaries of the explanations.
 
 ```{r}
 # Create the lime comparison data if the file does not already exist
-if(!file.exists("./data/logistic_lime_comparisons.rds")) {
+if(!file.exists("../../../data/logistic_lime_comparisons.rds")) {
   
   # Create a data frame with the interesting information relating to the different
   # evaluations of lime and compute the difference and mean between the rf and rr
@@ -412,12 +412,12 @@ if(!file.exists("./data/logistic_lime_comparisons.rds")) {
     
   
   # Save the lime comparison data frame
-  saveRDS(logistic_lime_comparisons, "./data/logistic_lime_comparisons.rds")
+  saveRDS(logistic_lime_comparisons, "../../../data/logistic_lime_comparisons.rds")
   
 } else {
   
   # Load in the lime comparison data frame
-  logistic_lime_comparisons <- readRDS("./data/logistic_lime_comparisons.rds")
+  logistic_lime_comparisons <- readRDS("../../../data/logistic_lime_comparisons.rds")
   
 }
 ```
