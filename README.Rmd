@@ -15,6 +15,7 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 ## Talking points
 
 - Paper
+    - I reorganized my work into three repos and consolidated the journals
     - Can you re-explain your vision with the minipage format?
     - Sometimes LIME doesn't work on my computer anymore...
     - Explain the details of the locality paper to Heike (ask about the radius definition)
