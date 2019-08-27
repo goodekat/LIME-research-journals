@@ -10,7 +10,11 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, cache = TRUE)
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      eval = TRUE, 
+                      cache = TRUE)
 ```
 
 I am interested in how lime performs on other random forest models. This journal applies all of the input lime options to a random forest model fit to the iris data.

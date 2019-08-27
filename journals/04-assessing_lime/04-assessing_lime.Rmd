@@ -5,7 +5,7 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
   html_document:
     toc: true
-    toc_depth: 2
+    toc_depth: 3
     toc_float: true
 ---
 
@@ -26,19 +26,16 @@ This journal visualizes and compares the results from the different LIME impleme
 # Load libraries
 library(gretchenalbrecht)
 library(lime)
+library(randomForest)
 #library(seriation)
 library(tidyverse)
-library(randomForest)
 
-# Load in the training data 
+# Load in the training and testing data 
 hamby173and252_train <- read.csv("../../../data/hamby173and252_train.csv")
+hamby224_test <- read.csv("../../../data/hamby224_test.csv")
 
-# Load in the testing data (Hamby Data 224 Sets 1 and 11)
-hamby224_test <- read.csv("../../../data/hamby224_test.csv") # created in the paper
-
-# Read in the test_explain data
+# Read in the lime explanations
 hamby224_test_explain <- readRDS("../../../data/hamby224_test_explain.rds")
-
 hamby224_sensitivity_joined <- readRDS("../../../data/hamby224_sensitivity_joined.rds")
 
 # Obtain features used when fitting the rtrees random forest
@@ -47,7 +44,9 @@ rf_features <- rownames(bulletr::rtrees$importance)
 
 When we began looking at the explanations from `lime` with the default settings, we did not think that they made sense. This led me to try applying LIME with a handful of input values. I also have tried running LIME with the tree based bins. Additionally, since LIME is based on random permutations, I was curious to know how consistent the results were. This led me to try running each implementation a handful of times. I have attempted to evaluate these results by both considering the accuracy and consistency of the results.
 
-# Visualization Ideas
+# Random Forest
+
+### Bar Charts of Bins
 
 Heike made a plot with the structure of the one below when we began with the default settings of `lime`. This one has been created from the lime explanations with 2 quantile bins. It includes all three of the chosen features for each case in the testing dataset. For both sets, the cutoff of 0.275 < ccf occurs the most frequently.
 
@@ -61,9 +60,9 @@ hamby224_test_explain %>%
   facet_grid(set ~ .)
 ```
 
-# One Implementation
+### One Implementation
 
-## Accuracy
+##### Accuracy
 
 The figures in this section are created from the implementations of LIME on set 1 from the training data for the input options of 2 to 6 quantile bins, 2 to 6 equally spaced bins, 2 to 6 tree based bins, kernel density estimation, and normal distribution approximation. Each set of input values was only run once.
 
@@ -73,7 +72,7 @@ The figures in this section are created from the implementations of LIME on set 
 hamby224_lime_comparisons <- readRDS("../../../data/hamby224_lime_comparisons.rds")
 ```
 
-### Complex versus Simple Model Predictions
+**Complex versus Simple Model Predictions**
 
 The plot below compares the predictions from the "simple model" (the ridge regression model) and the "complex model" (the random forest `rtrees`) on the x-axis from the lime implementations with bin estimation (`bin_continuous == TRUE`). The simple model predictions are on the y-axis, and the complex model predictions are on the x-axis. The plot is faceted by number of bins and the type of bin. The points are colored by the $R^2$ value from the fit of the simple model. The lines are linear regression lines fit to the data points within a facet. We would hope that there is a linear relationship between these two variables. None of the cases show strong linear trends, but some are more linear than others. The quantile bins show that the simple model never makes a prediction over 0.6, whereas the random forest model can have predictions of up to 1. The equally spaced bins do have probabilities that exceed 0.6, but only with 3 and 6 bins. The tree based bins do the best job with predictions above 0.6 for all number of bins. The tree bins also seem to group the simple model predictions into two categories (probably based on the samesource variable). I noticed that within the facets, the points are in mostly horizontal strips, and the number of strips is about the same as the number of bins from the lime implementation.
 
@@ -123,7 +122,7 @@ hamby224_lime_comparisons %>%
   labs(x = "Feature Value", y = "Residual")
 ```
 
-### Comparing Input Values by MSE and $R^2$
+**Comparing Input Values by MSE and $R^2$**
 
 In order to assess which lime implementation is doing the best job of capturing the predictions from the random forest model, I decided to calculate the mean squared error for each of the input situations. I defined the mean squared error as 
   $$\frac{\sum_{i=1}^n (\hat{p}_{\mbox{simple},i}-\hat{p}_{\mbox{complex},i})^2}{n}$$
@@ -173,7 +172,7 @@ hamby224_lime_results %>%
   scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
 ```
 
-## Consistency
+##### Consistency
 
 I wanted to look at the consistency of features chosen by lime across the number of bins within different bin types. I would like the features chosen to not depend on the number of bins used. Otherwise, it will be difficult to know how many bins to use. Additionally, it would be nice if the features chosen differed across cases, so that the explanations are based on the locality of the observation and not general across all locations. The code below creates a dataset that identifies the order in which the features are chosen by lime.
 
@@ -190,7 +189,7 @@ chosen_features <- hamby224_test_explain %>%
   spread(explainer, feature)
 ```
 
-### Fleiss's Kappa
+**Fleiss's Kappa**
 
 In order to access consistency, I have decided to compute Fleiss' kappa for each of the bin types. Fleiss' kappa is often used to assess the consistency across raters for any number of raters and with nominal ratings. It calculates the degree of agreement in classification over that which would be expected by chance. A description of how it is computed can be found on the wikipedia site: https://en.wikipedia.org/wiki/Fleiss%27_kappa
 
@@ -220,7 +219,7 @@ chosen_features %>%
   labs(x = "Bin Type", y = "Kappa", color = "Feature")
 ```
 
-### Tile Plots of Features Chosen
+**Tile Plots of Features Chosen**
 
 I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below.
 
@@ -277,7 +276,7 @@ chosen_features %>%
   labs(x = "Bin Type", y = "", fill = "Feature", title = "Third Feature")
 ```
 
-### Attempts at Arranging the Tile Plots
+**Attempts at Arranging the Tile Plots**
 
 I tried three different arrangements...
 
@@ -382,7 +381,7 @@ chosen_features %>%
   labs(x = "Bin Type", y = "", fill = "Feature", title = "First Feature")
 ```
 
-### Plot of Number of Features Chosen
+**Plot of Number of Features Chosen**
 
 I also created the plot below to visually assess the proportions of cases within a bin situation and level of feature chosen by lime (first, second, or third) that have 1 to 5 chosen features. The plots are separated by set.
 
@@ -404,9 +403,9 @@ chosen_features %>%
   scale_fill_gretchenalbrecht(palette = "winter_light", discrete = TRUE)
 ```
 
-# Multiple Implementations
+### Multiple Implementations
 
-## Accuracy
+##### Accuracy
 
 In order to assess how variable the LIME results are, I ran each of the input situations 10 times. I wanted to look at the variability of the MSE for each situation, and I wanted to see how consistent the choice of selected features is by LIME.
 
@@ -418,7 +417,7 @@ hamby224_sensitivity_results <- hamby224_sensitivity_joined %>%
             ave_r2 = mean(model_r2))
 ```
 
-### Comparing MSE and $R^2$
+**Comparing MSE and $R^2$**
 
 The plot below shows boxplots of the mean squared errors computed for each of the input situations for each set. There does not appear to be much variation for most of the cases. The largest amount of variation occurs with 4 and 5 equally spaced bins. There is moderate variability for 3 equally spaced bins. The lowest MSEs occur for the samesource tree based bins followed by the rfscore tree based bins for most cases.
 
@@ -452,9 +451,9 @@ hamby224_sensitivity_results %>%
   scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
 ```
 
-## Consistency
+##### Consistency
 
-### Plots of Number of Features Chosen
+**Plots of Number of Features Chosen**
 
 To assess the consistency of the results, I determined the number of different features chosen by LIME as the top feature within a test case across the 10 replicates. I then computed the average number of different top features chosen by LIME within a input situations for each set. The plot below contains these values shown as the dots. The error bars represent one standard deviation above and below the mean. Note that the number of levels cannot go below 1, but the error bars go below 1. I have decided to ignore this for now, but I would need to come up with a better representation if I used this for something.
 
@@ -527,7 +526,7 @@ sensitivity_chosen %>%
   scale_fill_gretchenalbrecht(palette = "flood_tide", discrete = TRUE, reverse = FALSE)
 ```
 
-### Fleiss's Kappa
+**Fleiss's Kappa**
 
 I computed Fleiss's kappa for each sampling technique within a set across the 10 reps. These values are plotted below. Right now, the quantile methods and rfscore tree based bins seem to be the most consistent. However, I am not happy with some of the kappa values for cases where the next set of plots would suggest a high kappa, but the value is very low. I wonder if this a flaw in the Fleiss's kappa and would suggest that I use a different metric.
 
@@ -558,7 +557,7 @@ sensitivity_chosen %>%
   labs(x = "Sampling Technique", y = "Kappa", color = "Feature", linetype = "Feature")
 ```
 
-### Tile Plots of Features Chosen
+**Tile Plots of Features Chosen**
 
 The plots below need some work, but they contain some interesting information. Right now, I am only concentrating on set 1. We can see that with some lime settings, all cases have the same "best" variable chosen, and other settings have multiple important variables that depend on the case. We can also see that different variables are selected as important depending on the number of bins. It is also interesting to note that when comparing the quantile bins to the equally spaced bins, this plot shows that the equally spaced bins tend to choose the same first variable for all cases. On the other hand, the quantile bins choose different first variables for the cases.
 
@@ -681,7 +680,7 @@ hamby224_test %>%
   theme(legend.position = "bottom")
 ```
 
-# Input Rankings
+### Rankings
 
 In order to decide on which LIME settings to use for the firearm examiners' paper, I decided to create a table that ranks each of the 12 input settings by MSE from the single implementation, the average MSE across the 10 implementations, the average number of top features chosen across the 10 implementations, and the average $R^2$ value from the single implementation. The first table below is for set 1, and the second table below is for set 11.
 
@@ -735,9 +734,9 @@ joined_results %>%
                 caption = "Results from Set 11")
 ```
 
-# My LIME
+# Simpler Random Forest
 
-### Random Forest Model
+### Model
 
 ```{r}
 # Fit a random forest model with the top two most important features in the model
@@ -820,7 +819,7 @@ bin_cuts <- purrr::map_df(lime_explain_sub$lime$bin_cuts,
 bin_cuts
 ```
 
-### Visualizations of Data, Model, and LIME
+### Visualizations
 
 ```{r eval = TRUE}
 (case1 <- lime_explain_sub$explain %>% filter(case == 1))
@@ -854,6 +853,244 @@ ggplot() +
   geom_vline(xintercept = bin_cuts$rough_cor) + 
   geom_hline(yintercept = bin_cuts$ccf) + 
   theme_minimal()
+```
+
+# Logistic Regression
+
+```{r}
+# Load the model
+logistic_mains <- readRDS("../../../data/logistic_mains.rds")
+
+# Read in the LIME explanations for the logistic regression
+lime_explain_mains <- readRDS("../../../data/lime_explain_mains.rds")
+
+# Read in the LIME comparisons for the logistic regression
+logistic_lime_comparisons <- readRDS("../../../data/logistic_lime_comparisons.rds")
+
+# Read in the combined test data and explanations
+logistic_test_explain <- readRDS("../../../data/logistic_test_explain.rds")
+```
+
+### Visualizing Default LIME
+
+```{r}
+plot_features(lime_explain_mains$explain[1:12,])
+```
+
+```{r}
+coefs <- logistic_mains$finalModel$coefficients %>% round(2)
+```
+
+The logistic regression model is 
+
+$\log\left(\frac{\hat{p}}{1-\hat{p}}\right)=$ `r coefs[[1]]` + `r coefs[[2]]` ccf + `r coefs[[3]]` rough_cor + `r coefs[[4]]` D + `r coefs[[5]]` sd_D + `r coefs[[6]]` matches + `r coefs[[7]]` mismatches + `r coefs[[8]]` cms + `r coefs[[9]]` non_cms + `r coefs[[10]]` sum_peaks
+
+where $\hat{p}=P(\mbox{samesource = TRUE})$.
+
+I started trying to compare the results from LIME to the logistic regression model, but I realized that I need to standardize my test data before I use the model to make predictions.
+
+```{r}
+m = function(x) coefs[2:10] * x
+m(hamby224_test[1,] %>% select(rf_features))
+hamby224_test[1:4,] %>% select(rf_features)
+coefs
+hamby224_test[1:4,] %>% select(rf_features) * coefs[2:10]
+```
+
+
+```{r}
+mains_test_explain <- hamby224_test %>%
+  mutate(case = as.character(case)) %>%
+  full_join(lime_explain_mains$explain, by = "case") %>%
+  mutate(case = factor(case),
+         feature = factor(feature))
+```
+
+Below is a plot of the three chosen features for each of the cases faceted by set. The features are ordered by order they were chosen by lime (ordered by magnitude of the coefficients).
+
+```{r}
+mains_test_explain %>%
+  na.omit() %>%
+  arrange(case, desc(abs(feature_weight))) %>%
+  mutate(feature_order = rep(c("first", "second", "third"), n() / 3)) %>%
+  select(case, set, feature, feature_order) %>%
+  spread(feature_order, feature) %>%
+  arrange(set, first, second, third) %>%
+  mutate(order = 1:n()) %>%
+  gather(feature_order, feature, 3:5) %>%
+  ggplot(aes(x = feature_order, y = order, fill = feature)) + 
+  geom_tile() + 
+  facet_grid(set ~ ., scales = "free_y") +
+  theme_bw() +
+  gretchenalbrecht::scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  labs(x = "Order of Features Chosen", y = "Case", fill = "Feature")
+```
+
+```{r}
+pca_results <- princomp(hamby224_test %>% select(rf_features) %>% na.omit())
+pca_results$loadings
+z1 <- pca_results$scores[,1]
+z2 <- pca_results$scores[,2]
+ggplot(data.frame(z1, z2), aes(x = z1, y = z2)) + 
+  geom_point()
+biplot(pca_results)
+```
+
+### One Implementation
+
+##### Accuracy
+
+**Comparing Input Values by MSE and $R^2$**
+
+In order to assess which lime implementation is doing the best job of capturing the predictions from the random forest model, I decided to calculate the mean squared error for each of the input situations. I defined the mean squared error as 
+  $$\frac{\sum_{i=1}^n (\hat{p}_{\mbox{simple},i}-\hat{p}_{\mbox{complex},i})^2}{n}$$
+where $n$ is the number of observations in the testing dataset (within a set). Additionally, I was curious to compare the fits of the ridge regression models across input values, so I calculated the average $R^2$ for each input situation.
+
+```{r}
+# Summarizing lime results
+logistic_lime_results <- logistic_lime_comparisons %>%
+  filter(!is.na(rfscore)) %>%
+  group_by(situation, bin_situation, bin_continuous, quantile_bins, nbins, use_density, 
+           bin_method, response, set) %>%
+  summarise(mse = (sum(diff^2)) / length(diff),
+            ave_r2 = mean(model_r2)) %>%
+  arrange(set) %>%
+  ungroup()
+```
+
+The plot below shows the mean squared errors for each of the input situations faceted by set. There is no one bin type that stands out as performing the best across all or most number of bins. This is unlike the results from the random forest model where the tree based bins usually performed the best.
+
+```{r}
+# Plot of MSEs
+logistic_lime_results %>%
+  mutate(bins = ifelse(nbins == 4 & bin_continuous == FALSE, "other", nbins)) %>%
+  ggplot(aes(x = bin_situation, y = mse, color = bin_situation)) +
+  geom_point() + 
+  facet_grid(set ~ bins, scales = "free_x", space = "free_x") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none") + 
+  labs(x = "Bin Type", y = "MSE", color = "") + 
+  scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
+```
+
+The plot below shows the average $R^2$ value for each of the input situations faceted by set. The results are very similar for each set, and the highest $R^2$ values occur for 2 quantile bins. With the logistic regression, the equally spaced bins or the quantile bins seem to perform the best in terms of $R^2$ across the different number of bins. The rfscore tree based bins are not as good as they were with the random forest model. However, all of the $R^2$ values are still very low for all cases.
+
+```{r}
+# Plot of R^2s
+logistic_lime_results %>%
+  mutate(bins = ifelse(nbins == 4 & bin_continuous == FALSE, "other", nbins)) %>%
+  ggplot(aes(x = bin_situation, y = ave_r2, color = bin_situation)) +
+  geom_point() + 
+  facet_grid(set ~ bins, scales = "free_x", space = "free_x") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") + 
+  labs(x = "Bin Type", y = "Average R2", color = "") + 
+  scale_color_gretchenalbrecht(palette = "winged_spill", discrete = TRUE)
+```
+
+##### Consistency
+
+I wanted to look at the consistency of features chosen by lime across the number of bins within different bin types. I would like the features chosen to not depend on the number of bins used. Otherwise, it will be difficult to know how many bins to use. Additionally, it would be nice if the features chosen differed across cases, so that the explanations are based on the locality of the observation and not general across all locations. The code below creates a dataset that identifies the order in which the features are chosen by lime.
+
+```{r}
+# Creates a dataset that creates columns of the chosen features by lime from first to third
+logistic_chosen_features <- logistic_test_explain %>%
+  filter(!(bin_situation %in% c("kernel density", "normal approximation"))) %>%
+  filter(!is.na(rfscore)) %>%
+  select(set, situation, bin_situation, nbins, case, samesource, feature, feature_weight) %>%
+  mutate(feature_weight_abs = abs(feature_weight)) %>%
+  arrange(situation, case, desc(feature_weight_abs)) %>%
+  mutate(explainer = rep(c("first", "second", "third"), length(situation) / 3)) %>%
+  select(-feature_weight, -feature_weight_abs) %>%
+  spread(explainer, feature)
+```
+
+**Fleiss's Kappa**
+
+In order to access consistency, I have decided to compute Fleiss' kappa for each of the bin types. Fleiss' kappa is often used to assess the consistency across raters for any number of raters and with nominal ratings. It calculates the degree of agreement in classification over that which would be expected by chance. A description of how it is computed can be found on the wikipedia site: https://en.wikipedia.org/wiki/Fleiss%27_kappa
+
+I computed kappa for each bin situation separately for the top three features chosen. These values are plotted below for each set. For the first feature chosen by lime, the values of kappa suggest that quantile bins are the most consistent across all the number of bins followed by the samesource tree based bins.
+
+```{r}
+# Computes and plots the values of kappa
+logistic_chosen_features %>%
+  ungroup() %>%
+  select(-situation) %>%
+  gather(key = chosen, value = feature, first:third) %>%
+  spread(nbins, feature) %>%
+  select(-case) %>%
+  rename(bins2 = "2", bins3 = "3", bins4 = "4", bins5 = "5", bins6 = "6") %>%
+  group_by(set, bin_situation, chosen) %>%
+  summarise(kappa = 
+              irr::kappam.fleiss(matrix(c(bins2, bins3, bins4, bins5, bins6), 
+                                        ncol = 5))$value) %>%
+  arrange(chosen, set, bin_situation) %>%
+  ggplot(aes(x = bin_situation, y = kappa, color = chosen, group = chosen)) +
+  geom_point() + 
+  geom_line() +
+  facet_grid( ~ set) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_color_gretchenalbrecht(palette = "pink_cloud", discrete = TRUE) +
+  labs(x = "Bin Type", y = "Kappa", color = "Feature")
+```
+
+**Tile Plots of Features Chosen**
+
+I also attempted to plot the features chosen by lime in order to visually assess the consistency. This plots are included below. The results appear to be different from the random forest results, but it is still possible to se vertical stripes that suggest a global interpretation as opposed to a local interpretation. However, the samesource bins do have some horizontal stipes that show what we would like to see. It is also interesting to note that the vertical bins are the most pronounced with the rfscore tree. This does not suprise me considering that these explanations are for a logistic regression and not the random forest model.
+
+```{r fig.height = 8, fig.width = 8}
+# Plots the top feature for each case for each bin situation
+logistic_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(first)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = nbins, y = order, fill = first)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "First Feature")
+
+# Plots the second feature for each case for each bin situation
+logistic_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(second)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = nbins, y = order, fill = second)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "Second Feature")
+
+# Plots the third feature for each case for each bin situation
+logistic_chosen_features %>%
+  group_by(bin_situation, case) %>%
+  mutate(nlevels = length(levels(factor(third)))) %>%
+  ungroup() %>%
+  arrange(bin_situation, set, samesource, desc(nlevels), case) %>%
+  mutate(order = rep(rep(1:length(unique(case)), each = 5, 4))) %>%
+  ggplot(aes(x = nbins, y = order, fill = third)) + 
+  geom_tile() + 
+  facet_grid(set + samesource ~ bin_situation, scales = "free", space = "free_y") + 
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  scale_fill_gretchenalbrecht(palette = "last_rays", discrete = TRUE) + 
+  labs(x = "Number of Bins", y = "Test Case", fill = "Feature", title = "Third Feature")
 ```
 
 # Session Info

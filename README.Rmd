@@ -16,14 +16,15 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 
 - Paper
     - Can you re-explain your vision with the minipage format?
+    - I cannot get LIME to work on my computer anymore...
 - Internship
     - Dixon said he is fine with me switching to 10 hours in the spring (as long as Dr. Caragea agrees)
 - Graphics Group
-    - email list (should I be added as an admin?)
-    - emailed Min (waiting for a response)
     - show updated schedule
+    - email list (should I be added as an admin?)
     - Susan's idea (could we ask Joe, Erin, and/or Charlotte if they would be interested in preparing this talk?)
     - How to include an image in the preview of a post in blogdown?
+    - Are you still available to talk next week?
 
 ## To Do List
 
@@ -31,10 +32,7 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 
 **Current**
 
-- finish organizing journals and update contents in readme
-- send out an email about graphics group plan for the first week
 - finish reading new paper
-- set up meeting with Danny on Friday once Heike sends me her availability
 - add generalized R2 values to plots
 - code up Laugel et al's work
 - point out differences and similarities from the other paper (such as normal sampling)
@@ -89,9 +87,6 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
     - look into papers by Giles Hooker and Lucas Mentch
     - Dr. Nettleton paper
 
-
-
-
 ## Contents
 
 Descriptions of the materials in this repository are listed below.
@@ -108,22 +103,20 @@ This folder is a place for storing code that is used throughout the project:
 This folder contains static images:
 
 - `lime.png`: fun picture of a lime to use in the readme
+- `python-ridge1`, `python-ridge2`, and `python-ridge3`: screen shots of the python LIME package showing the use of a ridge regression as the explainer
 
 **journals**
 
 This folder contains folders with research journals.
 
 - `00-objectives_and_ideas`: background of the research project, goals of the project, concerns with LIME, and ideas to try
-- `01-training_and_testing_data`: information on the Hamby data, understanding the raw data, and cleaning of the training and testing data
-- `02-plotting_training_and_testing_data`: exploratory plots of the training and testing data
-- `03-computation_issues`: documentation of some of the computation issues I ran into during the project
-- `04-lime_algorithm_and_proposed_methods`: rough draft of the lime algorithm as implemented in the lime R package and proposed methods for improving the lime algorithm
-- `05-applying_lime_to_rtrees`: application of lime and sensitivity analysis for many different input options
-- `06-assessing_lime_explanations`: assessment of the lime explanations
-- `07-logistic_regression`: logistic regressions fit to the bullet data and application of lime to the logistic regression
-- `08-iris_comparison`: applying LIME to a random forest fit to the iris data
-- `09-understanding_lime`: attempts to visualize the results from LIME to understand how LIME works
-- `10-other_explainers`: trying out other model explainers
+- `01-hamby_data_and_models`: information on the Hamby data, cleaning of the training and testing data, visualizations of the data, and models fit to the data (rtrees and logistic regressions)
+- `02-understanding_lime`: explanation of LIME procedure
+- `03-applying_lime`: applications of LIME to the models fit to the Hamby data
+- `04-assessing_lime`: visual diagnostics for assessing the lime explanations
+- `05-iris_comparison`: applying LIME to a random forest fit to the iris data
+- `06-other_explainers`: trying out other model explainers
+- `07-computation_issues`: documentation of some of the computation issues I ran into during the project
 
 **main**
 
