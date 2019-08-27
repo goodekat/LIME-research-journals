@@ -19,6 +19,7 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
       - show updated schedule
       - Susan’s idea (could we ask Joe, Erin, and/or Charlotte if they
         would be interested in preparing this talk?)
+      - How to include an image in the preview of a post in blogdown?
 
 ## To Do List
 
