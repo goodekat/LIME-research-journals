@@ -16,7 +16,8 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 
 - Paper
     - Can you re-explain your vision with the minipage format?
-    - I cannot get LIME to work on my computer anymore...
+    - Sometimes LIME doesn't work on my computer anymore...
+    - Explain the details of the locality paper to Heike (ask about the radius definition)
 - Internship
     - Dixon said he is fine with me switching to 10 hours in the spring (as long as Dr. Caragea agrees)
 - Graphics Group
@@ -32,15 +33,10 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 
 **Current**
 
-- finish reading new paper
-- add generalized R2 values to plots
-- code up Laugel et al's work
-- point out differences and similarities from the other paper (such as normal sampling)
-- keep the LIME procedure at a higher level in the paper
-- change to computing the $\mathcal{L}$ metric from the paper
-- add figure descriptions in both caption and text
 - go back through LIME procedure and update with new understanding (such as d' can be larger than d)
 - add an assert_that statement in the code to check if the LIME package is changing
+- point out differences and similarities from the other paper (such as normal sampling)
+- code up Laugel et al's work
 - read through papers giving an overview of the current explanation methods
 
 **Later**
@@ -115,7 +111,7 @@ This folder contains folders with research journals.
 - `03-applying_lime`: applications of LIME to the models fit to the Hamby data
 - `04-assessing_lime`: visual diagnostics for assessing the lime explanations
 - `05-iris_comparison`: applying LIME to a random forest fit to the iris data
-- `06-other_explainers`: trying out other model explainers
+- `06-literature_review`: notes on papers relating to LIME
 - `07-computation_issues`: documentation of some of the computation issues I ran into during the project
 
 **main**
