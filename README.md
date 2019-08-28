@@ -15,9 +15,11 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
       - Sometimes LIME doesn’t work on my computer anymore…
       - Explain the details of the locality paper to Heike (ask about
         the radius definition)
+      - Should I make the LIME procedure more general?
   - Internship
       - Dixon said he is fine with me switching to 10 hours in the
         spring (as long as Dr. Caragea agrees)
+      - See list of activites for Fall 2019
   - Graphics Group
       - show updated schedule
       - email list (should I be added as an admin?)
