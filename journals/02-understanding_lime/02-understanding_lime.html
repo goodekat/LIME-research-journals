@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2019-08-27" />
+<meta name="date" content="2019-09-03" />
 
 <title>Understanding LIME</title>
 
@@ -1545,13 +1545,14 @@ div.tocify {
 
 <h1 class="title toc-ignore">Understanding LIME</h1>
 <h4 class="author">Katherine Goode</h4>
-<h4 class="date">August 27, 2019</h4>
+<h4 class="date">September 03, 2019</h4>
 
 </div>
 
 
-<p>This journal contains a description of the LIME procedure from the original paper, my write-up of the LIME algorithm used in the R package, and ideas for different binning methods that may be better than the ones currently implemented in the R package.</p>
+<p>This journal contains information from the work I did to understand LIME. This includes a description of the LIME procedure from the original paper, a description of the functions in the in the <em>lime</em> R package, information about the Python <em>lime</em> package, and ideas for new binning methods.</p>
 <pre class="r"><code># Load packages
+library(assertthat)
 library(cowplot)
 library(furrr)
 library(future)
@@ -1596,7 +1597,7 @@ source(&quot;../../code/helper_functions.R&quot;)</code></pre>
 <tr class="odd">
 <td><span class="math inline">\(x'\in\{0,1\}^{d'}\)</span></td>
 <td>A binary vector for interpretable representation (where interpretable explanations are defined as “use a representation that is understandable by humans”)</td>
-<td>Varies based on the simulation method used - note that <span class="math inline">\(1\le d' \le d\)</span> since it is possible that feature selection may be performed to choose a smaller set of variables than originally in <span class="math inline">\(x\)</span> (One example: vector of indicator variables that indicate whether the observed value falls in the same bin as the instance being explained e.g. <span class="math inline">\(x'_i = I[x_i\in \mbox{same variable } i \mbox{ bin as the instance being explained}]\)</span>)</td>
+<td>Varies based on the simulation method used. It is unclear to us how the size of <span class="math inline">\(d\)</span> compares to <span class="math inline">\(d'\)</span>. We think they left it vague, so that it could fit any situation (<span class="math inline">\(d&lt;d'\)</span>, <span class="math inline">\(d=d'\)</span>, or <span class="math inline">\(d&gt;d'\)</span>) (One example of converting to an interpretable representation would be a conversion to a vector of indicator variables that indicate whether the observed value falls in the same bin as the instance being explained e.g. <span class="math inline">\(x'_i = I[x_i\in \mbox{same variable } i \mbox{ bin as the instance being explained}]\)</span>)</td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\(G\)</span></td>
@@ -1724,13 +1725,15 @@ lime_data &lt;- data.frame(feature1 = sort(runif(250, 0, 1)),
                               -(sin(pi* feature1) + rnorm(n(), 0, 0.1)) + 1,
                       if_else(feature1 &gt;= 0.8 &amp; feature1 &lt; 0.9, 
                               0.5 + runif(n(), -0.5, 0.5), 
-                              0.5 + rnorm(n(), 0, 0.3)))))))</code></pre>
-<pre class="r"><code># Specify a prediction of interest
+                              0.5 + rnorm(n(), 0, 0.3)))))))
+
+# Specify a prediction of interest
 prediction_of_interest &lt;- data.frame(feature1 = 0.07, 
                                      feature2 = 200,
                                      prediction = 0.05, 
-                                     color = factor(&quot;Prediction of Interest&quot;))</code></pre>
-<pre class="r"><code># Compute the distance between the prediction of interest and 
+                                     color = factor(&quot;Prediction of Interest&quot;))
+
+# Compute the distance between the prediction of interest and 
 # all other observations
 lime_data$distance &lt;- (1 - gower_dist(x = prediction_of_interest, 
                                       y = lime_data))^20</code></pre>
@@ -1741,12 +1744,14 @@ lime_data$distance &lt;- (1 - gower_dist(x = prediction_of_interest,
 <pre class="r"><code># Fit the interpretable explainer model (weighted linear regression)
 linear_explainer &lt;- lm(formula = prediction ~ feature1 + feature2, 
                        data = lime_data, 
-                       weights = distance)</code></pre>
-<pre class="r"><code># Extract the coefficients from the explainer
+                       weights = distance)
+
+# Extract the coefficients from the explainer
 linear_b0 &lt;- coef(linear_explainer)[[1]]
 linear_b1 &lt;- coef(linear_explainer)[[2]]
-linear_b2 &lt;- coef(linear_explainer)[[3]]</code></pre>
-<pre class="r"><code># Predictions versus feature 1
+linear_b2 &lt;- coef(linear_explainer)[[3]]
+
+# Predictions versus feature 1
 linear_plot_feature1 &lt;- ggplot(data = lime_data,
                         mapping = aes(x = feature1, 
                                       y = prediction, 
@@ -1772,8 +1777,9 @@ linear_plot_feature1 &lt;- ggplot(data = lime_data,
         axis.ticks.x = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.position = &quot;none&quot;)</code></pre>
-<pre class="r"><code># Predictions versus feature 1
+        legend.position = &quot;none&quot;)
+
+# Predictions versus feature 1
 linear_plot_feature2 &lt;- ggplot(data = lime_data,
                         mapping = aes(x = feature2, 
                                       y = prediction, 
@@ -1799,8 +1805,9 @@ linear_plot_feature2 &lt;- ggplot(data = lime_data,
         axis.ticks.x = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.position = &quot;none&quot;)</code></pre>
-<pre class="r"><code># Plot that creates a size legend
+        legend.position = &quot;none&quot;)
+
+# Plot that creates a size legend
 size_legend_plot &lt;- lime_data %&gt;%
   gather(key = feature, value = value, 1:2) %&gt;%
   ggplot(mapping = aes(x = value, 
@@ -1818,14 +1825,16 @@ size_legend_plot &lt;- lime_data %&gt;%
         axis.ticks.y = element_blank())
 
 # Extract the legend
-size_legend &lt;- get_legend(size_legend_plot)</code></pre>
-<pre class="r"><code># Join the two feature plots
+size_legend &lt;- get_legend(size_legend_plot)
+
+# Join the two feature plots
 lime_linear_plots &lt;- plot_grid(linear_plot_feature1, 
                                linear_plot_feature2, 
                                size_legend,
                                ncol = 3, 
-                               rel_widths = c(0.4, 0.4, 0.1))</code></pre>
-<pre class="r"><code># Create a plot to extract a legend for the prediction of interest
+                               rel_widths = c(0.4, 0.4, 0.1))
+
+# Create a plot to extract a legend for the prediction of interest
 lime_legend_plot &lt;- ggplot(data = prediction_of_interest, 
                            mapping = aes(x = feature1, 
                                          y = prediction, 
@@ -1837,8 +1846,9 @@ lime_legend_plot &lt;- ggplot(data = prediction_of_interest,
   theme(legend.position = &quot;bottom&quot;)
 
 # Extract the legend
-lime_legend &lt;- get_legend(lime_legend_plot)</code></pre>
-<pre class="r"><code># Join the title, plots, legend, and caption into one figure
+lime_legend &lt;- get_legend(lime_legend_plot)
+
+# Join the title, plots, legend, and caption into one figure
 lime_linear_concept &lt;- plot_grid(lime_linear_plots, lime_legend,
                          ncol = 1,
                          rel_heights = c(0.9, 0.1))</code></pre>
@@ -1858,12 +1868,14 @@ ridge_explainer &lt;- glmnet(x = lime_data %&gt;%
                           family = &quot;gaussian&quot;, 
                           alpha = 0, 
                           lambda = 1, 
-                          standardize = FALSE)</code></pre>
-<pre class="r"><code># Extract the coefficients from the explainer
+                          standardize = FALSE)
+
+# Extract the coefficients from the explainer
 ridge_b0 &lt;- ridge_explainer$a0[[1]]
 ridge_b1 &lt;- ridge_explainer$beta[1,1]
-ridge_b2 &lt;- ridge_explainer$beta[2,1]</code></pre>
-<pre class="r"><code># Predictions versus feature 1
+ridge_b2 &lt;- ridge_explainer$beta[2,1]
+
+# Predictions versus feature 1
 ridge_plot_feature1 &lt;- ggplot(data = lime_data,
                         mapping = aes(x = feature1, 
                                       y = prediction, 
@@ -1889,8 +1901,9 @@ ridge_plot_feature1 &lt;- ggplot(data = lime_data,
         axis.ticks.x = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.position = &quot;none&quot;)</code></pre>
-<pre class="r"><code># Predictions versus feature 2
+        legend.position = &quot;none&quot;)
+
+# Predictions versus feature 2
 ridge_plot_feature2 &lt;- ggplot(data = lime_data,
                         mapping = aes(x = feature2, 
                                       y = prediction, 
@@ -1916,14 +1929,16 @@ ridge_plot_feature2 &lt;- ggplot(data = lime_data,
         axis.ticks.x = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.position = &quot;none&quot;)</code></pre>
-<pre class="r"><code># Join the two feature plots
+        legend.position = &quot;none&quot;)
+
+# Join the two feature plots
 lime_ridge_plots &lt;- plot_grid(ridge_plot_feature1, 
                               ridge_plot_feature2, 
                               size_legend,
                               ncol = 3,
-                              rel_widths = c(0.4, 0.4, 0.1))</code></pre>
-<pre class="r"><code># Join the title, plots, legend, and caption into one figure
+                              rel_widths = c(0.4, 0.4, 0.1))
+
+# Join the title, plots, legend, and caption into one figure
 lime_ridge_concept &lt;- plot_grid(lime_ridge_plots, 
                                 lime_legend,
                                 ncol = 1,
@@ -1936,27 +1951,163 @@ lime_ridge_concept</code></pre>
 </div>
 <div id="r-package" class="section level1">
 <h1>R Package</h1>
-<div id="procedure-draft" class="section level3">
-<h3>Procedure (Draft)</h3>
-<p>I wrote this up to start thinking about how to describe the procedure that the <code>lime</code> R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner’s paper will be much simpler…</p>
-<p>The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.</p>
-<p>Let <span class="math display">\[Y_{jk} = \begin{cases} 
-  1 &amp; \mbox{ if bullets } j \mbox{ and } k \mbox{ were fired from the same gun barrel }\\
-  0 &amp; \mbox{otherwise}
-  \end{cases}\]</span> be the response variable in the training dataset, and <span class="math inline">\(X_1,...,X_9\)</span> correspond to the nine features in the training dataset. Let <span class="math inline">\(X'_1,...,X'_9\)</span> be the</p>
+<p>The version of the <code>lime</code> packge that is considered here is 0.5.0 (version when I first wrote this section: 0.5.0). I am only considering the <code>data.frame</code> versions of the functions.</p>
+<div id="lime-function" class="section level3">
+<h3><code>lime</code> function</h3>
+<p><strong>Inputs</strong></p>
+<ul>
+<li><code>x</code>: The training data used to fit the model to be explained</li>
+<li><code>model</code>: The model to explain.</li>
+<li><code>preprocess = NULL</code>: Function to transform a character vector to the format expected from the model.</li>
+<li><code>bin_continuous = TRUE</code>: If set to <code>TRUE</code>, the continuous variables will be binned when making the explanations. If they are not binned, then perturbations will be obtained by either simulating using kernel density estimation or a normal distribution depending on what the option of <code>use_density</code> is set to.</li>
+<li><code>n_bins = 4</code>: The number of bins to use if <code>bin_continuous = TRUE</code>.</li>
+<li><code>quantile_bins = TRUE</code>: Should quantile bins be used if `bin_continuous = TRUE? (Otherwise, equally spaced bins will be used.)</li>
+<li><code>use_density = TRUE</code>: This option is only considered if <code>bin_continuous</code> is set to <code>FALSE</code>. In that situation, if <code>use_density = TRUE</code>, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.</li>
+</ul>
+<p><strong>Procedure</strong></p>
 <ol style="list-style-type: decimal">
-<li>Distributions for each of the features in the training data are obtained.
+<li>If <code>preprocess</code> is NULL, then set it to the identity function. Either way, check to make sure that it is a function.</li>
+<li>Create an explainer object.</li>
+<li>Determine the type of each of the features (e.g. integer, numeric, etc.). If any of the variables are constants, a warning is returned. If the feature type is unknown, an error is returned.</li>
+<li>Create bins for numeric and intger type variables. If <code>quantile_bins = TRUE</code>, then <code>n_bins</code> bins are created using quantiles. Otherwise, <code>n_bins</code> equally spaced bins are created. If <code>quantile_bins = TRUE</code> and <code>n_bins</code> &lt; 3, then a warning is produced (“does not contain enough variance to use quantile binning. Using standard binning instead.”) and <span class="math inline">\(n_bins\)</span> equally spaced bins are returned.</li>
+<li>Determine the “distribution” for each feature. The method used is based on the type of variable.
 <ul>
-<li>The method that <code>lime</code> uses to obtain the distribution differs based on the feature type. All of the features in the Hamby datasets are numeric. For numeric features, the default option in <code>lime</code> (<code>quantile_bins = TRUE</code>) computes the quantiles of each feature based on the number of bins selected. The default number of bins is 4 (<code>n_bins = 4</code>).</li>
+<li>Integer: nothing</li>
+<li>Numeric: If <code>bin_continuous</code>, then determine the proportion of observations in each bin. If <code>use_density=TRUE</code>, then kernel a kernel density approximation is used to estimate the distribution. Otherwise, the mean and standard deviation of each of the features is computed.</li>
+<li>Character: nothing</li>
+<li>Logical: nothing</li>
+<li>Factor: Determine the proportion in each category.</li>
 </ul></li>
-<li>Many (<span class="math inline">\(n\)</span>) samples from each of the feature distributions are drawn.
+<li>Assign some attributes to the explainer object, and return the explainer object.</li>
+</ol>
+<pre class="r"><code># Print the lime function (and check to see if there have been any changes)
+if(!file.exists(&quot;../../../data/lime_functions/lime_v0.5.0.rds&quot;)) {
+  saveRDS(object = getAnywhere(lime.data.frame),
+          file = &quot;../../../data/lime_functions/lime_v0.5.0.rds&quot;)
+} else {
+  lime_v0.5.0 &lt;- readRDS(&quot;../../../data/lime_functions/lime_v0.5.0.rds&quot;)  
+  if(assert_that(are_equal(lime_v0.5.0, getAnywhere(lime.data.frame)))){
+    getAnywhere(lime.data.frame)
+  } 
+}</code></pre>
+<pre><code>## A single object matching 'lime.data.frame' was found
+## It was found in the following places
+##   registered S3 method for lime from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, model, preprocess = NULL, bin_continuous = TRUE, 
+##     n_bins = 4, quantile_bins = TRUE, use_density = TRUE, ...) 
+## {
+##     if (is.null(preprocess)) 
+##         preprocess &lt;- function(x) x
+##     assert_that(is.function(preprocess))
+##     explainer &lt;- c(as.list(environment()), list(...))
+##     explainer$x &lt;- NULL
+##     explainer$feature_type &lt;- setNames(sapply(x, function(f) {
+##         if (is.integer(f)) {
+##             if (length(unique(f)) == 1) 
+##                 &quot;constant&quot;
+##             else &quot;integer&quot;
+##         }
+##         else if (is.numeric(f)) {
+##             if (length(unique(f)) == 1) 
+##                 &quot;constant&quot;
+##             else &quot;numeric&quot;
+##         }
+##         else if (is.character(f)) {
+##             &quot;character&quot;
+##         }
+##         else if (is.factor(f)) {
+##             &quot;factor&quot;
+##         }
+##         else if (is.logical(f)) {
+##             &quot;logical&quot;
+##         }
+##         else if (inherits(f, &quot;Date&quot;) || inherits(f, &quot;POSIXt&quot;)) {
+##             &quot;date_time&quot;
+##         }
+##         else {
+##             stop(&quot;Unknown feature type&quot;, call. = FALSE)
+##         }
+##     }), names(x))
+##     if (any(explainer$feature_type == &quot;constant&quot;)) {
+##         warning(&quot;Data contains numeric columns with zero variance&quot;, 
+##             call. = FALSE)
+##     }
+##     explainer$bin_cuts &lt;- setNames(lapply(seq_along(x), function(i) {
+##         if (explainer$feature_type[i] %in% c(&quot;numeric&quot;, &quot;integer&quot;)) {
+##             if (quantile_bins) {
+##                 bins &lt;- quantile(x[[i]], seq(0, 1, length.out = n_bins + 
+##                   1), na.rm = TRUE)
+##                 bins &lt;- bins[!duplicated(bins)]
+##                 if (length(bins) &lt; 3) {
+##                   warning(names(x)[i], &quot; does not contain enough variance to use quantile binning. Using standard binning instead.&quot;, 
+##                     call. = FALSE)
+##                   d_range &lt;- range(x[[i]], na.rm = TRUE)
+##                   bins &lt;- seq(d_range[1], d_range[2], length.out = n_bins + 
+##                     1)
+##                 }
+##                 bins
+##             }
+##             else {
+##                 d_range &lt;- range(x[[i]], na.rm = TRUE)
+##                 seq(d_range[1], d_range[2], length.out = n_bins + 
+##                   1)
+##             }
+##         }
+##     }), names(x))
+##     explainer$feature_distribution &lt;- setNames(lapply(seq_along(x), 
+##         function(i) {
+##             switch(explainer$feature_type[i], integer = , numeric = if (bin_continuous) {
+##                 table(cut(x[[i]], unique(explainer$bin_cuts[[i]]), 
+##                   labels = FALSE, include.lowest = TRUE))/nrow(x)
+##             } else if (use_density) {
+##                 density(x[[i]])
+##             } else {
+##                 c(mean = mean(x[[i]], na.rm = TRUE), sd = sd(x[[i]], 
+##                   na.rm = TRUE))
+##             }, character = , logical = , factor = table(x[[i]])/nrow(x), 
+##                 NA)
+##         }), names(x))
+##     structure(explainer, class = c(&quot;data_frame_explainer&quot;, &quot;explainer&quot;, 
+##         &quot;list&quot;))
+## }
+## &lt;bytecode: 0x7fb9de901738&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+</div>
+<div id="explain-function" class="section level3">
+<h3><code>explain</code> function</h3>
+<p><strong>Inputs</strong></p>
 <ul>
-<li>To do this, <code>lime</code> has several options (mostly quoted from <code>lime</code> package for now):</li>
-<li>bin_continuous = TRUE should continuous variables be binned?</li>
-<li>quantile_bins = TRUE should the ins for n_bins be based on quantiles or spread evenly</li>
-<li>n_bins = 4 number of bins if bin_continuous is TRUE</li>
-<li>use_density = TRUE if bin_continuous is FALSE, should continuous data be sampled using kernel density estimation (if not, then will assume normal for continuous variable)</li>
+<li><code>x</code>: The new observations to explain (with the same format as used when creating the explainer).</li>
+<li><code>explainer</code>: This is the object output from the <code>lime</code> function.</li>
+<li><code>labels = NULL</code>: The specific labels (classes) to explain in case the model is a classifier. For classifiers either this or <code>n_labels</code> must be given.</li>
+<li><code>n_labels = NULL</code>: The number of labels to explain. If this is given for classifiers, the top <code>n_label</code> classes will be explained.</li>
+<li><code>n_features</code>: The number of features to use for each explanation. (i.e. The number of features to select during feature selection.)</li>
+<li><code>n_permutations = 5000</code>: The number of perturbations generated for each feature.</li>
+<li><code>feature_select = 'auto'</code>: This is the feature selection method for choosing the number of features specified.
+<ul>
+<li><code>auto</code>: If <code>n_features</code> <span class="math inline">\(\le 6\)</span>, uses <code>forward_selection</code>. Otherwise, <code>highest_weights</code> is used.</li>
+<li><code>none</code>: Use all features for the explanation. Not advised unless you have very few features.</li>
+<li><code>forward_selection</code>: Add one feature at a time until <code>n_features</code> is reached, based on quality of a ridge regression model.</li>
+<li><code>highest_weights</code>: The <code>n_features</code> with highest absolute weight in a ridge regression fit of the complex model outcome are chosen.</li>
+<li><code>lasso_path</code>: Fit a lasso model and choose the <code>n_features</code> whose lars path converge to zero the latest.</li>
+<li><code>tree</code>: Fit a tree to select <code>n_features</code> (which needs to be a power of 2). It requires last version of <em>XGBoost</em>.</li>
 </ul></li>
+<li><code>dist_fun = 'gower'</code>: The distance function to use for calculating the distance from the observation to the permutations. If <code>dist_fun = 'gower'</code> (default) it will use <code>gower::gower_dist()</code>. Otherwise it will be forwarded to <code>stats::dist()</code>.</li>
+<li><code>kernel_width = NULL</code>:The width of the exponential kernel that will be used to convert the distance to a similarity in case <code>dist_fun != 'gower'</code>.</li>
+<li><code>gower_pow = 1</code>: A modifier for gower distance. The calculated distance will be raised to the power of this value.</li>
+</ul>
+<p><strong>Procedure</strong></p>
+<ol style="list-style-type: decimal">
+<li>Check to make sure that the <code>explainer</code> is an object output from the <code>lime</code> function.</li>
+<li>Determine the type of the model that is contained within the explainer function (using the <a href="#model_type"><code>model_type</code></a> function), and determine the type of output that should be produced by <code>explain</code> based on the model type (using the <a href="#output_type"><code>output_type</code></a> function).</li>
+<li>If the model type is regression, check to make sure both <code>labels</code> and <code>n_labels</code> are set to NULL. Otherwsie, return a warning saying that labels and n_labels are ignored with explaining regression models. Then set <code>n_lables</code> to 1 and <code>labels</code> to NULL.</li>
+<li>Check to make sure that only <code>labels</code> or <code>n_labels</code> is specified and the other is NULL. If not, output a warning saying that you must choose between one or the other.</li>
+<li>Return an error if <code>n_features</code> or <code>n_permutations</code> are not specified as counts.</li>
+<li>If the kernel width has not been specified, then compute it as the square root of the number of columns of the testing dataframe multiplied by 0.75. Then create a kernel function that will be used to weight the perturbations based on the specified kernel width using the function <a href="#exp_kernel"><code>exp_kernel</code></a>. The formula used by <code>exp_kernel</code> is <span class="math display">\[f(x, w)=\sqrt{\exp\left(\frac{-(x^2)}{w}\right)}\]</span> where <span class="math inline">\(w\)</span> is the kernel width.</li>
+<li><p>Makes use of the <a href="#permute_cases"><code>permute_cases</code></a> function for data frames in the lime package. This is the function that creates the perturbations. One perturnabiton is created for each of the <code>n_permuations</code> specified.</p></li>
 <li>Predictions for the testing data using the random forest model are computed.
 <ul>
 <li>The random forest model <code>rtrees</code> is used to make a prediction for the observation from the test dataset and each of the <span class="math inline">\(n=5000\)</span> samples as to whether or not the comparison of the two bullets in the test case are a match. Since the random forest is a classification model, <code>lime</code> is set to return the prediction probabilities.</li>
@@ -1980,40 +2131,435 @@ lime_ridge_concept</code></pre>
   \beta_1 \cdot I\left[X_1 \in \mbox{obs bin}\right] + 
   \beta_2 \cdot I\left[X_2 \in \mbox{obs bin}\right] + 
   \beta_3 \cdot I\left[X_3 \in \mbox{obs bin}\right]\]</span> For the prediction of interest, <span class="math display">\[P(Match = TRUE) = \beta_0 + \beta_1 + \beta_2 + \beta_3.\]</span></li>
-<li>The feature weights are extracted and used as the explanations.</li>
+<li><p>The feature weights are extracted and used as the explanations.</p></li>
 </ol>
 <p>Note: I realized that if <code>bin_continuous = FALSE</code>, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without “numerified” values.</p>
+<pre class="r"><code># Print the explain function (and check to see if there have been any changes)
+if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
+  saveRDS(object = getAnywhere(explain.data.frame),
+          file = &quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)
+} else {
+  explain_v0.5.0 &lt;- readRDS(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)  
+  if(assert_that(are_equal(explain_v0.5.0, getAnywhere(explain.data.frame)))){
+    getAnywhere(explain.data.frame)
+  } 
+}</code></pre>
+<pre><code>## A single object matching 'explain.data.frame' was found
+## It was found in the following places
+##   namespace:lime
+## with value
+## 
+## function (x, explainer, labels = NULL, n_labels = NULL, n_features, 
+##     n_permutations = 5000, feature_select = &quot;auto&quot;, dist_fun = &quot;gower&quot;, 
+##     kernel_width = NULL, gower_pow = 1, ...) 
+## {
+##     assert_that(is.data_frame_explainer(explainer))
+##     m_type &lt;- model_type(explainer)
+##     o_type &lt;- output_type(explainer)
+##     if (m_type == &quot;regression&quot;) {
+##         if (!is.null(labels) || !is.null(n_labels)) {
+##             warning(&quot;\&quot;labels\&quot; and \&quot;n_labels\&quot; arguments are ignored when explaining regression models&quot;)
+##         }
+##         n_labels &lt;- 1
+##         labels &lt;- NULL
+##     }
+##     assert_that(is.null(labels) + is.null(n_labels) == 1, msg = &quot;You need to choose between labels and n_labels parameters.&quot;)
+##     assert_that(is.count(n_features))
+##     assert_that(is.count(n_permutations))
+##     if (is.null(kernel_width)) {
+##         kernel_width &lt;- sqrt(ncol(x)) * 0.75
+##     }
+##     kernel &lt;- exp_kernel(kernel_width)
+##     case_perm &lt;- permute_cases(x, n_permutations, explainer$feature_distribution, 
+##         explainer$bin_continuous, explainer$bin_cuts, explainer$use_density)
+##     case_res &lt;- predict_model(explainer$model, explainer$preprocess(case_perm), 
+##         type = o_type, ...)
+##     case_res &lt;- set_labels(case_res, explainer$model)
+##     case_ind &lt;- split(seq_len(nrow(case_perm)), rep(seq_len(nrow(x)), 
+##         each = n_permutations))
+##     res &lt;- lapply(seq_along(case_ind), function(ind) {
+##         i &lt;- case_ind[[ind]]
+##         if (dist_fun == &quot;gower&quot;) {
+##             sim &lt;- 1 - (gower_dist(case_perm[i[1], , drop = FALSE], 
+##                 case_perm[i, , drop = FALSE]))^gower_pow
+##         }
+##         perms &lt;- numerify(case_perm[i, ], explainer$feature_type, 
+##             explainer$bin_continuous, explainer$bin_cuts)
+##         if (dist_fun != &quot;gower&quot;) {
+##             sim &lt;- kernel(c(0, dist(feature_scale(perms, explainer$feature_distribution, 
+##                 explainer$feature_type, explainer$bin_continuous), 
+##                 method = dist_fun)[seq_len(n_permutations - 1)]))
+##         }
+##         res &lt;- model_permutations(as.matrix(perms), case_res[i, 
+##             , drop = FALSE], sim, labels, n_labels, n_features, 
+##             feature_select)
+##         res$feature_value &lt;- unlist(case_perm[i[1], res$feature])
+##         res$feature_desc &lt;- describe_feature(res$feature, case_perm[i[1], 
+##             ], explainer$feature_type, explainer$bin_continuous, 
+##             explainer$bin_cuts)
+##         guess &lt;- which.max(abs(case_res[i[1], ]))
+##         res$case &lt;- rownames(x)[ind]
+##         res$label_prob &lt;- unname(as.matrix(case_res[i[1], ]))[match(res$label, 
+##             colnames(case_res))]
+##         res$data &lt;- list(as.list(case_perm[i[1], ]))
+##         res$prediction &lt;- list(as.list(case_res[i[1], ]))
+##         res$model_type &lt;- m_type
+##         res
+##     })
+##     res &lt;- do.call(rbind, res)
+##     res &lt;- res[, c(&quot;model_type&quot;, &quot;case&quot;, &quot;label&quot;, &quot;label_prob&quot;, 
+##         &quot;model_r2&quot;, &quot;model_intercept&quot;, &quot;model_prediction&quot;, &quot;feature&quot;, 
+##         &quot;feature_value&quot;, &quot;feature_weight&quot;, &quot;feature_desc&quot;, &quot;data&quot;, 
+##         &quot;prediction&quot;)]
+##     if (m_type == &quot;regression&quot;) {
+##         res$label &lt;- NULL
+##         res$label_prob &lt;- NULL
+##         res$prediction &lt;- unlist(res$prediction)
+##     }
+##     as_tibble(res)
+## }
+## &lt;bytecode: 0x7fb9dc9c7c40&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
-<div id="function-inputs" class="section level3">
-<h3>Function Inputs</h3>
-<p>The default input settings for the <code>lime</code> and <code>explain</code> functions in the lime package are described below.</p>
-<div id="lime-function" class="section level5">
-<h5><code>lime</code> function</h5>
-<p>The default settings for the <code>lime</code> function are as follows.</p>
+<div id="model_type" class="section level3">
+<h3><code>model_type</code> helper</h3>
+<p>The <em>lime</em> package provides a variety of functions for extracting the model type from the complex model to be explained. These are shown below. Here is information from the package documentation about models supported by <em>lime</em>.</p>
+<blockquote>
+<p>Out of the box, lime supports the following model objects:</p>
 <ul>
-<li><code>bin_continuous = TRUE</code>: If set to <code>TRUE</code>, the continuous variables will be binned when making the explanations. If they are not binned, then perturbations will be obtained by either simulating using kernel density estimation or a normal distribution depending on what the option of <code>use_density</code> is set to.</li>
-<li><code>bins = 4</code>: The number of bins to divide the continuous variables into. The default is 4 bins.</li>
-<li><code>quantile_bins = TRUE</code>: If set to <code>TRUE</code>, the bins will be be based on <code>n_bins</code> quantiles. Otherwise, the bins will be spread evenly over the range of the training data.</li>
-<li><code>use_density = TRUE</code>: If <code>bin_continuous</code> is set to <code>FALSE</code> and this is set to <code>TRUE</code>, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.</li>
+<li>train from caret</li>
+<li>WrappedModel from mlr</li>
+<li>xgb.Booster from xgboost</li>
+<li>H2OModel from h2o</li>
+<li>keras.engine.training.Model from keras</li>
+<li>lda from MASS (used for low-dependency examples)</li>
 </ul>
+<p>If your model is not one of the above you’ll need to implement support yourself. If the model has a predict interface mimicking that of predict.train() from caret, it will be enough to wrap your model in as_classifier()/as_regressor() to gain support. Otherwise you’ll need need to implement a predict_model() method and potentially a model_type() method (if the latter is omitted the model should be wrapped in as_classifier()/as_regressor(), everytime it is used in lime()).</p>
+</blockquote>
+<pre class="r"><code>getAnywhere(model_type)</code></pre>
+<pre><code>## A single object matching 'model_type' was found
+## It was found in the following places
+##   package:lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     UseMethod(&quot;model_type&quot;)
+## }
+## &lt;bytecode: 0x7fb9f55d6790&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.default)</code></pre>
+<pre><code>## A single object matching 'model_type.default' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     stop(&quot;The class of model must have a model_type method. See ?model_type to get an overview of models supported out of the box&quot;, 
+##         call. = FALSE)
+## }
+## &lt;bytecode: 0x7fb9f71b5620&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.lime_classifier)</code></pre>
+<pre><code>## A single object matching 'model_type.lime_classifier' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## &quot;classification&quot;
+## &lt;bytecode: 0x7fb9f70e8120&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.lime_regressor)</code></pre>
+<pre><code>## A single object matching 'model_type.lime_regressor' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## &quot;regression&quot;
+## &lt;bytecode: 0x7fb9f70be2e0&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.train)</code></pre>
+<pre><code>## A single object matching 'model_type.train' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     tolower(x$modelType)
+## }
+## &lt;bytecode: 0x7fb9f3645800&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.model_fit)</code></pre>
+<pre><code>## A single object matching 'model_type.model_fit' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     x$spec$mode
+## }
+## &lt;bytecode: 0x7fb9f35522c8&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.WrappedModel)</code></pre>
+<pre><code>## A single object matching 'model_type.WrappedModel' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     switch(x$learner$type, classif = &quot;classification&quot;, regr = &quot;regression&quot;, 
+##         surv = &quot;survival&quot;, cluster = &quot;clustering&quot;, multilabel = &quot;multilabel&quot;)
+## }
+## &lt;bytecode: 0x7fb9f6f42820&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.xgb.Booster)</code></pre>
+<pre><code>## A single object matching 'model_type.xgb.Booster' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     obj &lt;- x$params$objective
+##     if (is.null(obj)) 
+##         return(&quot;regression&quot;)
+##     if (is.function(obj)) 
+##         stop(&quot;Unsupported model type&quot;, call. = FALSE)
+##     type &lt;- strsplit(obj, &quot;:&quot;)[[1]][1]
+##     switch(type, reg = &quot;regression&quot;, binary = &quot;classification&quot;, 
+##         multi = &quot;classification&quot;, stop(&quot;Unsupported model type&quot;, 
+##             call. = FALSE))
+## }
+## &lt;bytecode: 0x7fb9f6e1f230&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.lda)</code></pre>
+<pre><code>## A single object matching 'model_type.lda' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## &quot;classification&quot;
+## &lt;bytecode: 0x7fb9f6d7dab8&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.keras.engine.training.Model)</code></pre>
+<pre><code>## A single object matching 'model_type.keras.engine.training.Model' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     if (!requireNamespace(&quot;keras&quot;, quietly = TRUE)) {
+##         stop(&quot;The keras package is required for predicting keras models&quot;)
+##     }
+##     num_layers &lt;- length(x$layers)
+##     if (keras::get_config(keras::get_layer(x, index = num_layers))$activation == 
+##         &quot;linear&quot;) {
+##         &quot;regression&quot;
+##     }
+##     else {
+##         &quot;classification&quot;
+##     }
+## }
+## &lt;bytecode: 0x7fb9f6b81658&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.H2OModel)</code></pre>
+<pre><code>## A single object matching 'model_type.H2OModel' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     h2o_model_class &lt;- class(x)[[1]]
+##     if (h2o_model_class %in% c(&quot;H2OBinomialModel&quot;, &quot;H2OMultinomialModel&quot;)) {
+##         return(&quot;classification&quot;)
+##     }
+##     else if (h2o_model_class == &quot;H2ORegressionModel&quot;) {
+##         return(&quot;regression&quot;)
+##     }
+##     else {
+##         stop(&quot;This h2o model is not currently supported.&quot;)
+##     }
+## }
+## &lt;bytecode: 0x7fb9f69b6c80&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+<pre class="r"><code>getAnywhere(model_type.ranger)</code></pre>
+<pre><code>## A single object matching 'model_type.ranger' was found
+## It was found in the following places
+##   registered S3 method for model_type from namespace lime
+##   namespace:lime
+## with value
+## 
+## function (x, ...) 
+## {
+##     ranger_model_class &lt;- x$treetype
+##     if (ranger_model_class == &quot;Probability estimation&quot; || ranger_model_class == 
+##         &quot;Classification&quot;) {
+##         return(&quot;classification&quot;)
+##     }
+##     else if (ranger_model_class == &quot;Regression&quot;) {
+##         return(&quot;regression&quot;)
+##     }
+##     else {
+##         stop(paste0(&quot;ranger model class \&quot;&quot;, ranger_model_class, 
+##             &quot;\&quot; is not currently supported.&quot;))
+##     }
+## }
+## &lt;bytecode: 0x7fb9f68dbb28&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
-<div id="explain-function" class="section level5">
-<h5><code>explain</code> function</h5>
-<p>For our research project, the number of labels (<code>n_labels</code>) for the response variable will be set to 1 and the number of features to include in the explanations (<code>n_features</code>) will be set to 2. The default values for the other options are as follows.</p>
+<div id="output_type" class="section level3">
+<h3><code>output_type</code> helper</h3>
+<pre class="r"><code>getAnywhere(output_type)</code></pre>
+<pre><code>## A single object matching 'output_type' was found
+## It was found in the following places
+##   namespace:lime
+## with value
+## 
+## function (x) 
+## {
+##     switch(model_type(x), classification = &quot;prob&quot;, regression = &quot;raw&quot;, 
+##         stop(model_type(x), &quot; models are not supported yet&quot;, 
+##             call. = FALSE))
+## }
+## &lt;bytecode: 0x7fb9f5fd0828&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+</div>
+<div id="exp_kernel" class="section level3">
+<h3><code>exp_kernel</code> helper</h3>
+<pre class="r"><code># Print the exp_kernel function (and check to see if there have been any changes)
+if(!file.exists(&quot;../../../data/lime_functions/exp_kernel_v0.5.0.rds&quot;)) {
+  saveRDS(object = getAnywhere(exp_kernel),
+          file = &quot;../../../data/lime_functions/exp_kernel_v0.5.0.rds&quot;)
+  getAnywhere(exp_kernel)
+} else {
+  exp_kernel_v0.5.0 &lt;- readRDS(&quot;../../../data/lime_functions/exp_kernel_v0.5.0.rds&quot;)  
+  if(assert_that(are_equal(exp_kernel_v0.5.0, getAnywhere(exp_kernel)))){
+    getAnywhere(exp_kernel)
+  } 
+}</code></pre>
+<pre><code>## A single object matching 'exp_kernel' was found
+## It was found in the following places
+##   namespace:lime
+## with value
+## 
+## function (width) 
+## {
+##     function(x) sqrt(exp(-(x^2)/(width^2)))
+## }
+## &lt;bytecode: 0x7fb9f5902e48&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+</div>
+<div id="permute_cases" class="section level3">
+<h3><code>permute_cases</code> helper</h3>
+<p><strong>Procedure</strong></p>
+<ol style="list-style-type: decimal">
+<li>Compute the number of rows as the number of predictions to be explained times the number of permutations.</li>
+<li>Create the perturbations based on the type of variable and using the feature distribution determined by the lime function. The cases are as follows.
 <ul>
-<li><code>n_permutations = 5000</code>: The number of perturbations generated for each feature.</li>
-<li><code>feature_select = 'auto'</code>: This is the feature selection method for choosing the number of features specified. This uses forward selection if <span class="math inline">\(m\le 6\)</span> and otherwise highest weights. The other feature selection options are as follows.
-<ul>
-<li><code>none</code>: Use all features for the explanation. Not advised unless you have very few features.</li>
-<li><code>forward selection</code>: Features are added one by one based on their improvements to a ridge regression fit of the complex model outcome.</li>
-<li><code>highest weights</code>: The m features with highest absolute weight in a ridge regression fit of the complex model outcome are chosen.</li>
-<li><code>lasso</code>: The m features that are least prone to shrinkage based on the regularization path of a lasso fit of the complex model outcome is chosen.</li>
-<li><code>tree</code>: A tree is fitted with log2(m) splits, to use at max m features. It may possibly select less.</li>
+<li>numeric variable and the feature distribution contains all NAs: the observed cases get repeated <code>n_permutations</code> times</li>
+<li>numeric variable and <code>bin_continuous = TRUE</code>: sample from 1:number of bin cuts with replacement for nrows times using the probability from the variable distribution sample from a uniform(0,1) distribution and then multiply by the difference in bin cuts of the appropriate bin and add the quantile associated with the bin</li>
+<li>numeric variable, <code>bin_continuous = FALSE</code>, and <code>use_density = TRUE</code>:</li>
+<li>numeric variable, <code>bin_continuous = FALSE</code>, and <code>use_density = FALSE</code>: randomly sample from a normal distribution, multiply by the sd of the feature distribution, and add the mean</li>
+<li>character variable: sample from the names of the levels in the variable based on the probability of the variable distribution</li>
+<li>logical variable:</li>
+<li>factor variable: sample from the names of the levels in the variable based on the probability of the variable distribution and convert the samples to factors</li>
+<li>date:</li>
+<li>integer variable: round the permutations to the nearest integer</li>
 </ul></li>
-<li><code>dist_fun = 'gower'</code>: The distance function to be used for determining how close a perturbation is to the test point.</li>
-<li><code>kernel_width = NULL</code>: If <code>dist_fun</code> is not set to <code>gower</code>, then this is the kernel width that will be used in the distance function.</li>
-</ul>
-</div>
+<li>Give the permutations the same name as the variables</li>
+<li>Add the cases back into the data frame of the permutations</li>
+<li>Return the permutations.</li>
+</ol>
+<pre class="r"><code>if(!file.exists(&quot;../../../data/lime_functions/permute_cases_v0.5.0.rds&quot;)) {
+  saveRDS(object = getAnywhere(permute_cases.data.frame),
+          file = &quot;../../../data/lime_functions/permute_cases_v0.5.0.rds&quot;)
+  getAnywhere(permute_cases.data.frame)
+} else {
+  permute_cases_v0.5.0 &lt;- readRDS(&quot;../../../data/lime_functions/permute_cases_v0.5.0.rds&quot;)  
+  if(assert_that(are_equal(permute_cases_v0.5.0, getAnywhere(permute_cases.data.frame)))){
+    getAnywhere(permute_cases.data.frame)
+  } 
+}</code></pre>
+<pre><code>## A single object matching 'permute_cases.data.frame' was found
+## It was found in the following places
+##   namespace:lime
+## with value
+## 
+## function (cases, n_permutations, feature_distribution, bin_continuous, 
+##     bin_cuts, use_density) 
+## {
+##     nrows &lt;- nrow(cases) * n_permutations
+##     perm &lt;- as.data.frame(lapply(seq_along(cases), function(i) {
+##         perms &lt;- if (is.numeric(cases[[i]]) &amp;&amp; identical(is.na(feature_distribution[[i]]), 
+##             TRUE)) {
+##             rep(cases[[i]], each = n_permutations)
+##         }
+##         else if (is.numeric(cases[[i]]) &amp;&amp; bin_continuous) {
+##             bin &lt;- sample(seq_along(feature_distribution[[i]]), 
+##                 nrows, TRUE, as.numeric(feature_distribution[[i]]))
+##             diff(bin_cuts[[i]])[bin] * runif(nrows) + bin_cuts[[i]][bin]
+##         }
+##         else if (is.numeric(cases[[i]]) &amp;&amp; use_density) {
+##             width &lt;- diff(feature_distribution[[i]]$x[c(1, 2)])/2
+##             sample(feature_distribution[[i]]$x, nrows, TRUE, 
+##                 feature_distribution[[i]]$y) + runif(nrows, -width, 
+##                 width)
+##         }
+##         else if (is.numeric(cases[[i]])) {
+##             rnorm(nrows) * feature_distribution[[i]][&quot;sd&quot;] + 
+##                 feature_distribution[[i]][&quot;mean&quot;]
+##         }
+##         else if (is.character(cases[[i]])) {
+##             sample(names(feature_distribution[[i]]), nrows, TRUE, 
+##                 as.numeric(feature_distribution[[i]]))
+##         }
+##         else if (is.logical(cases[[i]])) {
+##             sample(as.logical(names(feature_distribution[[i]])), 
+##                 nrows, TRUE, as.numeric(feature_distribution[[i]]))
+##         }
+##         else if (is.factor(cases[[i]])) {
+##             x &lt;- sample(names(feature_distribution[[i]]), nrows, 
+##                 TRUE, as.numeric(feature_distribution[[i]]))
+##             factor(x, levels = names(feature_distribution[[i]]))
+##         }
+##         else if (inherits(cases[[i]], &quot;Date&quot;) || inherits(cases[[i]], 
+##             &quot;POSIXt&quot;)) {
+##             rep(cases[[i]], each = n_permutations)
+##         }
+##         if (is.integer(cases[[i]])) {
+##             as.integer(round(perms))
+##         }
+##         else {
+##             perms
+##         }
+##     }), stringsAsFactors = FALSE)
+##     names(perm) &lt;- names(cases)
+##     perm[seq.int(1, by = n_permutations, length.out = nrow(cases)), 
+##         ] &lt;- cases
+##     perm
+## }
+## &lt;bytecode: 0x7fb9f4c45c40&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
 <div id="python-package" class="section level1">
@@ -2097,13 +2643,13 @@ treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-##  [1] assertthat_0.2.1    tree_1.0-40         forcats_0.4.0      
-##  [4] stringr_1.4.0       dplyr_0.8.3         purrr_0.3.2        
-##  [7] readr_1.3.1         tidyr_0.8.3         tibble_2.1.3       
-## [10] tidyverse_1.2.1     randomForest_4.6-14 lime_0.5.0         
-## [13] gower_0.2.1         glmnet_2.0-18       foreach_1.4.7      
-## [16] Matrix_1.2-17       furrr_0.1.0         future_1.14.0      
-## [19] cowplot_0.9.4       ggplot2_3.2.1      
+##  [1] tree_1.0-40         forcats_0.4.0       stringr_1.4.0      
+##  [4] dplyr_0.8.3         purrr_0.3.2         readr_1.3.1        
+##  [7] tidyr_0.8.3         tibble_2.1.3        tidyverse_1.2.1    
+## [10] randomForest_4.6-14 lime_0.5.0          gower_0.2.1        
+## [13] glmnet_2.0-18       foreach_1.4.7       Matrix_1.2-17      
+## [16] furrr_0.1.0         future_1.14.0       cowplot_0.9.4      
+## [19] ggplot2_3.2.1       assertthat_0.2.1   
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] Rcpp_1.0.2        lubridate_1.7.4   lattice_0.20-38  

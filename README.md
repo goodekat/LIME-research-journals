@@ -13,21 +13,13 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
         journals
       - Can you re-explain your vision with the minipage format?
       - Sometimes LIME doesn’t work on my computer anymore…
-      - Explain the details of the locality paper to Heike (ask about
-        the radius definition)
-      - Should I make the LIME procedure more general?
-  - Internship
-      - Dixon said he is fine with me switching to 10 hours in the
-        spring (as long as Dr. Caragea agrees)
-      - See list of activites for Fall 2019
+      - Read the locality paper in detail and added to journal
+      - Updated LIME procedure and R package function notes
   - Graphics Group
-      - show updated schedule
+      - title and abstract
+      - preview image
       - email list (should I be added as an admin?)
-      - Susan’s idea (could we ask Joe, Erin, and/or Charlotte if they
-        would be interested in preparing this talk?)
-      - How to include an image in the preview of a post in blogdown?
-      - Are you still available to talk next week?
-      - Cookies for tomorrow?
+      - treats?
 
 ## To Do List
 
@@ -45,6 +37,29 @@ September 10)*
   - code up Laugel et al’s work
   - read through papers giving an overview of the current explanation
     methods
+
+**Oral Prelim**
+
+  - schedule
+      - can be anytime during the semester
+      - just needs to be 6 months before final defense
+      - schedule when it gets closer to the time
+      - schedule 3 or 4 weeks in advance
+      - send prelim materials to committee 2 weeks in advance
+  - materials
+      - Chapter 0 (complete)
+          - lit review
+          - research statement: “this is what this thesis will
+            investigate”
+      - Chatper 1 (as close to submission as possible)
+          - LIME and shortcomings
+          - Dr. Dixon likes to give feedback before submission
+      - Chapter 2 (draft)
+          - Diagnostics for RF
+      - Chapter 3 (some idea)
+          - Diagnostics for Bayesian Neural Networks
+          - Could switch to chapter 2 if more complete
+      - Conclusion (not needed)
 
 **Later**
 

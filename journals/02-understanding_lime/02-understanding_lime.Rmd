@@ -10,13 +10,17 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, cache = TRUE)
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      eval = TRUE)
 ```
 
-This journal contains a description of the LIME procedure from the original paper, my write-up of the LIME algorithm used in the R package, and ideas for different binning methods that may be better than the ones currently implemented in the R package.
+This journal contains information from the work I did to understand LIME. This includes a description of the LIME procedure from the original paper, a description of the functions in the in the *lime* R package, information about the Python *lime* package, and ideas for new binning methods.
 
-```{r}
+```{r packages and sourced functions}
 # Load packages
+library(assertthat)
 library(cowplot)
 library(furrr)
 library(future)
@@ -42,7 +46,7 @@ Here, I have copied in the section of the original paper that describes LIME and
 | -------- | ------------------------- | ------------------------- |
 | $x\in\mathbb{R}^d$ | Original representation of an instance being explained | Vector of observed features for one observation e.g. $(x_1, x_2,...,x_d)$ where $\textbf{X}$ is an $n$ by $d$ matrix | 
 | $f:\mathbb{R}^d→\mathbb{R}$ | The model being explained...In classification, $f(x)$ is the probability (or a binary indicator) that $x$ belongs to a certain class. | This is a random forest in our case. |
-| $x'\in\{0,1\}^{d'}$ | A binary vector for interpretable representation (where interpretable explanations are defined as "use a representation that is understandable by humans") | Varies based on the simulation method used - note that $1\le d' \le d$ since it is possible that feature selection may be performed to choose a smaller set of variables than originally in $x$ (One example: vector of indicator variables that indicate whether the observed value falls in the same bin as the instance being explained e.g. $x'_i = I[x_i\in \mbox{same variable } i \mbox{ bin as the instance being explained}]$) | In our example, this is the random forest model. |
+| $x'\in\{0,1\}^{d'}$ | A binary vector for interpretable representation (where interpretable explanations are defined as "use a representation that is understandable by humans") | Varies based on the simulation method used. It is unclear to us how the size of $d$ compares to $d'$. We think they left it vague, so that it could fit any situation ($d<d'$, $d=d'$, or $d>d'$) (One example of converting to an interpretable representation would be a conversion to a vector of indicator variables that indicate whether the observed value falls in the same bin as the instance being explained e.g. $x'_i = I[x_i\in \mbox{same variable } i \mbox{ bin as the instance being explained}]$) | In our example, this is the random forest model. |
 |$G$ | A class of potentially interpretable models, such as linear models, decision trees, or falling rule lists |  <span style="color:blue"> I'm not sure what is considered $G$ in the R package - the fitting of the final ridge regression model or the ridge regression model used for feature selection? </span>|
 | $g$ | An explanation as a model...can be readily presented to the user with visual or textual artifacts...The domain of $g$ is $\{0,1\}^{d′}$, i.e. $g$ acts over absence/presence of the interpretable components | This could be a ridge regression model with the form $f(x) \sim x'_1 + x'_2 + \cdots + x'_{d'}$ |
 | $\Omega(g)$ | A measure of complexity of the explanation $g\in G$. For example, for decision trees $\Omega(g)$ may be the depth of the tree, while for linear models, $\Omega(g)$ may be the number of non-zero weights. | Seemingly, this is based on how the weights are assigned to the data points. |
@@ -108,17 +112,13 @@ lime_data <- data.frame(feature1 = sort(runif(250, 0, 1)),
                       if_else(feature1 >= 0.8 & feature1 < 0.9, 
                               0.5 + runif(n(), -0.5, 0.5), 
                               0.5 + rnorm(n(), 0, 0.3)))))))
-```
 
-```{r}
 # Specify a prediction of interest
 prediction_of_interest <- data.frame(feature1 = 0.07, 
                                      feature2 = 200,
                                      prediction = 0.05, 
                                      color = factor("Prediction of Interest"))
-```
 
-```{r}
 # Compute the distance between the prediction of interest and 
 # all other observations
 lime_data$distance <- (1 - gower_dist(x = prediction_of_interest, 
@@ -134,16 +134,12 @@ These visualizations are based on a weighted linear regression model used as the
 linear_explainer <- lm(formula = prediction ~ feature1 + feature2, 
                        data = lime_data, 
                        weights = distance)
-```
 
-```{r}
 # Extract the coefficients from the explainer
 linear_b0 <- coef(linear_explainer)[[1]]
 linear_b1 <- coef(linear_explainer)[[2]]
 linear_b2 <- coef(linear_explainer)[[3]]
-```
 
-```{r}
 # Predictions versus feature 1
 linear_plot_feature1 <- ggplot(data = lime_data,
                         mapping = aes(x = feature1, 
@@ -171,9 +167,7 @@ linear_plot_feature1 <- ggplot(data = lime_data,
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         legend.position = "none")
-```
 
-```{r}
 # Predictions versus feature 1
 linear_plot_feature2 <- ggplot(data = lime_data,
                         mapping = aes(x = feature2, 
@@ -201,9 +195,7 @@ linear_plot_feature2 <- ggplot(data = lime_data,
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         legend.position = "none")
-```
 
-```{r}
 # Plot that creates a size legend
 size_legend_plot <- lime_data %>%
   gather(key = feature, value = value, 1:2) %>%
@@ -223,18 +215,14 @@ size_legend_plot <- lime_data %>%
 
 # Extract the legend
 size_legend <- get_legend(size_legend_plot)
-```
 
-```{r}
 # Join the two feature plots
 lime_linear_plots <- plot_grid(linear_plot_feature1, 
                                linear_plot_feature2, 
                                size_legend,
                                ncol = 3, 
                                rel_widths = c(0.4, 0.4, 0.1))
-```
 
-```{r}
 # Create a plot to extract a legend for the prediction of interest
 lime_legend_plot <- ggplot(data = prediction_of_interest, 
                            mapping = aes(x = feature1, 
@@ -248,9 +236,7 @@ lime_legend_plot <- ggplot(data = prediction_of_interest,
 
 # Extract the legend
 lime_legend <- get_legend(lime_legend_plot)
-```
 
-```{r}
 # Join the title, plots, legend, and caption into one figure
 lime_linear_concept <- plot_grid(lime_linear_plots, lime_legend,
                          ncol = 1,
@@ -277,16 +263,12 @@ ridge_explainer <- glmnet(x = lime_data %>%
                           alpha = 0, 
                           lambda = 1, 
                           standardize = FALSE)
-```
 
-```{r}
 # Extract the coefficients from the explainer
 ridge_b0 <- ridge_explainer$a0[[1]]
 ridge_b1 <- ridge_explainer$beta[1,1]
 ridge_b2 <- ridge_explainer$beta[2,1]
-```
 
-```{r}
 # Predictions versus feature 1
 ridge_plot_feature1 <- ggplot(data = lime_data,
                         mapping = aes(x = feature1, 
@@ -314,9 +296,7 @@ ridge_plot_feature1 <- ggplot(data = lime_data,
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         legend.position = "none")
-```
 
-```{r}
 # Predictions versus feature 2
 ridge_plot_feature2 <- ggplot(data = lime_data,
                         mapping = aes(x = feature2, 
@@ -344,18 +324,14 @@ ridge_plot_feature2 <- ggplot(data = lime_data,
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         legend.position = "none")
-```
 
-```{r}
 # Join the two feature plots
 lime_ridge_plots <- plot_grid(ridge_plot_feature1, 
                               ridge_plot_feature2, 
                               size_legend,
                               ncol = 3,
                               rel_widths = c(0.4, 0.4, 0.1))
-```
 
-```{r}
 # Join the title, plots, legend, and caption into one figure
 lime_ridge_concept <- plot_grid(lime_ridge_plots, 
                                 lime_legend,
@@ -372,28 +348,93 @@ lime_ridge_concept
 
 # R Package 
 
-### Procedure (Draft)
+The version of the `lime` packge that is considered here is `r packageVersion("lime")` (version when I first wrote this section: 0.5.0). I am only considering the `data.frame` versions of the functions. 
 
-I wrote this up to start thinking about how to describe the procedure that the `lime` R package uses to implement the LIME algorithm. It needs a lot of work, but it is a start. The final version of this will end up in the technical stats paper critiquing LIME. The version in the firearm examiner's paper will be much simpler...
+### `lime` function
 
-The steps below explain the procedure that the R package is using to apply the LIME algorithm to the bullet matching predictions on the Hamby 224 clone dataset made by the random forest model from Hare. For simplicity, the steps are described as what happens to one case in the test data. Thus, the steps (2) through (7) are repeated for each observation in the testing dataset.
+**Inputs**
 
-Let
-  $$Y_{jk} = \begin{cases} 
-  1 & \mbox{ if bullets } j \mbox{ and } k \mbox{ were fired from the same gun barrel }\\
-  0 & \mbox{otherwise}
-  \end{cases}$$
-be the response variable in the training dataset, and $X_1,...,X_9$ correspond to the nine features in the training dataset. Let $X'_1,...,X'_9$ be the 
+- `x`: The training data used to fit the model to be explained
+- `model`: The model to explain.
+- `preprocess = NULL`: Function to transform a character vector to the format expected from the model.
+- `bin_continuous = TRUE`: If set to `TRUE`, the continuous variables will be binned when making the explanations. If they are not binned, then perturbations will be obtained by either simulating using kernel density estimation or a normal distribution depending on what the option of `use_density` is set to.
+- `n_bins = 4`: The number of bins to use if `bin_continuous = TRUE`.
+- `quantile_bins = TRUE`: Should quantile bins be used if `bin_continuous = TRUE? (Otherwise, equally spaced bins will be used.)
+- `use_density = TRUE`: This option is only considered if `bin_continuous` is set to `FALSE`. In that situation, if `use_density = TRUE`, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.
 
-1. Distributions for each of the features in the training data are obtained. 
-    + The method that `lime` uses to obtain the distribution differs based on the feature type. All of the features in the Hamby datasets are numeric. For numeric features, the default option in `lime` (`quantile_bins = TRUE`) computes the quantiles of each feature based on the number of bins selected. The default number of bins is 4 (`n_bins = 4`).
+**Procedure**
 
-2. Many ($n$) samples from each of the feature distributions are drawn.
-     + To do this, `lime` has several options (mostly quoted from `lime` package for now):
-      * bin\_continuous = TRUE should continuous variables be binned?
-      * quantile\_bins = TRUE should the ins for n\_bins be based on quantiles or spread evenly
-      * n\_bins = 4 number of bins if bin\_continuous is TRUE
-      * use\_density = TRUE if bin\_continuous is FALSE, should continuous data be sampled using kernel density estimation (if not, then will assume normal for continuous variable)
+1. If `preprocess` is NULL, then set it to the identity function. Either way, check to make sure that it is a function.
+2. Create an explainer object.
+3. Determine the type of each of the features (e.g. integer, numeric, etc.). If any of the variables are constants, a warning is returned. If the feature type is unknown, an error is returned.
+4. Create bins for numeric and intger type variables. If `quantile_bins = TRUE`, then `n_bins` bins are created using quantiles. Otherwise, `n_bins` equally spaced bins are created. If `quantile_bins = TRUE` and `n_bins` < 3, then a warning is produced ("does not contain enough variance to use quantile binning. Using standard binning instead.") and $n_bins$ equally spaced bins are returned.
+5. Determine the "distribution" for each feature. The method used is based on the type of variable. 
+    - Integer: nothing
+    - Numeric: If `bin_continuous`, then determine the
+    proportion of observations in each bin. If
+    `use_density=TRUE`, then kernel a kernel density
+    approximation is used to estimate the distribution.
+    Otherwise, the mean and standard deviation of each 
+    of the features is computed.
+    - Character: nothing
+    - Logical: nothing
+    - Factor: Determine the proportion in each category.
+6. Assign some attributes to the explainer object, and return the explainer object.
+
+```{r lime function}
+# Print the lime function (and check to see if there have been any changes)
+if(!file.exists("../../../data/lime_functions/lime_v0.5.0.rds")) {
+  saveRDS(object = getAnywhere(lime.data.frame),
+          file = "../../../data/lime_functions/lime_v0.5.0.rds")
+} else {
+  lime_v0.5.0 <- readRDS("../../../data/lime_functions/lime_v0.5.0.rds")  
+  if(assert_that(are_equal(lime_v0.5.0, getAnywhere(lime.data.frame)))){
+    getAnywhere(lime.data.frame)
+  } 
+}
+```
+
+### `explain` function
+
+**Inputs**
+
+- `x`: The new observations to explain (with the same format as used when creating the explainer).
+- `explainer`: This is the object output from the `lime` function.
+- `labels = NULL`: The specific labels (classes) to explain in case the model is a classifier. For classifiers either this or `n_labels` must be given.
+- `n_labels = NULL`: The number of labels to explain. If this is given for classifiers, the top `n_label` classes will be explained.
+- `n_features`: The number of features to use for each explanation. (i.e. The number of features to select during feature selection.)
+- `n_permutations = 5000`: The number of perturbations generated for each feature.
+- `feature_select = 'auto'`: This is the feature selection method for choosing the number of features specified. 
+    - `auto`: If `n_features` $\le 6$, uses `forward_selection`.
+    Otherwise, `highest_weights` is used. 
+    - `none`: Use all features for the explanation. Not advised
+    unless you have very few features.
+    - `forward_selection`: Add one feature at a time until
+    `n_features` is reached, based on quality of a ridge 
+    regression model.
+    - `highest_weights`: The `n_features` with highest absolute
+    weight in a ridge regression fit of the complex model outcome
+    are chosen.
+    - `lasso_path`: Fit a lasso model and choose the `n_features`
+    whose lars path converge to zero the latest.
+    - `tree`: Fit a tree to select `n_features` (which needs to be
+    a power of 2). It requires last version of *XGBoost*.
+- `dist_fun = 'gower'`: The distance function to use for calculating the distance from the observation to the permutations. If `dist_fun = 'gower'` (default) it will use `gower::gower_dist()`. Otherwise it will be forwarded to `stats::dist()`.
+- `kernel_width = NULL`:The width of the exponential kernel that will be used to convert the distance to a similarity in case `dist_fun != 'gower'`.
+- `gower_pow = 1`: A modifier for gower distance. The calculated distance will be raised to the power of this value.
+
+**Procedure** 
+
+1. Check to make sure that the `explainer` is an object output from the `lime` function. 
+2. Determine the type of the model that is contained within the explainer function (using the [`model_type`](#model_type) function), and determine the type of output that should be produced by `explain` based on the model type (using the [`output_type`](#output_type) function).
+3. If the model type is regression, check to make sure both `labels` and `n_labels` are set to NULL. Otherwsie, return a warning saying that labels and n_labels are ignored with explaining regression models. Then set `n_lables` to 1 and `labels` to NULL.
+4. Check to make sure that only `labels` or `n_labels` is specified and the other is NULL. If not, output a warning saying that you must choose between one or the other.
+5. Return an error if `n_features` or `n_permutations` are not specified as counts.
+6. If the kernel width has not been specified, then compute it as the square root of the number of columns of the testing dataframe multiplied by 0.75. Then create a kernel function that will be used to weight the perturbations based on the specified kernel width using the function [`exp_kernel`](#exp_kernel). The formula used by `exp_kernel` is
+  $$f(x, w)=\sqrt{\exp\left(\frac{-(x^2)}{w}\right)}$$
+where $w$ is the kernel width.
+7. Makes use of the [`permute_cases`](#permute_cases) function for data frames in the lime package. This is the function that creates the perturbations. One perturnabiton is created for each of the `n_permuations` specified.
+
 
 3. Predictions for the testing data using the random forest model are computed.
      + The random forest model `rtrees` is used to make a prediction for the observation from the test dataset and each of the $n=5000$ samples as to whether or not the comparison of the two bullets in the test case are a match. Since the random forest is a classification model, `lime` is set to return the prediction probabilities.
@@ -420,33 +461,109 @@ For the prediction of interest,
 
 Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
 
+```{r explain function}
+# Print the explain function (and check to see if there have been any changes)
+if(!file.exists("../../../data/lime_functions/explain_v0.5.0.rds")) {
+  saveRDS(object = getAnywhere(explain.data.frame),
+          file = "../../../data/lime_functions/explain_v0.5.0.rds")
+} else {
+  explain_v0.5.0 <- readRDS("../../../data/lime_functions/explain_v0.5.0.rds")  
+  if(assert_that(are_equal(explain_v0.5.0, getAnywhere(explain.data.frame)))){
+    getAnywhere(explain.data.frame)
+  } 
+}
+```
 
-### Function Inputs
+### `model_type` helper {#model_type}
 
-The default input settings for the `lime` and `explain` functions in the lime package are described below.
+The *lime* package provides a variety of functions for extracting the model type from the complex model to be explained. These are shown below. Here is information from the package documentation about models supported by *lime*. 
 
-##### `lime` function 
+> Out of the box, lime supports the following model objects:
+>
+> - train from caret
+> - WrappedModel from mlr
+> - xgb.Booster from xgboost
+> - H2OModel from h2o
+> - keras.engine.training.Model from keras
+> - lda from MASS (used for low-dependency examples)
+>
+> If your model is not one of the above you'll need to implement support yourself. If the model has a predict interface mimicking that of predict.train() from caret, it will be enough to wrap your model in as_classifier()/as_regressor() to gain support. Otherwise you'll need need to implement a predict_model() method and potentially a model_type() method (if the latter is omitted the model should be wrapped in as_classifier()/as_regressor(), everytime it is used in lime()).
 
-The default settings for the `lime` function are as follows.
+```{r model type}
+getAnywhere(model_type)
+getAnywhere(model_type.default)
+getAnywhere(model_type.lime_classifier)
+getAnywhere(model_type.lime_regressor)
+getAnywhere(model_type.train)
+getAnywhere(model_type.model_fit)
+getAnywhere(model_type.WrappedModel)
+getAnywhere(model_type.xgb.Booster)
+getAnywhere(model_type.lda)
+getAnywhere(model_type.keras.engine.training.Model)
+getAnywhere(model_type.H2OModel)
+getAnywhere(model_type.ranger)
+```
 
-- `bin_continuous = TRUE`: If set to `TRUE`, the continuous variables will be binned when making the explanations. If they are not binned, then perturbations will be obtained by either simulating using kernel density estimation or a normal distribution depending on what the option of `use_density` is set to. 
-- `bins = 4`: The number of bins to divide the continuous variables into. The default is 4 bins.
-- `quantile_bins = TRUE`: If set to `TRUE`, the bins will be be based on `n_bins` quantiles. Otherwise, the bins will be spread evenly over the range of the training data.
-- `use_density = TRUE`: If `bin_continuous` is set to `FALSE` and this is set to `TRUE`, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.
+### `output_type` helper {#output_type}
 
-##### `explain` function 
+```{r output type}
+getAnywhere(output_type)
+```
 
-For our research project, the number of labels (`n_labels`) for the response variable will be set to 1 and the number of features to include in the explanations (`n_features`) will be set to 2. The default values for the other options are as follows. 
+### `exp_kernel` helper {#exp_kernel}
 
-- `n_permutations = 5000`: The number of perturbations generated for each feature.
-- `feature_select = 'auto'`: This is the feature selection method for choosing the number of features specified. This uses forward selection if $m\le 6$ and otherwise highest weights. The other feature selection options are as follows.
-    - `none`: Use all features for the explanation. Not advised unless you have very few features.
-    - `forward selection`: Features are added one by one based on their improvements to a ridge regression fit of the complex model outcome.
-    - `highest weights`: The m features with highest absolute weight in a ridge regression fit of the complex model outcome are chosen.
-    - `lasso`: The m features that are least prone to shrinkage based on the regularization path of a lasso fit of the complex model outcome is chosen.
-    - `tree`: A tree is fitted with log2(m) splits, to use at max m features. It may possibly select less.
-- `dist_fun = 'gower'`: The distance function to be used for determining how close a perturbation is to the test point.
-- `kernel_width = NULL`: If `dist_fun` is not set to `gower`, then this is the kernel width that will be used in the distance function.
+```{r exp_kernel}
+# Print the exp_kernel function (and check to see if there have been any changes)
+if(!file.exists("../../../data/lime_functions/exp_kernel_v0.5.0.rds")) {
+  saveRDS(object = getAnywhere(exp_kernel),
+          file = "../../../data/lime_functions/exp_kernel_v0.5.0.rds")
+  getAnywhere(exp_kernel)
+} else {
+  exp_kernel_v0.5.0 <- readRDS("../../../data/lime_functions/exp_kernel_v0.5.0.rds")  
+  if(assert_that(are_equal(exp_kernel_v0.5.0, getAnywhere(exp_kernel)))){
+    getAnywhere(exp_kernel)
+  } 
+}
+```
+
+### `permute_cases` helper {#permute_cases}
+
+**Procedure**
+
+1. Compute the number of rows as the number of predictions to be explained times the number of permutations.
+2. Create the perturbations based on the type of variable and using the feature distribution determined by the lime function. The cases are as follows.
+    - numeric variable and the feature distribution contains all NAs: the observed cases get repeated `n_permutations` times
+    - numeric variable and `bin_continuous = TRUE`: 
+    sample from 1:number of bin cuts with replacement for
+    nrows times using the probability from the variable 
+    distribution sample from a uniform(0,1) distribution
+    and then multiply by the difference in bin cuts of
+    the appropriate bin and add the quantile associated
+    with the bin
+    - numeric variable, `bin_continuous = FALSE`, and `use_density = TRUE`: 
+    - numeric variable, `bin_continuous = FALSE`, and `use_density = FALSE`: randomly sample from a normal distribution, multiply by the sd of the feature distribution, and add the mean 
+    - character variable: sample from the names of the levels in the variable based on the probability of the variable distribution
+    - logical variable: 
+    - factor variable: sample from the names of the levels in the variable based on the probability of the variable distribution and convert the samples to factors 
+    - date: 
+    - integer variable: round the permutations to the nearest integer
+3. Give the permutations the same name as the variables
+4. Add the cases back into the data frame of the permutations
+5. Return the permutations.
+  
+```{r}
+if(!file.exists("../../../data/lime_functions/permute_cases_v0.5.0.rds")) {
+  saveRDS(object = getAnywhere(permute_cases.data.frame),
+          file = "../../../data/lime_functions/permute_cases_v0.5.0.rds")
+  getAnywhere(permute_cases.data.frame)
+} else {
+  permute_cases_v0.5.0 <- readRDS("../../../data/lime_functions/permute_cases_v0.5.0.rds")  
+  if(assert_that(are_equal(permute_cases_v0.5.0, getAnywhere(permute_cases.data.frame)))){
+    getAnywhere(permute_cases.data.frame)
+  } 
+}
+```
+
 
 # Python Package
 
