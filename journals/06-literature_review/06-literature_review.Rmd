@@ -88,6 +88,8 @@ Steps:
 
 *Comment: I feel like this will only work well if there is an observation from the other class "close" to the case of interest.*
 
+*Heike metioned that the sampling method they are doing is similar to what an SVM is doing.*
+
 **References to Look Into**
 
 - Craven and Shavlik (1996): show that "increasing the density of instances is beneficial for the surrogate accuracy"

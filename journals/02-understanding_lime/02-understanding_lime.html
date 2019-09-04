@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2019-09-03" />
+<meta name="date" content="2019-09-04" />
 
 <title>Understanding LIME</title>
 
@@ -1545,7 +1545,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Understanding LIME</h1>
 <h4 class="author">Katherine Goode</h4>
-<h4 class="date">September 03, 2019</h4>
+<h4 class="date">September 04, 2019</h4>
 
 </div>
 
@@ -2073,7 +2073,7 @@ if(!file.exists(&quot;../../../data/lime_functions/lime_v0.5.0.rds&quot;)) {
 ##     structure(explainer, class = c(&quot;data_frame_explainer&quot;, &quot;explainer&quot;, 
 ##         &quot;list&quot;))
 ## }
-## &lt;bytecode: 0x7fb9de901738&gt;
+## &lt;bytecode: 0x7f8bcac418d0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="explain-function" class="section level3">
@@ -2218,7 +2218,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ##     }
 ##     as_tibble(res)
 ## }
-## &lt;bytecode: 0x7fb9dc9c7c40&gt;
+## &lt;bytecode: 0x7f8bdf869fc8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="model_type" class="section level3">
@@ -2247,7 +2247,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ## {
 ##     UseMethod(&quot;model_type&quot;)
 ## }
-## &lt;bytecode: 0x7fb9f55d6790&gt;
+## &lt;bytecode: 0x7f8be45fbc08&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.default)</code></pre>
 <pre><code>## A single object matching 'model_type.default' was found
@@ -2261,7 +2261,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ##     stop(&quot;The class of model must have a model_type method. See ?model_type to get an overview of models supported out of the box&quot;, 
 ##         call. = FALSE)
 ## }
-## &lt;bytecode: 0x7fb9f71b5620&gt;
+## &lt;bytecode: 0x7f8be5106008&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.lime_classifier)</code></pre>
 <pre><code>## A single object matching 'model_type.lime_classifier' was found
@@ -2272,7 +2272,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ## 
 ## function (x, ...) 
 ## &quot;classification&quot;
-## &lt;bytecode: 0x7fb9f70e8120&gt;
+## &lt;bytecode: 0x7f8be503cb30&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.lime_regressor)</code></pre>
 <pre><code>## A single object matching 'model_type.lime_regressor' was found
@@ -2283,7 +2283,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ## 
 ## function (x, ...) 
 ## &quot;regression&quot;
-## &lt;bytecode: 0x7fb9f70be2e0&gt;
+## &lt;bytecode: 0x7f8be4f5f348&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.train)</code></pre>
 <pre><code>## A single object matching 'model_type.train' was found
@@ -2296,7 +2296,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ## {
 ##     tolower(x$modelType)
 ## }
-## &lt;bytecode: 0x7fb9f3645800&gt;
+## &lt;bytecode: 0x7f8be4e0c9e0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.model_fit)</code></pre>
 <pre><code>## A single object matching 'model_type.model_fit' was found
@@ -2309,7 +2309,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ## {
 ##     x$spec$mode
 ## }
-## &lt;bytecode: 0x7fb9f35522c8&gt;
+## &lt;bytecode: 0x7f8be4d1d8f8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.WrappedModel)</code></pre>
 <pre><code>## A single object matching 'model_type.WrappedModel' was found
@@ -2323,7 +2323,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ##     switch(x$learner$type, classif = &quot;classification&quot;, regr = &quot;regression&quot;, 
 ##         surv = &quot;survival&quot;, cluster = &quot;clustering&quot;, multilabel = &quot;multilabel&quot;)
 ## }
-## &lt;bytecode: 0x7fb9f6f42820&gt;
+## &lt;bytecode: 0x7f8be47cbe70&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.xgb.Booster)</code></pre>
 <pre><code>## A single object matching 'model_type.xgb.Booster' was found
@@ -2344,7 +2344,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ##         multi = &quot;classification&quot;, stop(&quot;Unsupported model type&quot;, 
 ##             call. = FALSE))
 ## }
-## &lt;bytecode: 0x7fb9f6e1f230&gt;
+## &lt;bytecode: 0x7f8be46a2b68&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.lda)</code></pre>
 <pre><code>## A single object matching 'model_type.lda' was found
@@ -2355,7 +2355,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ## 
 ## function (x, ...) 
 ## &quot;classification&quot;
-## &lt;bytecode: 0x7fb9f6d7dab8&gt;
+## &lt;bytecode: 0x7f8be45290e0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.keras.engine.training.Model)</code></pre>
 <pre><code>## A single object matching 'model_type.keras.engine.training.Model' was found
@@ -2378,7 +2378,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ##         &quot;classification&quot;
 ##     }
 ## }
-## &lt;bytecode: 0x7fb9f6b81658&gt;
+## &lt;bytecode: 0x7f8be432be70&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.H2OModel)</code></pre>
 <pre><code>## A single object matching 'model_type.H2OModel' was found
@@ -2400,7 +2400,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ##         stop(&quot;This h2o model is not currently supported.&quot;)
 ##     }
 ## }
-## &lt;bytecode: 0x7fb9f69b6c80&gt;
+## &lt;bytecode: 0x7f8be3cb23b8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>getAnywhere(model_type.ranger)</code></pre>
 <pre><code>## A single object matching 'model_type.ranger' was found
@@ -2424,7 +2424,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ##             &quot;\&quot; is not currently supported.&quot;))
 ##     }
 ## }
-## &lt;bytecode: 0x7fb9f68dbb28&gt;
+## &lt;bytecode: 0x7f8be3a69a50&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="output_type" class="section level3">
@@ -2441,7 +2441,7 @@ if(!file.exists(&quot;../../../data/lime_functions/explain_v0.5.0.rds&quot;)) {
 ##         stop(model_type(x), &quot; models are not supported yet&quot;, 
 ##             call. = FALSE))
 ## }
-## &lt;bytecode: 0x7fb9f5fd0828&gt;
+## &lt;bytecode: 0x7f8be26564c0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="exp_kernel" class="section level3">
@@ -2466,7 +2466,7 @@ if(!file.exists(&quot;../../../data/lime_functions/exp_kernel_v0.5.0.rds&quot;))
 ## {
 ##     function(x) sqrt(exp(-(x^2)/(width^2)))
 ## }
-## &lt;bytecode: 0x7fb9f5902e48&gt;
+## &lt;bytecode: 0x7f8be30354d0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="permute_cases" class="section level3">
@@ -2558,7 +2558,7 @@ if(!file.exists(&quot;../../../data/lime_functions/exp_kernel_v0.5.0.rds&quot;))
 ##         ] &lt;- cases
 ##     perm
 ## }
-## &lt;bytecode: 0x7fb9f4c45c40&gt;
+## &lt;bytecode: 0x7f8be1bd8fb0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>

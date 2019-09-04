@@ -8,18 +8,8 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
-  - Paper
-      - I reorganized my work into three repos and consolidated the
-        journals
-      - Can you re-explain your vision with the minipage format?
-      - Sometimes LIME doesn’t work on my computer anymore…
-      - Read the locality paper in detail and added to journal
-      - Updated LIME procedure and R package function notes
   - Graphics Group
-      - title and abstract
-      - preview image
-      - email list (should I be added as an admin?)
-      - treats?
+      - email list
 
 ## To Do List
 
@@ -37,6 +27,10 @@ September 10)*
   - code up Laugel et al’s work
   - read through papers giving an overview of the current explanation
     methods
+  - check to see if there a paper showing how ridge regression is
+    affected by sample size changes
+  - try fitting the ridge regression with the observed data only to see
+    how it compares to the model fit with the ridge regression
 
 **Oral Prelim**
 
