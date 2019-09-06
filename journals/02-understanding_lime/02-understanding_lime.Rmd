@@ -115,6 +115,17 @@ func_check <- function(func_name, version){
 }
 ```
 
+In order to run the *lime* functions, here I load the bullet data to apply the code to.
+
+```{r}
+# Load in the bullet training and testing data
+hamby173and252_train <- read.csv("../../../data/hamby173and252_train.csv")
+hamby224_test <- read.csv("../../../data/hamby224_test.csv")
+
+# Obtain features used when fitting the rtrees random forest
+rf_features <- rownames(bulletr::rtrees$importance)
+```
+
 ## Main Functions
 
 ### `lime.data.frame` {.tabset}
@@ -241,6 +252,8 @@ func_check <- function(func_name, version){
 func_check("lime.data.frame", "0.5.0")
 ```
 
+
+
 ### `explain.data.frame` {.tabset}
 
 #### Inputs
@@ -275,7 +288,7 @@ func_check("lime.data.frame", "0.5.0")
 1. Check to make sure that `explainer` is an object output from the `lime` function. 
 
         assertthat::assert_that(is.data_frame_explainer(explainer))
-
+        
 2. Determine the type of the model that is contained within the explainer function (using the [`model_type`](#model_type) function), and determine the type of output that should be produced by `explain` based on the model type (using the [`output_type`](#output_type) function).
 
         m_type <- model_type(explainer)  
@@ -316,7 +329,7 @@ where $w$ is the kernel width.
         case_perm <- permute_cases(x, n_permutations, explainer$feature_distribution, 
           explainer$bin_continuous, explainer$bin_cuts, explainer$use_density)
 
-8. Obtains predictions for all of the permutated data points based on the original model using the [`predict_model`](#predict_model) function. 
+8. Obtains predictions for all of the permutated data points based on the original model using the [`predict_model`](#predict_model) function. Use the function [`set_labels`](#set_labels.)
 
         case_res <- predict_model(explainer$model, 
           explainer$preprocess(case_perm),
@@ -393,6 +406,118 @@ where $w$ is the kernel width.
 # Print the function (and check to see if there have been any changes)
 func_check("explain.data.frame", "0.5.0")
 ```
+
+#### Implementation 
+
+```{r}
+library(randomForest)
+x <- hamby224_test %>% 
+  arrange(case) %>%
+  select(rf_features) %>% 
+  na.omit()
+explainer <- lime:::lime.data.frame(x = hamby173and252_train %>%
+                                      select(rf_features), 
+                                    y = hamby173and252_train %>%
+                                      select(samesource), 
+                                    model = as_classifier(bulletr::rtrees))
+label = TRUE
+n_labels = NULL
+n_features = 3
+n_permutations = 5000
+feature_select = 'auto'
+dist_fun = "gower"
+kernel_width = NULL
+gower_pow = 1
+```
+
+```{r}
+assertthat::assert_that(lime:::is.data_frame_explainer(explainer))
+```
+
+```{r}
+#m_type <- lime:::model_type(explainer)
+o_type <- lime:::output_type(explainer)
+```
+
+```{r}
+assert_that(is.null(labels) + is.null(n_labels) == 1, 
+   msg = "You need to choose between labels and n_labels parameters.")
+```
+
+```{r}
+assert_that(is.count(n_features))
+assert_that(is.count(n_permutations))
+```
+
+```{r}
+if (is.null(kernel_width)) {
+   kernel_width <- sqrt(ncol(x)) * 0.75
+}
+kernel <- lime:::exp_kernel(kernel_width)
+```
+
+```{r}
+case_perm <- lime:::permute_cases.data.frame(x,
+                                             n_permutations,
+                                             explainer$feature_distribution,
+                                             explainer$bin_continuous,
+                                             explainer$bin_cuts,
+                                             explainer$use_density)
+head(case_perm)
+```
+
+```{r}
+case_res <- lime:::predict_model(explainer$model, 
+                                 explainer$preprocess(case_perm),
+                                 type = o_type)
+case_res <- lime:::set_labels(case_res, explainer$model)
+head(case_res)
+```
+
+```{r}
+case_ind <- split(seq_len(nrow(case_perm)), rep(seq_len(nrow(x)), each = n_permutations))
+case_ind[[1]][1:10]
+case_ind[[2]][1:10]
+case_ind[[3]][1:10]
+```
+
+```{r}
+str(seq_along(case_ind))
+```
+
+```{r}
+i <- case_ind[[1]]
+str(i)
+```
+
+```{r}
+if (dist_fun == "gower") {
+  sim <- 1 - (gower_dist(case_perm[i[1], , drop = FALSE], 
+    case_perm[i, , drop = FALSE]))^gower_pow
+}
+str(sim)
+```
+
+```{r}
+perms <- lime:::numerify(case_perm[i, ], 
+                         explainer$feature_type, 
+                         explainer$bin_continuous,
+                         explainer$bin_cuts)
+head(perms)
+```
+
+```{r}
+# error?
+# res <- lime:::model_permutations(as.matrix(perms), 
+#                                  case_res[i, , drop = FALSE], 
+#                                  sim, 
+#                                  labels, 
+#                                  n_labels, 
+#                                  n_features, 
+#                                  feature_select)
+```
+
+
 
 ## Helper Functions
 
@@ -570,7 +695,7 @@ func_check("exp_kernel", "0.5.0")
 
         nrows <- nrow(cases) * n_permutations
 
-2. Create the perturbations based on the type of variable and using the feature distribution determined by the lime function. The cases are as follows.
+2. Create the perturbations based on the type of variable and using the feature distribution determined by the lime function. The cases are as follows. The function does this process one variable at a time where a case represents on variable.
 
         perm <- as.data.frame(lapply(seq_along(cases), function(i) {
 
@@ -637,30 +762,46 @@ func_check("exp_kernel", "0.5.0")
               rep(cases[[i]], each = n_permutations)
             }
 
-    - **integer variable**: round the permutations to the nearest integer
+3. If the variable in the original dataset is an integer, then convert the perturbations to integers.
+
+        if (is.integer(cases[[i]])) {
+          as.integer(round(perms))
+        } else {
+          perms
+        }
     
-            if (is.integer(cases[[i]])) {
-              as.integer(round(perms))
-            }
-    
-    - **other**:
-    
-            } else {
-              perms
-            }
-            }), stringsAsFactors = FALSE)
-    
-3. Give the permutations the same name as the variables
+4. Give the permutations the same name as the variables.
 
         names(perm) <- names(cases)
         
-4. Add the cases back into the data frame of the permutations
+5. Add the cases back into the data frame of the permutations, so that the case of interest gets inserted at the beginning of each set of perturbations.
 
         perm[seq.int(1, by = n_permutations, length.out = nrow(cases)), ] <- cases
         
-5. Return the permutations.
+6. Return the permutations.
 
         perm
+        
+The final `perm` will look like...
+
+| Case | Obs | 
+| ---- | --------- | 
+| 1 | 1st case of interest | 
+| 1 | perturbation 1,1 | 
+| 1 | perturbation 1,2 |
+| ... | ... | 
+| 1 | perturbation 1,m |
+| 2 | 2nd case of interest | 
+| 2 | perturbation 2,1 | 
+| 2 | perturbation 2,2 |
+| ... | ... | 
+| 2 | perturbation 2,m |
+| ... | ... | 
+| n | nth case of interest | 
+| n | perturbation n,1 | 
+| n | perturbation n,2 |
+| ... | ... | 
+| n | perturbation n,m |
   
 #### Function
 
@@ -668,6 +809,71 @@ func_check("exp_kernel", "0.5.0")
 # Print the function (and check to see if there have been any changes)
 func_check("permute_cases.data.frame", "0.5.0")
 ```
+
+#### Implementation 
+
+```{r}
+cases = x
+n_permutations = n_permutations
+feature_distribution = explainer$feature_distribution
+bin_continuous = explainer$bin_continuous
+bin_cuts = explainer$bin_cuts
+use_density = explainer$use_density
+```
+
+```{r}
+nrows <- nrow(cases) * n_permutations
+```
+
+```{r}
+seq <- seq_along(cases)
+seq
+```
+
+```{r}
+i <- seq[1]
+# Case when is.numeric(cases[[i]]) && bin_continuous
+bin <- sample(seq_along(feature_distribution[[i]]), nrows, TRUE,
+              as.numeric(feature_distribution[[i]]))
+head(bin)
+perms <- diff(bin_cuts[[i]])[bin] * runif(nrows) + bin_cuts[[i]][bin]
+head(perms)
+```
+
+```{r}
+if (is.integer(cases[[i]])) {
+    perms <- as.integer(round(perms))
+  } else {
+    perms <- perms
+  }
+head(perms)
+```
+
+```{r}
+perm <- as.data.frame(lapply(seq_along(cases), function(i) {
+         perms <- if (is.numeric(cases[[i]]) && bin_continuous) {
+             bin <- sample(seq_along(feature_distribution[[i]]), 
+                 nrows, TRUE, as.numeric(feature_distribution[[i]]))
+             diff(bin_cuts[[i]])[bin] * runif(nrows) + bin_cuts[[i]][bin]
+         }
+         if (is.integer(cases[[i]])) {
+             as.integer(round(perms))
+         }
+         else {
+             perms
+         }
+}), stringsAsFactors = FALSE)
+names(perm) <- names(cases)
+head(perm)
+```
+
+```{r}
+# The first row gets replaced with the case of interest for each set of perturbations
+perm[seq.int(1, by = n_permutations, length.out = nrow(cases)), ] <- cases
+head(perm)
+```
+
+
 
 ### `predict_model` {#predict_model .tabset}
 
@@ -814,6 +1020,21 @@ func_check("predict_model.lda", "0.5.0")
 func_check("predict_model.keras.engine.training.Model", "0.5.0")
 func_check("predict_model.H2OModel", "0.5.0")
 func_check("predict_model.ranger", "0.5.0")
+```
+
+
+### `set_labels` {#set_labels .tabset}
+
+#### Inputs
+
+- `res` = the predictions (`case_res`)
+- `model` = `explainer$model`
+
+#### Function 
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("set_labels", "0.5.0")
 ```
 
 ### `numerify` {#numerify .tabset}
@@ -1069,6 +1290,7 @@ func_check("select_tree", "0.5.0")
 # Print the function (and check to see if there have been any changes)
 func_check("describe_feature", "0.5.0")
 ```
+
 
 
 # Python Package

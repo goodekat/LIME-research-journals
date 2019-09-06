@@ -11,6 +11,10 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
   - Graphics Group
       - email list
       - what should we do about gganimate/Halloween?
+  - LIME
+      - I made a mistake when I told you that the full test dataset gets
+        included in the ridge regression model (only the case of
+        interest in included)
 
 ## To Do List
 
@@ -19,13 +23,11 @@ September 10)*
 
 **Current**
 
-  - code up Laugel et al’s work
+  - finish going through code with the explain function
+  - write procedure section of LIME paper
+  - draft the rest of the paper
   - read through papers giving an overview of the current explanation
     methods
-  - check to see if there a paper showing how ridge regression is
-    affected by sample size changes
-  - try fitting the ridge regression with the observed data only to see
-    how it compares to the model fit with the ridge regression
 
 **Oral Prelim**
 

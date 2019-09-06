@@ -1724,6 +1724,13 @@ func_check &lt;- function(func_name, version){
   getAnywhere(func_name)
 
 }</code></pre>
+<p>In order to run the <em>lime</em> functions, here I load the bullet data to apply the code to.</p>
+<pre class="r"><code># Load in the bullet training and testing data
+hamby173and252_train &lt;- read.csv(&quot;../../../data/hamby173and252_train.csv&quot;)
+hamby224_test &lt;- read.csv(&quot;../../../data/hamby224_test.csv&quot;)
+
+# Obtain features used when fitting the rtrees random forest
+rf_features &lt;- rownames(bulletr::rtrees$importance)</code></pre>
 <div id="main-functions" class="section level2">
 <h2>Main Functions</h2>
 <div id="lime.data.frame" class="section level3 tabset">
@@ -1919,7 +1926,7 @@ func_check(&quot;lime.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     structure(explainer, class = c(&quot;data_frame_explainer&quot;, &quot;explainer&quot;, 
 ##         &quot;list&quot;))
 ## }
-## &lt;bytecode: 0x7f8abcb890d0&gt;
+## &lt;bytecode: 0x7fa889286fb8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -1979,7 +1986,7 @@ func_check(&quot;lime.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 <li><p>Makes use of the <a href="#permute_cases"><code>permute_cases</code></a> function for data frames in the lime package. This is the function that creates the perturbations. One perturbation is created for each of the <code>n_permuations</code> specified.</p>
 <pre><code> case_perm &lt;- permute_cases(x, n_permutations, explainer$feature_distribution, 
    explainer$bin_continuous, explainer$bin_cuts, explainer$use_density)</code></pre></li>
-<li><p>Obtains predictions for all of the permutated data points based on the original model using the <a href="#predict_model"><code>predict_model</code></a> function.</p>
+<li><p>Obtains predictions for all of the permutated data points based on the original model using the <a href="#predict_model"><code>predict_model</code></a> function. Use the function <a href="#set_labels."><code>set_labels</code></a></p>
 <pre><code> case_res &lt;- predict_model(explainer$model, 
    explainer$preprocess(case_perm),
    type = o_type, ...)
@@ -2108,8 +2115,115 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     as_tibble(res)
 ## }
-## &lt;bytecode: 0x7f8abf124778&gt;
+## &lt;bytecode: 0x7fa888526908&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
+</div>
+<div id="implementation" class="section level4">
+<h4>Implementation</h4>
+<pre class="r"><code>library(randomForest)
+x &lt;- hamby224_test %&gt;% 
+  arrange(case) %&gt;%
+  select(rf_features) %&gt;% 
+  na.omit()
+explainer &lt;- lime:::lime.data.frame(x = hamby173and252_train %&gt;%
+                                      select(rf_features), 
+                                    y = hamby173and252_train %&gt;%
+                                      select(samesource), 
+                                    model = as_classifier(bulletr::rtrees))
+label = TRUE
+n_labels = NULL
+n_features = 3
+n_permutations = 5000
+feature_select = 'auto'
+dist_fun = &quot;gower&quot;
+kernel_width = NULL
+gower_pow = 1</code></pre>
+<pre class="r"><code>assertthat::assert_that(lime:::is.data_frame_explainer(explainer))</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>#m_type &lt;- lime:::model_type(explainer)
+o_type &lt;- lime:::output_type(explainer)</code></pre>
+<pre class="r"><code>assert_that(is.null(labels) + is.null(n_labels) == 1, 
+   msg = &quot;You need to choose between labels and n_labels parameters.&quot;)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>assert_that(is.count(n_features))</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>assert_that(is.count(n_permutations))</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>if (is.null(kernel_width)) {
+   kernel_width &lt;- sqrt(ncol(x)) * 0.75
+}
+kernel &lt;- lime:::exp_kernel(kernel_width)</code></pre>
+<pre class="r"><code>case_perm &lt;- lime:::permute_cases.data.frame(x,
+                                             n_permutations,
+                                             explainer$feature_distribution,
+                                             explainer$bin_continuous,
+                                             explainer$bin_cuts,
+                                             explainer$use_density)
+head(case_perm)</code></pre>
+<pre><code>##          ccf   rough_cor           D        sd_D   matches mismatches
+## 1 0.27042215  0.27042215 0.001396367 0.002090586 0.5901742   7.616146
+## 2 0.25629595  0.03288261 0.636209241 2.480271119 2.2899027   9.571508
+## 3 0.02469511 -0.82138221 2.953549187 2.376090178 1.4420535   8.232214
+## 4 0.08799437  0.32894840 6.887359299 2.647925635 1.1819870   7.089619
+## 5 0.08009229 -0.02124871 1.676305784 2.867841775 2.7072053   9.873614
+## 6 0.26600217 -0.17786152 3.317082221 5.685277716 8.4659459  31.373740
+##         cms   non_cms sum_peaks
+## 1 0.5901742 3.8080731  1.463209
+## 2 1.1273476 0.4725334  1.193346
+## 3 9.7905182 3.5131781  4.003451
+## 4 1.6886496 9.5455989 17.357165
+## 5 2.8142190 5.6152620 21.645066
+## 6 0.3399310 0.6731026 13.193366</code></pre>
+<pre class="r"><code>case_res &lt;- lime:::predict_model(explainer$model, 
+                                 explainer$preprocess(case_perm),
+                                 type = o_type)
+case_res &lt;- lime:::set_labels(case_res, explainer$model)
+head(case_res)</code></pre>
+<pre><code>##       FALSE      TRUE
+## 1 1.0000000 0.0000000
+## 2 0.7600000 0.2400000
+## 3 0.7666667 0.2333333
+## 4 0.7566667 0.2433333
+## 5 0.8333333 0.1666667
+## 6 0.7366667 0.2633333</code></pre>
+<pre class="r"><code>case_ind &lt;- split(seq_len(nrow(case_perm)), rep(seq_len(nrow(x)), each = n_permutations))
+case_ind[[1]][1:10]</code></pre>
+<pre><code>##  [1]  1  2  3  4  5  6  7  8  9 10</code></pre>
+<pre class="r"><code>case_ind[[2]][1:10]</code></pre>
+<pre><code>##  [1] 5001 5002 5003 5004 5005 5006 5007 5008 5009 5010</code></pre>
+<pre class="r"><code>case_ind[[3]][1:10]</code></pre>
+<pre><code>##  [1] 10001 10002 10003 10004 10005 10006 10007 10008 10009 10010</code></pre>
+<pre class="r"><code>str(seq_along(case_ind))</code></pre>
+<pre><code>##  int [1:364] 1 2 3 4 5 6 7 8 9 10 ...</code></pre>
+<pre class="r"><code>i &lt;- case_ind[[1]]
+str(i)</code></pre>
+<pre><code>##  int [1:5000] 1 2 3 4 5 6 7 8 9 10 ...</code></pre>
+<pre class="r"><code>if (dist_fun == &quot;gower&quot;) {
+  sim &lt;- 1 - (gower_dist(case_perm[i[1], , drop = FALSE], 
+    case_perm[i, , drop = FALSE]))^gower_pow
+}
+str(sim)</code></pre>
+<pre><code>##  num [1:5000] 1 0.91 0.767 0.798 0.779 ...</code></pre>
+<pre class="r"><code>perms &lt;- lime:::numerify(case_perm[i, ], 
+                         explainer$feature_type, 
+                         explainer$bin_continuous,
+                         explainer$bin_cuts)
+head(perms)</code></pre>
+<pre><code>##   ccf rough_cor D sd_D matches mismatches cms non_cms sum_peaks
+## 1   1         1 1    1       1          1   1       1         1
+## 2   1         0 1    0       0          0   0       0         1
+## 3   0         0 0    0       0          0   0       0         0
+## 4   0         1 0    0       1          1   0       0         0
+## 5   0         0 1    0       0          0   0       0         0
+## 6   1         0 0    0       0          0   1       0         0</code></pre>
+<pre class="r"><code># error?
+# res &lt;- lime:::model_permutations(as.matrix(perms), 
+#                                  case_res[i, , drop = FALSE], 
+#                                  sim, 
+#                                  labels, 
+#                                  n_labels, 
+#                                  n_features, 
+#                                  feature_select)</code></pre>
 </div>
 </div>
 </div>
@@ -2206,7 +2320,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ## {
 ##     UseMethod(&quot;model_type&quot;)
 ## }
-## &lt;bytecode: 0x7f8abe174e60&gt;
+## &lt;bytecode: 0x7fa89eb7fcf8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type' was found
@@ -2219,7 +2333,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ## {
 ##     UseMethod(&quot;model_type&quot;)
 ## }
-## &lt;bytecode: 0x7f8abe174e60&gt;
+## &lt;bytecode: 0x7fa89eb7fcf8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.default&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.default' was found
@@ -2233,7 +2347,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     stop(&quot;The class of model must have a model_type method. See ?model_type to get an overview of models supported out of the box&quot;, 
 ##         call. = FALSE)
 ## }
-## &lt;bytecode: 0x7f8abe63ac68&gt;
+## &lt;bytecode: 0x7fa8a2e71c08&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.lime_classifier&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.lime_classifier' was found
@@ -2244,7 +2358,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ## 
 ## function (x, ...) 
 ## &quot;classification&quot;
-## &lt;bytecode: 0x7f8abe413a08&gt;
+## &lt;bytecode: 0x7fa888b2e628&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.lime_regressor&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.lime_regressor' was found
@@ -2255,7 +2369,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ## 
 ## function (x, ...) 
 ## &quot;regression&quot;
-## &lt;bytecode: 0x7f8abe1903e0&gt;
+## &lt;bytecode: 0x7fa8a2a17540&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.train&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.train' was found
@@ -2268,7 +2382,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ## {
 ##     tolower(x$modelType)
 ## }
-## &lt;bytecode: 0x7f8abebb0350&gt;
+## &lt;bytecode: 0x7fa8a2939968&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.model_fit&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.model_fit' was found
@@ -2281,7 +2395,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ## {
 ##     x$spec$mode
 ## }
-## &lt;bytecode: 0x7f8abf831118&gt;
+## &lt;bytecode: 0x7fa8a0e22660&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.WrappedModel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.WrappedModel' was found
@@ -2295,7 +2409,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     switch(x$learner$type, classif = &quot;classification&quot;, regr = &quot;regression&quot;, 
 ##         surv = &quot;survival&quot;, cluster = &quot;clustering&quot;, multilabel = &quot;multilabel&quot;)
 ## }
-## &lt;bytecode: 0x7f8abf25d888&gt;
+## &lt;bytecode: 0x7fa8a0c4f268&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.xgb.Booster&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.xgb.Booster' was found
@@ -2316,7 +2430,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         multi = &quot;classification&quot;, stop(&quot;Unsupported model type&quot;, 
 ##             call. = FALSE))
 ## }
-## &lt;bytecode: 0x7f8abe8f1af0&gt;
+## &lt;bytecode: 0x7fa8a0afc350&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.lda&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.lda' was found
@@ -2327,7 +2441,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ## 
 ## function (x, ...) 
 ## &quot;classification&quot;
-## &lt;bytecode: 0x7f8abf090fc8&gt;
+## &lt;bytecode: 0x7fa8a1bf3220&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.keras.engine.training.Model&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.keras.engine.training.Model' was found
@@ -2350,7 +2464,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         &quot;classification&quot;
 ##     }
 ## }
-## &lt;bytecode: 0x7f8abc6f3400&gt;
+## &lt;bytecode: 0x7fa8a19dd290&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.H2OModel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.H2OModel' was found
@@ -2372,7 +2486,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         stop(&quot;This h2o model is not currently supported.&quot;)
 ##     }
 ## }
-## &lt;bytecode: 0x7f8abe828040&gt;
+## &lt;bytecode: 0x7fa8a21b1888&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.ranger&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.ranger' was found
@@ -2396,7 +2510,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##             &quot;\&quot; is not currently supported.&quot;))
 ##     }
 ## }
-## &lt;bytecode: 0x7f8abdfa7198&gt;
+## &lt;bytecode: 0x7fa8a03fc610&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -2433,7 +2547,7 @@ func_check(&quot;output_type&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         stop(model_type(x), &quot; models are not supported yet&quot;, 
 ##             call. = FALSE))
 ## }
-## &lt;bytecode: 0x7f8abcb3b458&gt;
+## &lt;bytecode: 0x7fa888b30938&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -2465,7 +2579,7 @@ func_check(&quot;exp_kernel&quot;, &quot;0.5.0&quot;)</code></pre>
 ## {
 ##     function(x) sqrt(exp(-(x^2)/(width^2)))
 ## }
-## &lt;bytecode: 0x7f8abbf31338&gt;
+## &lt;bytecode: 0x7fa8a38cc388&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -2487,7 +2601,7 @@ func_check(&quot;exp_kernel&quot;, &quot;0.5.0&quot;)</code></pre>
 <ol style="list-style-type: decimal">
 <li><p>Compute the number of rows as the number of predictions to be explained times the number of permutations.</p>
 <pre><code> nrows &lt;- nrow(cases) * n_permutations</code></pre></li>
-<li><p>Create the perturbations based on the type of variable and using the feature distribution determined by the lime function. The cases are as follows.</p>
+<li><p>Create the perturbations based on the type of variable and using the feature distribution determined by the lime function. The cases are as follows. The function does this process one variable at a time where a case represents on variable.</p>
 <pre><code> perm &lt;- as.data.frame(lapply(seq_along(cases), function(i) {</code></pre>
 <ul>
 <li><p><strong>numeric variable and feature distribution contains all NAs</strong>: the observed cases get repeated <code>n_permutations</code> times</p>
@@ -2531,23 +2645,95 @@ func_check(&quot;exp_kernel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>  else if (inherits(cases[[i]], &quot;Date&quot;) || inherits(cases[[i]], &quot;POSIXt&quot;)) {
     rep(cases[[i]], each = n_permutations)
   }</code></pre></li>
-<li><p><strong>integer variable</strong>: round the permutations to the nearest integer</p>
-<pre><code>  if (is.integer(cases[[i]])) {
-    as.integer(round(perms))
-  }</code></pre></li>
-<li><p><strong>other</strong>:</p>
-<pre><code>  } else {
-    perms
-  }
-  }), stringsAsFactors = FALSE)</code></pre></li>
 </ul></li>
-<li><p>Give the permutations the same name as the variables</p>
+<li><p>If the variable in the original dataset is an integer, then convert the perturbations to integers.</p>
+<pre><code> if (is.integer(cases[[i]])) {
+   as.integer(round(perms))
+ } else {
+   perms
+ }</code></pre></li>
+<li><p>Give the permutations the same name as the variables.</p>
 <pre><code> names(perm) &lt;- names(cases)</code></pre></li>
-<li><p>Add the cases back into the data frame of the permutations</p>
+<li><p>Add the cases back into the data frame of the permutations, so that the case of interest gets inserted at the beginning of each set of perturbations.</p>
 <pre><code> perm[seq.int(1, by = n_permutations, length.out = nrow(cases)), ] &lt;- cases</code></pre></li>
 <li><p>Return the permutations.</p>
 <pre><code> perm</code></pre></li>
 </ol>
+<p>The final <code>perm</code> will look like…</p>
+<table>
+<thead>
+<tr class="header">
+<th>Case</th>
+<th>Obs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>1st case of interest</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>perturbation 1,1</td>
+</tr>
+<tr class="odd">
+<td>1</td>
+<td>perturbation 1,2</td>
+</tr>
+<tr class="even">
+<td>…</td>
+<td>…</td>
+</tr>
+<tr class="odd">
+<td>1</td>
+<td>perturbation 1,m</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>2nd case of interest</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>perturbation 2,1</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>perturbation 2,2</td>
+</tr>
+<tr class="odd">
+<td>…</td>
+<td>…</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>perturbation 2,m</td>
+</tr>
+<tr class="odd">
+<td>…</td>
+<td>…</td>
+</tr>
+<tr class="even">
+<td>n</td>
+<td>nth case of interest</td>
+</tr>
+<tr class="odd">
+<td>n</td>
+<td>perturbation n,1</td>
+</tr>
+<tr class="even">
+<td>n</td>
+<td>perturbation n,2</td>
+</tr>
+<tr class="odd">
+<td>…</td>
+<td>…</td>
+</tr>
+<tr class="even">
+<td>n</td>
+<td>perturbation n,m</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="function-5" class="section level4">
 <h4>Function</h4>
@@ -2611,8 +2797,85 @@ func_check(&quot;permute_cases.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         ] &lt;- cases
 ##     perm
 ## }
-## &lt;bytecode: 0x7f8aba53f528&gt;
+## &lt;bytecode: 0x7fa8a3277700&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
+</div>
+<div id="implementation-1" class="section level4">
+<h4>Implementation</h4>
+<pre class="r"><code>cases = x
+n_permutations = n_permutations
+feature_distribution = explainer$feature_distribution
+bin_continuous = explainer$bin_continuous
+bin_cuts = explainer$bin_cuts
+use_density = explainer$use_density</code></pre>
+<pre class="r"><code>nrows &lt;- nrow(cases) * n_permutations</code></pre>
+<pre class="r"><code>seq &lt;- seq_along(cases)
+seq</code></pre>
+<pre><code>## [1] 1 2 3 4 5 6 7 8 9</code></pre>
+<pre class="r"><code>i &lt;- seq[1]
+# Case when is.numeric(cases[[i]]) &amp;&amp; bin_continuous
+bin &lt;- sample(seq_along(feature_distribution[[i]]), nrows, TRUE,
+              as.numeric(feature_distribution[[i]]))
+head(bin)</code></pre>
+<pre><code>## [1] 1 3 2 4 2 4</code></pre>
+<pre class="r"><code>perms &lt;- diff(bin_cuts[[i]])[bin] * runif(nrows) + bin_cuts[[i]][bin]
+head(perms)</code></pre>
+<pre><code>##        25%        75%        50%       100%        50%       100% 
+## 0.02789014 0.34690599 0.21277094 0.86043400 0.22728322 0.83378292</code></pre>
+<pre class="r"><code>if (is.integer(cases[[i]])) {
+    perms &lt;- as.integer(round(perms))
+  } else {
+    perms &lt;- perms
+  }
+head(perms)</code></pre>
+<pre><code>##        25%        75%        50%       100%        50%       100% 
+## 0.02789014 0.34690599 0.21277094 0.86043400 0.22728322 0.83378292</code></pre>
+<pre class="r"><code>perm &lt;- as.data.frame(lapply(seq_along(cases), function(i) {
+         perms &lt;- if (is.numeric(cases[[i]]) &amp;&amp; bin_continuous) {
+             bin &lt;- sample(seq_along(feature_distribution[[i]]), 
+                 nrows, TRUE, as.numeric(feature_distribution[[i]]))
+             diff(bin_cuts[[i]])[bin] * runif(nrows) + bin_cuts[[i]][bin]
+         }
+         if (is.integer(cases[[i]])) {
+             as.integer(round(perms))
+         }
+         else {
+             perms
+         }
+}), stringsAsFactors = FALSE)
+names(perm) &lt;- names(cases)
+head(perm)</code></pre>
+<pre><code>##         ccf    rough_cor         D     sd_D    matches mismatches
+## 1 0.3913449 -0.116931417  9.558611 2.431972  1.4107695   9.406222
+## 2 0.5209583 -0.165157308  2.753388 6.733205  0.5408805  23.383406
+## 3 0.3051695 -0.041703622  2.141970 5.794839 17.6233621  10.238466
+## 4 0.2433760 -0.018593396  2.011024 2.702710  3.1076160   5.547853
+## 5 0.4364410  0.332341975  3.667409 3.135142  1.4770039   8.566570
+## 6 0.4617406  0.001290501 19.151831 2.664355  1.4010572  32.629903
+##          cms   non_cms  sum_peaks
+## 1  0.2735577  4.531094  3.9295168
+## 2  0.2901248  5.532699  0.9265665
+## 3 11.1745836  4.171199 17.9936141
+## 4  0.7232061  6.473365  2.5583506
+## 5  1.4907840  3.936662 14.3802184
+## 6  5.0399987 25.942791 11.1507563</code></pre>
+<pre class="r"><code># The first row gets replaced with the case of interest for each set of perturbations
+perm[seq.int(1, by = n_permutations, length.out = nrow(cases)), ] &lt;- cases
+head(perm)</code></pre>
+<pre><code>##         ccf    rough_cor            D        sd_D    matches mismatches
+## 1 0.2704221  0.270422149  0.001396367 0.002090586  0.5901742   7.616146
+## 2 0.5209583 -0.165157308  2.753388417 6.733204662  0.5408805  23.383406
+## 3 0.3051695 -0.041703622  2.141969865 5.794838601 17.6233621  10.238466
+## 4 0.2433760 -0.018593396  2.011024168 2.702709842  3.1076160   5.547853
+## 5 0.4364410  0.332341975  3.667408503 3.135142237  1.4770039   8.566570
+## 6 0.4617406  0.001290501 19.151830669 2.664354709  1.4010572  32.629903
+##          cms   non_cms  sum_peaks
+## 1  0.5901742  3.808073  1.4632093
+## 2  0.2901248  5.532699  0.9265665
+## 3 11.1745836  4.171199 17.9936141
+## 4  0.7232061  6.473365  2.5583506
+## 5  1.4907840  3.936662 14.3802184
+## 6  5.0399987 25.942791 11.1507563</code></pre>
 </div>
 </div>
 <div id="predict_model" class="section level3 tabset">
@@ -2751,7 +3014,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ## {
 ##     UseMethod(&quot;predict_model&quot;)
 ## }
-## &lt;bytecode: 0x7f8abe191d50&gt;
+## &lt;bytecode: 0x7fa89e5fa630&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.default&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.default' was found
@@ -2767,7 +3030,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         p &lt;- data.frame(Response = p, stringsAsFactors = FALSE)
 ##     as.data.frame(p)
 ## }
-## &lt;bytecode: 0x7f8ac011c600&gt;
+## &lt;bytecode: 0x7fa888c17a10&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.model_fit&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.model_fit' was found
@@ -2789,7 +3052,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     p
 ## }
-## &lt;bytecode: 0x7f8abf6d0af0&gt;
+## &lt;bytecode: 0x7fa8883695d8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.WrappedModel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.WrappedModel' was found
@@ -2809,7 +3072,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         p$task.desc$class.levels), stop(&quot;Type must be either \&quot;raw\&quot; or \&quot;prob\&quot;&quot;, 
 ##         call. = FALSE))
 ## }
-## &lt;bytecode: 0x7f8abf7921c8&gt;
+## &lt;bytecode: 0x7fa887983808&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.xgb.Booster&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.xgb.Booster' was found
@@ -2842,7 +3105,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     p
 ## }
-## &lt;bytecode: 0x7f8abfbd1638&gt;
+## &lt;bytecode: 0x7fa889054ae8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.lda&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.lda' was found
@@ -2857,7 +3120,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     switch(type, raw = data.frame(Response = res$class, stringsAsFactors = FALSE), 
 ##         prob = as.data.frame(res$posterior, check.names = FALSE))
 ## }
-## &lt;bytecode: 0x7f8ac182f040&gt;
+## &lt;bytecode: 0x7fa888d9d480&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.keras.engine.training.Model&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.keras.engine.training.Model' was found
@@ -2883,7 +3146,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         as.data.frame(res, check.names = FALSE)
 ##     }
 ## }
-## &lt;bytecode: 0x7f8ac039e2b8&gt;
+## &lt;bytecode: 0x7fa888a6b570&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.H2OModel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.H2OModel' was found
@@ -2911,7 +3174,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         stop(&quot;This h2o model is not currently supported.&quot;)
 ##     }
 ## }
-## &lt;bytecode: 0x7f8ac043a4b0&gt;
+## &lt;bytecode: 0x7fa8a4276e30&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.ranger&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.ranger' was found
@@ -2939,13 +3202,48 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     switch(type, raw = data.frame(Response = res), prob = as.data.frame(res))
 ## }
-## &lt;bytecode: 0x7f8ac04d1240&gt;
+## &lt;bytecode: 0x7fa8a3db6c80&gt;
+## &lt;environment: namespace:lime&gt;</code></pre>
+</div>
+</div>
+<div id="set_labels" class="section level3 tabset">
+<h3><code>set_labels</code></h3>
+<div id="inputs-7" class="section level4">
+<h4>Inputs</h4>
+<ul>
+<li><code>res</code> = the predictions (<code>case_res</code>)</li>
+<li><code>model</code> = <code>explainer$model</code></li>
+</ul>
+</div>
+<div id="function-7" class="section level4">
+<h4>Function</h4>
+<pre class="r"><code># Print the function (and check to see if there have been any changes)
+func_check(&quot;set_labels&quot;, &quot;0.5.0&quot;)</code></pre>
+<pre><code>## A single object matching 'set_labels' was found
+## It was found in the following places
+##   namespace:lime
+## with value
+## 
+## function (res, model) 
+## {
+##     labels &lt;- attr(model, &quot;lime_labels&quot;)
+##     if (model_type(model) == &quot;classification&quot; &amp;&amp; !is.null(labels)) {
+##         if (length(labels) != ncol(res)) {
+##             warning(&quot;Ignoring provided class labels as length differs from model output&quot;)
+##         }
+##         else {
+##             names(res) &lt;- labels
+##         }
+##     }
+##     res
+## }
+## &lt;bytecode: 0x7fa88887dc08&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
 <div id="numerify" class="section level3 tabset">
 <h3><code>numerify</code></h3>
-<div id="inputs-7" class="section level4">
+<div id="inputs-8" class="section level4">
 <h4>Inputs</h4>
 <ul>
 <li><code>x</code>: object <code>case_perm</code> with the perturbed values</li>
@@ -2979,7 +3277,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
  }), stringsAsFactors = FALSE), names(x))</code></pre></li>
 </ol>
 </div>
-<div id="function-7" class="section level4">
+<div id="function-8" class="section level4">
 <h4>Function</h4>
 <pre class="r"><code># Print the function (and check to see if there have been any changes)
 func_check(&quot;numerify&quot;, &quot;0.5.0&quot;)</code></pre>
@@ -3011,13 +3309,13 @@ func_check(&quot;numerify&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         }
 ##     }), stringsAsFactors = FALSE), names(x))
 ## }
-## &lt;bytecode: 0x7f8ac1b4d8f8&gt;
+## &lt;bytecode: 0x7fa88790fe68&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
 <div id="feature_scale" class="section level3 tabset">
 <h3><code>feature_scale</code></h3>
-<div id="inputs-8" class="section level4">
+<div id="inputs-9" class="section level4">
 <h4>Inputs</h4>
 <ul>
 <li><code>x</code> = <code>perms</code></li>
@@ -3030,7 +3328,7 @@ func_check(&quot;numerify&quot;, &quot;0.5.0&quot;)</code></pre>
 <h4>Procedure</h4>
 <p>Scales the distribuiton of the numeric permutions if bin_continuous was set to FALSE.</p>
 </div>
-<div id="function-8" class="section level4">
+<div id="function-9" class="section level4">
 <h4>Function</h4>
 <pre class="r"><code># Print the function (and check to see if there have been any changes)
 func_check(&quot;feature_scale&quot;, &quot;0.5.0&quot;)</code></pre>
@@ -3050,13 +3348,13 @@ func_check(&quot;feature_scale&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         }
 ##     }), stringsAsFactors = FALSE), names(x))
 ## }
-## &lt;bytecode: 0x7f8ac1c0a140&gt;
+## &lt;bytecode: 0x7fa8a1d2e0c8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
 <div id="model_permutations" class="section level3 tabset">
 <h3><code>model_permutations</code></h3>
-<div id="inputs-9" class="section level4">
+<div id="inputs-10" class="section level4">
 <h4>Inputs</h4>
 <ul>
 <li><code>x</code>: the <code>as.matrix(perms)</code> object with the perturbations</li>
@@ -3126,7 +3424,7 @@ func_check(&quot;feature_scale&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>do.call(rbind, res)</code></pre></li>
 </ol>
 </div>
-<div id="function-9" class="section level4">
+<div id="function-10" class="section level4">
 <h4>Function</h4>
 <pre class="r"><code># Print the function (and check to see if there have been any changes)
 func_check(&quot;model_permutations&quot;, &quot;0.5.0&quot;)</code></pre>
@@ -3181,13 +3479,13 @@ func_check(&quot;model_permutations&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     })
 ##     do.call(rbind, res)
 ## }
-## &lt;bytecode: 0x7f8abfd8f920&gt;
+## &lt;bytecode: 0x7fa8a0d4e7e8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
 <div id="select_features" class="section level3 tabset">
 <h3><code>select_features</code></h3>
-<div id="inputs-10" class="section level4">
+<div id="inputs-11" class="section level4">
 <h4>Inputs</h4>
 <ul>
 <li><code>method</code>: <code>feature_method</code></li>
@@ -3219,7 +3517,7 @@ func_check(&quot;model_permutations&quot;, &quot;0.5.0&quot;)</code></pre>
       stop(&quot;Method not implemented&quot;, call. = FALSE)
     )</code></pre>
 </div>
-<div id="function-10" class="section level4">
+<div id="function-11" class="section level4">
 <h4>Function</h4>
 <pre class="r"><code># Print the function (and check to see if there have been any changes)
 func_check(&quot;select_features&quot;, &quot;0.5.0&quot;)</code></pre>
@@ -3244,7 +3542,7 @@ func_check(&quot;select_features&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         y, weights, n_features), tree = select_tree(x, y, weights, 
 ##         n_features), stop(&quot;Method not implemented&quot;, call. = FALSE))
 ## }
-## &lt;bytecode: 0x7f8ac07945c0&gt;
+## &lt;bytecode: 0x7fa8a0a36190&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;feature_selection_method&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'feature_selection_method' was found
@@ -3255,7 +3553,7 @@ func_check(&quot;select_features&quot;, &quot;0.5.0&quot;)</code></pre>
 ## function () 
 ## c(&quot;auto&quot;, &quot;none&quot;, &quot;forward_selection&quot;, &quot;highest_weights&quot;, &quot;lasso_path&quot;, 
 ##     &quot;tree&quot;)
-## &lt;bytecode: 0x7f8ac2013770&gt;
+## &lt;bytecode: 0x7fa8a1bbaae8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3313,7 +3611,7 @@ func_check(&quot;select_f_fs&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     features
 ## }
-## &lt;bytecode: 0x7f8ac15165a0&gt;
+## &lt;bytecode: 0x7fa8a2232810&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="select_f_hw" class="section level4">
@@ -3334,7 +3632,7 @@ func_check(&quot;select_f_hw&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     features_order &lt;- order(abs(features), decreasing = TRUE)
 ##     head(features_order, n_features)
 ## }
-## &lt;bytecode: 0x7f8ab891c840&gt;
+## &lt;bytecode: 0x7fa8a02fb500&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="select_f_lp" class="section level4">
@@ -3357,7 +3655,7 @@ func_check(&quot;select_f_lp&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     features &lt;- which(has_value[, row])
 ##     features
 ## }
-## &lt;bytecode: 0x7f8ab7b9c8e8&gt;
+## &lt;bytecode: 0x7fa8a1664df0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="select_tree" class="section level4">
@@ -3387,13 +3685,13 @@ func_check(&quot;select_tree&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     selected_words &lt;- head(dt[[&quot;Feature&quot;]], n_features)
 ##     which(colnames(mat) %in% selected_words)
 ## }
-## &lt;bytecode: 0x7f8ac1e03550&gt;
+## &lt;bytecode: 0x7fa8a125e0d8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
 <div id="describe_feature" class="section level3 tabset">
 <h3><code>describe_feature</code></h3>
-<div id="inputs-11" class="section level4">
+<div id="inputs-12" class="section level4">
 <h4>Inputs</h4>
 <ul>
 <li><code>feature</code> = <code>res$feature</code></li>
@@ -3403,7 +3701,7 @@ func_check(&quot;select_tree&quot;, &quot;0.5.0&quot;)</code></pre>
 <li><code>bin_cuts</code> = <code>explainer$bin_cuts</code></li>
 </ul>
 </div>
-<div id="function-11" class="section level4">
+<div id="function-12" class="section level4">
 <h4>Function</h4>
 <pre class="r"><code># Print the function (and check to see if there have been any changes)
 func_check(&quot;describe_feature&quot;, &quot;0.5.0&quot;)</code></pre>
@@ -3444,7 +3742,7 @@ func_check(&quot;describe_feature&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         }
 ##     })
 ## }
-## &lt;bytecode: 0x7f8ac22ead30&gt;
+## &lt;bytecode: 0x7fa89f1a2f58&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3786,26 +4084,45 @@ treebink(y = hamby173and252_train$samesource, x = hamby173and252_train$ccf, k = 
 ## [19] ggplot2_3.2.1       assertthat_0.2.1   
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] Rcpp_1.0.2        lubridate_1.7.4   lattice_0.20-38  
-##  [4] listenv_0.7.0     zeallot_0.1.0     digest_0.6.20    
-##  [7] mime_0.7          cellranger_1.1.0  R6_2.4.0         
-## [10] backports_1.1.4   evaluate_0.14     httr_1.4.1       
-## [13] pillar_1.4.2      rlang_0.4.0       readxl_1.3.1     
-## [16] lazyeval_0.2.2    rstudioapi_0.10   rmarkdown_1.13   
-## [19] labeling_0.3      shinythemes_1.1.2 htmlwidgets_1.3  
-## [22] munsell_0.5.0     shiny_1.3.2       broom_0.5.2      
-## [25] compiler_3.6.1    httpuv_1.5.1      modelr_0.1.4     
-## [28] xfun_0.8          pkgconfig_2.0.2   globals_0.12.4   
-## [31] htmltools_0.3.6   tidyselect_0.2.5  codetools_0.2-16 
-## [34] crayon_1.3.4      withr_2.1.2       later_0.8.0      
-## [37] grid_3.6.1        nlme_3.1-140      jsonlite_1.6     
-## [40] xtable_1.8-4      gtable_0.3.0      magrittr_1.5     
-## [43] scales_1.0.0      cli_1.1.0         stringi_1.4.3    
-## [46] promises_1.0.1    xml2_1.2.2        generics_0.0.2   
-## [49] vctrs_0.2.0       iterators_1.0.12  tools_3.6.1      
-## [52] glue_1.3.1        hms_0.5.0         parallel_3.6.1   
-## [55] yaml_2.2.0        colorspace_1.4-1  rvest_0.3.4      
-## [58] knitr_1.24        haven_2.1.0</code></pre>
+##  [1] nlme_3.1-140            xts_0.11-2             
+##  [3] lubridate_1.7.4         webshot_0.5.1          
+##  [5] httr_1.4.1              tools_3.6.1            
+##  [7] backports_1.1.4         R6_2.4.0               
+##  [9] lazyeval_0.2.2          colorspace_1.4-1       
+## [11] manipulateWidget_0.10.0 withr_2.1.2            
+## [13] tidyselect_0.2.5        smoother_1.1           
+## [15] curl_4.0                compiler_3.6.1         
+## [17] cli_1.1.0               rvest_0.3.4            
+## [19] xml2_1.2.2              plotly_4.9.0           
+## [21] labeling_0.3            scales_1.0.0           
+## [23] DEoptimR_1.0-8          robustbase_0.93-5      
+## [25] digest_0.6.20           rmarkdown_1.13         
+## [27] pkgconfig_2.0.2         htmltools_0.3.6        
+## [29] htmlwidgets_1.3         rlang_0.4.0            
+## [31] readxl_1.3.1            TTR_0.23-4             
+## [33] rstudioapi_0.10         shiny_1.3.2            
+## [35] generics_0.0.2          zoo_1.8-6              
+## [37] jsonlite_1.6            crosstalk_1.0.0        
+## [39] magrittr_1.5            Rcpp_1.0.2             
+## [41] munsell_0.5.0           stringi_1.4.3          
+## [43] yaml_2.2.0              plyr_1.8.4             
+## [45] grid_3.6.1              parallel_3.6.1         
+## [47] listenv_0.7.0           promises_1.0.1         
+## [49] crayon_1.3.4            miniUI_0.1.1.1         
+## [51] lattice_0.20-38         haven_2.1.0            
+## [53] hms_0.5.0               zeallot_0.1.0          
+## [55] knitr_1.24              pillar_1.4.2           
+## [57] reshape2_1.4.3          codetools_0.2-16       
+## [59] glue_1.3.1              evaluate_0.14          
+## [61] data.table_1.12.2       modelr_0.1.4           
+## [63] vctrs_0.2.0             httpuv_1.5.1           
+## [65] cellranger_1.1.0        gtable_0.3.0           
+## [67] bulletr_0.1.0.9003      xfun_0.8               
+## [69] mime_0.7                xtable_1.8-4           
+## [71] broom_0.5.2             x3ptools_0.0.2         
+## [73] later_0.8.0             viridisLite_0.3.0      
+## [75] shinythemes_1.1.2       iterators_1.0.12       
+## [77] rgl_0.100.26            globals_0.12.4</code></pre>
 </div>
 
 
