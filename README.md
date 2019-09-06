@@ -10,6 +10,7 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
   - Graphics Group
       - email list
+      - what should we do about gganimate/Halloween?
 
 ## To Do List
 
@@ -18,12 +19,6 @@ September 10)*
 
 **Current**
 
-  - go back through LIME procedure and update with new understanding
-    (such as d’ can be larger than d)
-  - add an assert\_that statement in the code to check if the LIME
-    package is changing
-  - point out differences and similarities from the other paper (such as
-    normal sampling)
   - code up Laugel et al’s work
   - read through papers giving an overview of the current explanation
     methods

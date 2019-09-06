@@ -36,11 +36,11 @@ library(tidyverse)
 source("../../code/helper_functions.R")
 ```
 
-# Original Paper {.tabset}
+# Original Paper
 
 Here, I have copied in the section of the original paper that describes LIME and put it in a more organized format. I have also added in some comments explaining my interpretation of the text and questions where I am not sure what is meant by the text.
 
-### Notation
+## Notation
 
 *Note: Most of the text in this section is copied from the original paper.*
 
@@ -60,13 +60,13 @@ Here, I have copied in the section of the original paper that describes LIME and
 | $\mathcal{Z}$ | Data set...of perturbed samples with the associated labels | This is the full simulated dataset of perturbations and complex model predictions. |
 | $\xi(x)$ | The explanation produced by LIME...$\underset{g∈G}{\arg\min} \ \mathcal{L}(f,g,\pi_x) + \Omega(g)$ | The output from the explanation model which is found through an optimization process. |
 
-### Goal of LIME
+## Goal of LIME
 
 In order to ensure both interpretability and local fidelity, we must minimize $\mathcal{L}(f,g,\pi_x)$ while having $\Omega(g)$ below enough to be interpretable by humans. The explanation produced by LIME is obtained by the following:
   $$\xi(x) = \underset{g∈G}{\arg\min} \ \mathcal{L}(f,g,\pi_x) + \Omega(g)$$
 This  formulation  can  be  used  with  different  explanation families $G$, fidelity functions $\mathcal{L}$, and complexity measures $\Omega$. Here we focus on sparse linear models as explanations, and on performing the search using perturbations.
 
-### Procedure
+## Procedure
 
 We want to minimize the locality-aware loss $\mathcal{L}(f,g, \pi_x)$ without making any assumptions about $f$, since we want the explainer to be model-agnostic.  
 
@@ -84,15 +84,1008 @@ It is worth noting that our method is fairly robust to sampling noise since the 
 be an exponential kernel defined on some distance function $D$ (e.g. cosine distance for text, $L2$ distance or images) with width $\sigma$.
   $$\mathcal{L}(f,g,\pi_x)=\sum_{z, z'\in\mathcal{Z}}\pi_x(z)\left(f(z)-g(z')\right)^2$$
 
-### Comment on Faithfulness
+## Comment on Faithfulness
 
 ...our choice of $G$ (sparse linear models) means that if the underlying model is highly non-linear even in the locality of the prediction, there may not be a faithful explanation.  However, we can estimate the faithfulness of the explanation on $\mathcal{Z}$, and present this information to the user. This estimate of faithfulness can also be used for selecting an appropriate family of explanations from a set of multiple interpretable model classes, thus adapting to the given dataset and the classifier. We leave such exploration for future work, as linear explanations work quite well for multiple black-box models in our experiments.
+
+# R Package 
+
+This section describes the procedure the the *lime* R package implements. The version of the `lime` package that is considered here is `r packageVersion("lime")`. The version considered when I first wrote this section was 0.5.0. I am only considering the `data.frame` versions of the functions. In order to determine if any of the functions that I am interested in have changed since I wrote the description, I created the function below that allows me to check if anything has changed in the function. If nothing has changed, it then prints the function.
+
+```{r}
+# Function for checking for changes in a function and printing the current version
+func_check <- function(func_name, version){
+  
+  # Specify the path to where the function will be stored
+  file_path <- paste0("../../../data/lime_functions/", func_name, "_v", version, ".rds")
+  
+  # Save the file if it does not exist, otherwise load the function and check 
+  # to make sure they have been no changes
+  if(!file.exists(file_path)) {
+    saveRDS(object = getAnywhere(func_name), file = file_path)
+  } else {
+    saved_func <- readRDS(file_path)
+    assertthat::assert_that(assertthat::are_equal(saved_func,
+                                                  getAnywhere(func_name)))
+  }
+  
+  # Print the function
+  getAnywhere(func_name)
+
+}
+```
+
+## Main Functions
+
+### `lime.data.frame` {.tabset}
+
+#### Inputs
+
+- `x`: The training data used to fit the model to be explained
+- `model`: The model to explain.
+- `preprocess = NULL`: Function to transform a character vector to the format expected from the model.
+- `bin_continuous = TRUE`: If set to `TRUE`, the continuous variables will be binned when making the explanations. If they are not binned, then perturbations will be obtained by either simulating using kernel density estimation or a normal distribution depending on what the option of `use_density` is set to.
+- `n_bins = 4`: The number of bins to use if `bin_continuous = TRUE`.
+- `quantile_bins = TRUE`: Should quantile bins be used if `bin_continuous = TRUE? (Otherwise, equally spaced bins will be used.)
+- `use_density = TRUE`: This option is only considered if `bin_continuous` is set to `FALSE`. In that situation, if `use_density = TRUE`, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.
+
+#### Procedure
+
+1. If `preprocess` is NULL, then set it to the identity function. Either way, check to make sure that it is a function.
+
+        if (is.null(preprocess)) 
+          preprocess <- function(x) x
+        assert_that(is.function(preprocess))
+
+2. Create an explainer object.
+
+        explainer <- c(as.list(environment()), list(...))
+        explainer$x <- NULL
+
+3. Determine the type of each of the features (e.g. integer, numeric, etc.). If any of the variables are constants, a warning is returned. If the feature type is unknown, an error is returned.
+
+        explainer$feature_type <- setNames(sapply(x, function(f) {
+          if (is.integer(f)) {
+            if (length(unique(f)) == 1) 
+                 "constant"
+             else "integer"
+          }
+          else if (is.numeric(f)) {
+            if (length(unique(f)) == 1) 
+                 "constant"
+            else "numeric"
+          }
+          else if (is.character(f)) {
+            "character"
+          }
+          else if (is.factor(f)) {
+            "factor"
+          }
+          else if (is.logical(f)) {
+            "logical"
+          }
+          else if (inherits(f, "Date") || inherits(f, "POSIXt")) {
+            "date_time"
+          }
+          else {
+            stop("Unknown feature type", call. = FALSE)
+          }
+        }), names(x))
+        if (any(explainer$feature_type == "constant")) {
+          warning("Data contains numeric columns with zero variance", 
+            call. = FALSE)
+        }
+
+4. Create bins for numeric and inter type variables. If `quantile_bins = TRUE`, then `n_bins` bins are created using quantiles. Otherwise, `n_bins` equally spaced bins are created. If `quantile_bins = TRUE` and `n_bins` < 3, then a warning is produced ("does not contain enough variance to use quantile binning. Using standard binning instead.") and `n_bins` equally spaced bins are returned.
+
+        explainer$bin_cuts <- setNames(lapply(seq_along(x), function(i) {
+          if (explainer$feature_type[i] %in% c("numeric", "integer")) {
+            if (quantile_bins) {
+              bins <- quantile(x[[i]], seq(0, 1, length.out = n_bins + 
+                1), na.rm = TRUE)
+              bins <- bins[!duplicated(bins)]
+              if (length(bins) < 3) {
+                warning(names(x)[i], " does not contain enough variance to use
+                quantile binning. Using standard binning instead.", 
+                  call. = FALSE)
+                d_range <- range(x[[i]], na.rm = TRUE)
+                bins <- seq(d_range[1], d_range[2], length.out = n_bins + 1)
+              }
+              bins
+            }
+            else {
+              d_range <- range(x[[i]], na.rm = TRUE)
+              seq(d_range[1], d_range[2], length.out = n_bins + 1)
+            }
+          }
+        }), names(x))
+
+5. Determine the "distribution" for each feature. The method used is based on the type of variable. 
+    - Integer: nothing
+    - Numeric: If `bin_continuous`, then determine the
+    proportion of observations in each bin. If
+    `use_density=TRUE`, then kernel a kernel density
+    approximation is used to estimate the distribution.
+    Otherwise, the mean and standard deviation of each 
+    of the features is computed.
+    - Character: nothing
+    - Logical: nothing
+    - Factor: Determine the proportion in each category.
+    
+    
+          explainer$feature_distribution <- setNames(lapply(seq_along(x),
+              function(i) {
+                switch(explainer$feature_type[i], 
+                  integer = , 
+                  numeric = if (bin_continuous) {
+                    table(cut(x[[i]], unique(explainer$bin_cuts[[i]]), 
+                      labels = FALSE, include.lowest = TRUE))/nrow(x)
+                  } else if (use_density) {
+                    density(x[[i]])
+                  } else {
+                   c(mean = mean(x[[i]], na.rm = TRUE), sd = sd(x[[i]], 
+                     na.rm = TRUE))
+                  }, character = , logical = , factor = table(x[[i]])/nrow(x), 
+                   NA)
+            }), names(x))
+
+6. Assign some attributes to the explainer object, and return the explainer object.
+
+        structure(explainer, class = c("data_frame_explainer", "explainer", 
+          "list"))
+
+#### Function
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("lime.data.frame", "0.5.0")
+```
+
+### `explain.data.frame` {.tabset}
+
+#### Inputs
+
+- `x`: The new observations to explain (with the same format as used when creating the explainer).
+- `explainer`: This is the object output from the `lime` function.
+- `labels = NULL`: The specific labels (classes) to explain in case the model is a classifier. For classifiers either this or `n_labels` must be given.
+- `n_labels = NULL`: The number of labels to explain. If this is given for classifiers, the top `n_label` classes will be explained.
+- `n_features`: The number of features to use for each explanation. (i.e. The number of features to select during feature selection.)
+- `n_permutations = 5000`: The number of perturbations generated for each feature.
+- `feature_select = 'auto'`: This is the feature selection method for choosing the number of features specified. 
+    - `auto`: If `n_features` $\le 6$, uses `forward_selection`.
+    Otherwise, `highest_weights` is used. 
+    - `none`: Use all features for the explanation. Not advised
+    unless you have very few features.
+    - `forward_selection`: Add one feature at a time until
+    `n_features` is reached, based on quality of a ridge 
+    regression model.
+    - `highest_weights`: The `n_features` with highest absolute
+    weight in a ridge regression fit of the complex model outcome
+    are chosen.
+    - `lasso_path`: Fit a lasso model and choose the `n_features`
+    whose lars path converge to zero the latest.
+    - `tree`: Fit a tree to select `n_features` (which needs to be
+    a power of 2). It requires last version of *XGBoost*.
+- `dist_fun = 'gower'`: The distance function to use for calculating the distance from the observation to the permutations. If `dist_fun = 'gower'` (default) it will use `gower::gower_dist()`. Otherwise it will be forwarded to `stats::dist()`.
+- `kernel_width = NULL`:The width of the exponential kernel that will be used to convert the distance to a similarity in case `dist_fun != 'gower'`.
+- `gower_pow = 1`: A modifier for gower distance. The calculated distance will be raised to the power of this value.
+
+#### Procedure
+
+1. Check to make sure that `explainer` is an object output from the `lime` function. 
+
+        assertthat::assert_that(is.data_frame_explainer(explainer))
+
+2. Determine the type of the model that is contained within the explainer function (using the [`model_type`](#model_type) function), and determine the type of output that should be produced by `explain` based on the model type (using the [`output_type`](#output_type) function).
+
+        m_type <- model_type(explainer)  
+        o_type <- output_type(explainer)
+
+3. If the model type is regression, check to make sure both `labels` and `n_labels` are set to NULL. Otherwise, return a warning saying that labels and n_labels are ignored with explaining regression models. Then set `n_lables` to 1 and `labels` to NULL.
+
+        if (m_type == "regression") {
+          if (!is.null(labels) || !is.null(n_labels)) {
+            warning("\"labels\" and \"n_labels\" arguments are ignored 
+              when explaining regression models")
+          }
+          n_labels <- 1
+          labels <- NULL
+        }
+
+4. Check to make sure that only `labels` or `n_labels` is specified and the other is NULL. If not, output a warning saying that you must choose between one or the other.
+
+        assert_that(is.null(labels) + is.null(n_labels) == 1, 
+          msg = "You need to choose between labels and n_labels parameters.")
+        
+5. Return an error if `n_features` or `n_permutations` are not specified as counts.
+
+        assert_that(is.count(n_features))
+        assert_that(is.count(n_permutations))
+
+6. If the kernel width has not been specified, then compute it as the square root of the number of columns of the testing dataframe multiplied by 0.75. Then create a kernel function that will be used to weight the perturbations based on the specified kernel width using the function [`exp_kernel`](#exp_kernel). The formula used by `exp_kernel` is
+  $$f(x, w)=\sqrt{\exp\left(\frac{-(x^2)}{w}\right)}$$
+where $w$ is the kernel width.
+
+        if (is.null(kernel_width)) {
+          kernel_width <- sqrt(ncol(x)) * 0.75
+        }
+        kernel <- exp_kernel(kernel_width)
+
+7. Makes use of the [`permute_cases`](#permute_cases) function for data frames in the lime package. This is the function that creates the perturbations. One perturbation is created for each of the `n_permuations` specified.
+
+        case_perm <- permute_cases(x, n_permutations, explainer$feature_distribution, 
+          explainer$bin_continuous, explainer$bin_cuts, explainer$use_density)
+
+8. Obtains predictions for all of the permutated data points based on the original model using the [`predict_model`](#predict_model) function. 
+
+        case_res <- predict_model(explainer$model, 
+          explainer$preprocess(case_perm),
+          type = o_type, ...)
+        case_res <- set_labels(case_res, explainer$model)
+  
+9. Creates indicies for each of the perturbations and dividing them into groups based on which new prediction case they correspond to
+
+        case_ind <- split(seq_len(nrow(case_perm)), rep(seq_len(nrow(x)), each = n_permutations))
+
+10. Fill in the results obejct
+
+        res <- lapply(seq_along(case_ind), function(ind) {
+    
+11. Create a vector of indicies for one of the observations
+
+        i <- case_ind[[ind]]
+
+12. If the distance function is specified to be "gower", then compute the distance between the case of interest and each observation in the permuted dataset. These distances get raised to whatever the specified `gower_pow` is. Then these values are subtracted from one so that observations closer to the case of interest have a higher "weight" associated with them.
+
+        if (dist_fun == "gower") {
+          sim <- 1 - (gower_dist(case_perm[i[1], , drop = FALSE], 
+            case_perm[i, , drop = FALSE]))^gower_pow
+        }
+
+13. Turns the factor and character variables into numeric variables and determines whether a permutation falls into the test data bin if bins_continuous is set to TRUE. This uses the [`numerify`](#numerify) function.
+
+        perms <- numerify(case_perm[i, ], explainer$feature_type, explainer$bin_continuous, explainer$bin_cuts)
+    
+14. If the distance is not set to "gower", then distance between the case of interest and the permutations is computed using the kernel function. This also makes use of the [`feature_scale`](#feature_scale) function.
+    
+        if (dist_fun != "gower") {
+          sim <- kernel(c(0, dist(feature_scale(perms, explainer$feature_distribution, 
+            explainer$feature_type, explainer$bin_continuous), 
+            method = dist_fun)[seq_len(n_permutations - 1)]))
+        }
+
+15. Perform feature selection and fit a model to the permutations using these important variables using the function [`model_permutations`](#model_permutations).
+    
+        res <- model_permutations(as.matrix(perms), case_res[i, , drop = FALSE], sim, labels, n_labels, n_features, feature_select)
+
+16. Finish filling in the rest of the results object with information about bins and such. This makes use of the [`describe_feature`](#describe_feature) function.
+
+        res$feature_value <- unlist(case_perm[i[1], res$feature])
+        res$feature_desc <- describe_feature(res$feature, case_perm[i[1], ], explainer$feature_type, 
+          explainer$bin_continuous, explainer$bin_cuts)
+        guess <- which.max(abs(case_res[i[1], ]))
+        res$case <- rownames(x)[ind]
+        res$label_prob <- unname(as.matrix(case_res[i[1], ]))[match(res$label, colnames(case_res))]
+        res$data <- list(as.list(case_perm[i[1], ]))
+        res$prediction <- list(as.list(case_res[i[1], ]))
+        res$model_type <- m_type
+        res
+  
+17. Join the results and assign names to the columns
+
+        res <- do.call(rbind, res)
+        res <- res[, c('model_type', 'case', 'label', 'label_prob', 'model_r2', 
+                       'model_intercept', 'model_prediction', 'feature', 'feature_value', 
+                       'feature_weight', 'feature_desc', 'data', 'prediction')]
+        if (m_type == 'regression') {
+          res$label <- NULL
+          res$label_prob <- NULL
+          res$prediction <- unlist(res$prediction)
+        }
+        
+18. Return the results object
+
+        res
+
+#### Function
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("explain.data.frame", "0.5.0")
+```
+
+## Helper Functions
+
+These are listed in the order that they are used. 
+
+### `model_type` {#model_type .tabset}
+
+#### Inputs
+
+- `x`: the model that is stored in the `explainer` object
+
+#### Procedure
+
+1. The function `model_type` is an overarching function that leads to the specific functions for determining the model type. 
+
+        model_type <- function (x, ...) {
+                    UseMethod("model_type")
+                  }
+                  
+    The specific functions vary based on what package was used to fit the model. Here is information from the package documentation about models supported by *lime*. 
+        
+        Out of the box, lime supports the following model objects:
+            - train from caret
+            - WrappedModel from mlr
+            - xgb.Booster from xgboost
+            - H2OModel from h2o
+            - keras.engine.training.Model from keras
+            - lda from MASS (used for low-dependency examples)
+        If your model is not one of the above you'll need to implement support yourself. If the model has a predict interface mimicking that of predict.train() from caret, it will be enough to wrap your model in as_classifier()/as_regressor() to gain support. Otherwise you'll need need to implement a predict_model() method and potentially a model_type() method (if the latter is omitted the model should be wrapped in as_classifier()/as_regressor(), everytime it is used in lime()).
+
+        
+2. Apply the model specific function to determine the model type.
+
+    - **default**
+  
+          stop("The class of model must have a model_type method. See ?model_type to get an overview of models supported out of the box", call. = FALSE)
+          
+    - **lime classifier**
+  
+            "classification"
+          
+    - **lime regressor**
+  
+            "regression"
+  
+    - **train**
+    
+            tolower(x$modelType)
+            
+    - **model fit**
+    
+            x$spec$mode
+            
+    - **Wrapped Model**
+    
+            switch(x$learner$type, classif = "classification", regr = "regression", 
+              surv = "survival", cluster = "clustering", multilabel = "multilabel")
+              
+    - **xgb Booster**
+    
+            obj <- x$params$objective
+            if (is.null(obj)) 
+              return("regression")
+            if (is.function(obj)) 
+              stop("Unsupported model type", call. = FALSE)
+            type <- strsplit(obj, ":")[[1]][1]
+            switch(type, reg = "regression", binary = "classification", 
+              multi = "classification", stop("Unsupported model type", 
+              call. = FALSE))
+              
+    - **lda**
+    
+            "classification"
+            
+    - **keras**
+            
+            if (!requireNamespace("keras", quietly = TRUE)) {
+              stop("The keras package is required for predicting keras models")
+            }
+            num_layers <- length(x$layers)
+            if (keras::get_config(keras::get_layer(x, index = num_layers))$activation == "linear") {
+              "regression"
+            }
+            else {
+              "classification"
+            }
+    
+    - **ranger**
+    
+            ranger_model_class <- x$treetype
+            if (ranger_model_class == "Probability estimation" || ranger_model_class == "Classification") {
+              return("classification")
+            }
+            else if (ranger_model_class == "Regression") {
+              return("regression")
+            }
+            else {
+              stop(paste0("ranger model class \"", ranger_model_class, 
+                "\" is not currently supported."))
+            }
+            
+#### Function
+
+```{r}
+func_check("model_type", "0.5.0")
+func_check("model_type", "0.5.0")
+func_check("model_type.default", "0.5.0")
+func_check("model_type.lime_classifier", "0.5.0")
+func_check("model_type.lime_regressor", "0.5.0")
+func_check("model_type.train", "0.5.0")
+func_check("model_type.model_fit", "0.5.0")
+func_check("model_type.WrappedModel", "0.5.0")
+func_check("model_type.xgb.Booster", "0.5.0")
+func_check("model_type.lda", "0.5.0")
+func_check("model_type.keras.engine.training.Model", "0.5.0")
+func_check("model_type.H2OModel", "0.5.0")
+func_check("model_type.ranger", "0.5.0")
+```
+
+### `output_type` {#output_type .tabset}
+
+#### Inputs
+
+- `x`: the model that is stored in the `explainer` object
+
+#### Procedure 
+
+1. Identifies which model type the model is. If it is a classification model, then the output type is set to "prob". If it is a regression model, then the output type is set to "raw". If neither of these, then an error is returned saying that the model type that was input is not supported by the package.
+
+        switch(model_type(x), 
+              classification = "prob", 
+              regression = "raw", 
+              stop(model_type(x), " models are not supported yet", call. = FALSE))
+
+#### Function
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("output_type", "0.5.0")
+```
+
+### `exp_kernel` {#exp_kernel .tabset}
+
+#### Inputs
+
+- `width`: kernel width
+
+#### Procedure
+
+1. Create a function for computing an exponential kernel.
+
+        function(x) sqrt(exp(-(x^2)/(width^2))) 
+        
+#### Function
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("exp_kernel", "0.5.0")
+```
+
+### `permute_cases` {#permute_cases .tabset}
+
+#### Inputs
+
+- `cases`: the object `x` from `explain.data.frame` (new obs to explain)
+- `n_permutations`: the object `n_permutations` from `explain.data.frame` (number of perturbations)
+- `feature_distribution`: the object `explainer$feature_distribution` (the distribution of each feature computed from `lime.data.frame`)
+- `bin_continuous`: the object `explainer$bin_continuous` determined from `lime.data.frame`
+- `bin_cuts`: the object `explainer$bin_cuts` determined from `lime.data.frame`
+- `use_density`: the object `explainer$use_density` determined from `lime.data.frame`
+
+#### Procedure
+
+1. Compute the number of rows as the number of predictions to be explained times the number of permutations.
+
+        nrows <- nrow(cases) * n_permutations
+
+2. Create the perturbations based on the type of variable and using the feature distribution determined by the lime function. The cases are as follows.
+
+        perm <- as.data.frame(lapply(seq_along(cases), function(i) {
+
+    - **numeric variable and feature distribution contains all NAs**: the observed cases get repeated `n_permutations` times
+    
+            perms <- if (is.numeric(cases[[i]]) && identical(is.na(feature_distribution[[i]]), TRUE)) {
+            rep(cases[[i]], each = n_permutations)
+            }
+    
+    - **numeric variable and `bin_continuous = TRUE`**: 
+    sample from 1:number of bin cuts with replacement for
+    nrows times using the probability from the variable 
+    distribution sample from a uniform(0,1) distribution
+    and then multiply by the difference in bin cuts of
+    the appropriate bin and add the quantile associated
+    with the bin
+    
+            else if (is.numeric(cases[[i]]) && bin_continuous) {
+              bin <- sample(seq_along(feature_distribution[[i]]), 
+                nrows, TRUE, as.numeric(feature_distribution[[i]]))
+              diff(bin_cuts[[i]])[bin] * runif(nrows) + bin_cuts[[i]][bin]
+            }
+    
+    - **numeric variable, `bin_continuous = FALSE`, and `use_density = TRUE`**: 
+    
+            else if (is.numeric(cases[[i]]) && use_density) {
+              width <- diff(feature_distribution[[i]]$x[c(1, 2)])/2
+              sample(feature_distribution[[i]]$x, nrows, TRUE, 
+                feature_distribution[[i]]$y) + runif(nrows, -width, width)
+            }
+    
+    - **numeric variable, `bin_continuous = FALSE`, and `use_density = FALSE`**: randomly sample from a normal distribution, multiply by the sd of the feature distribution, and add the mean 
+
+            else if (is.numeric(cases[[i]])) {
+               rnorm(nrows) * feature_distribution[[i]]["sd"] + 
+                   feature_distribution[[i]]["mean"]
+            }    
+    
+    - **character variable**: sample from the names of the levels in the variable based on the probability of the variable distribution
+    
+            else if (is.character(cases[[i]])) {
+               sample(names(feature_distribution[[i]]), nrows, TRUE, 
+                   as.numeric(feature_distribution[[i]]))
+            }
+    
+    - **logical variable**: 
+    
+            else if (is.logical(cases[[i]])) {
+               sample(as.logical(names(feature_distribution[[i]])), 
+                   nrows, TRUE, as.numeric(feature_distribution[[i]]))
+            }
+            
+    - **factor variable**: sample from the names of the levels in the variable based on the probability of the variable distribution and convert the samples to factors 
+    
+            else if (is.factor(cases[[i]])) {
+              x <- sample(names(feature_distribution[[i]]), nrows, 
+                TRUE, as.numeric(feature_distribution[[i]]))
+              factor(x, levels = names(feature_distribution[[i]]))
+            }
+
+    - **date**: 
+            
+            else if (inherits(cases[[i]], "Date") || inherits(cases[[i]], "POSIXt")) {
+              rep(cases[[i]], each = n_permutations)
+            }
+
+    - **integer variable**: round the permutations to the nearest integer
+    
+            if (is.integer(cases[[i]])) {
+              as.integer(round(perms))
+            }
+    
+    - **other**:
+    
+            } else {
+              perms
+            }
+            }), stringsAsFactors = FALSE)
+    
+3. Give the permutations the same name as the variables
+
+        names(perm) <- names(cases)
+        
+4. Add the cases back into the data frame of the permutations
+
+        perm[seq.int(1, by = n_permutations, length.out = nrow(cases)), ] <- cases
+        
+5. Return the permutations.
+
+        perm
+  
+#### Function
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("permute_cases.data.frame", "0.5.0")
+```
+
+### `predict_model` {#predict_model .tabset}
+
+#### Inputs 
+
+- `x`: a model
+- `newdata`: the new observations to predict
+- `type`: either `'raw'` to indicate predicted values, or `'prob'` to indicate class probabilities
+
+#### Procedure
+
+1. Determine which `predict_model` function to use based on the model type
+
+        predict_model <- function(x, newdata, type, ...) {
+          UseMethod('predict_model')
+        }
+
+2. Make predictions appropriately based on the model type
+
+    - **Default**
+    
+            predict_model.default <- function(x, newdata, type, ...) {
+              p <- predict(x, newdata = newdata, type = type, ...)
+              if (type == 'raw') 
+                p <- data.frame(Response = p, stringsAsFactors = FALSE)
+              as.data.frame(p)
+            }
+
+    - **Model Fit** (?)
+    
+            predict_model.model_fit <- function (x, newdata, type, ...) {
+              if (type == "raw") 
+                type <- "numeric"
+                p <- predict(x, new_data = newdata, type = type, ...)
+              if (type == "raw") {
+                p <- data.frame(Response = p[[1]], stringsAsFactors = FALSE)
+              }
+              else if (type == "prob") {
+                names(p) <- sub(".pred_", "", names(p))
+              }
+              p
+            }
+            
+    - **Wrapped Model**
+    
+            predict_model.WrappedModel <- function (x, newdata, type, ...) {
+              if (!requireNamespace("mlr", quietly = TRUE)) {
+                stop("mlr must be available when working with WrappedModel models")
+              }
+              p <- predict(x, newdata = newdata, ...)
+              switch(type, raw = data.frame(Response = mlr::getPredictionResponse(p), 
+                stringsAsFactors = FALSE), prob = mlr::getPredictionProbabilities(p, 
+                p$task.desc$class.levels), stop("Type must be either \"raw\" or \"prob\"", 
+              call. = FALSE))
+            }
+            
+    - **xbg Booster**
+
+            predict_model.xgb.Booster <- function (x, newdata, type, ...) {
+              if (!requireNamespace("xgboost", quietly = TRUE)) {
+                stop("The xgboost package is required for predicting xgboost models")
+              }
+              if (is.data.frame(newdata)) {
+                newdata <- xgboost::xgb.DMatrix(as.matrix(newdata))
+              }
+              p <- data.frame(predict(x, newdata = newdata, reshape = TRUE, ...), 
+                stringsAsFactors = FALSE)
+              if (type == "raw") {
+                names(p) <- "Response"
+              }
+              else if (type == "prob") {
+                if (ncol(p) == 1) {
+                  names(p) = "1"
+                  p[["0"]] <- 1 - p[["1"]]
+                }
+                else {
+                  names(p) <- as.character(seq_along(p))
+                }
+              }
+              p
+            }
+        
+    - **lda**
+    
+            predict_model.lda <- function(x, newdata, type, ...) {
+              res <- predict(x, newdata = newdata, ...)
+              switch(
+              type,
+              raw = data.frame(Response = res$class, stringsAsFactors = FALSE),
+              prob = as.data.frame(res$posterior, check.names = FALSE)
+              )
+            }
+
+    - **keras**
+    
+            predict_model.keras.engine.training.Model <- function (x, newdata, type, ...) {
+              if (!requireNamespace("keras", quietly = TRUE)) {
+                stop("The keras package is required for predicting keras models")
+              }
+              res <- predict(x, as.array(newdata))
+              if (type == "raw") {
+                data.frame(Response = res[, 1])
+              }
+              else {
+                if (ncol(res) == 1) {
+                res <- cbind(1 - res, res)
+              }
+              colnames(res) <- as.character(seq_len(ncol(res)))
+              as.data.frame(res, check.names = FALSE)
+              }
+            }
+            
+    - **H2O Model**
+    
+            predict_model.H2OModel <- ## function (x, newdata, type, ...) {
+               if (!requireNamespace("h2o", quietly = TRUE)) {
+                   stop("The h2o package is required for predicting h2o models")
+               }
+               pred <- h2o::h2o.predict(x, h2o::as.h2o(newdata))
+               h2o_model_class <- class(x)[[1]]
+               if (h2o_model_class %in% c("H2OBinomialModel", "H2OMultinomialModel")) {
+                   return(as.data.frame(pred[, -1]))
+               }
+               else if (h2o_model_class == "H2ORegressionModel") {
+                   ret <- as.data.frame(pred[, 1])
+                   names(ret) <- "Response"
+                   return(ret)
+               }
+               else {
+                   stop("This h2o model is not currently supported.")
+               }
+           }
+
+#### Function
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("predict_model", "0.5.0")
+func_check("predict_model.default", "0.5.0")
+func_check("predict_model.model_fit", "0.5.0")
+func_check("predict_model.WrappedModel", "0.5.0")
+func_check("predict_model.xgb.Booster", "0.5.0")
+func_check("predict_model.lda", "0.5.0")
+func_check("predict_model.keras.engine.training.Model", "0.5.0")
+func_check("predict_model.H2OModel", "0.5.0")
+func_check("predict_model.ranger", "0.5.0")
+```
+
+### `numerify` {#numerify .tabset}
+
+#### Inputs
+
+- `x`: object `case_perm` with the perturbed values 
+- `type`: the `explainer$feature_type` object 
+- `bin_continuous`: the value of `explainer$bin_continuous` 
+- `bin_cuts`: the value of `explainer$bin_cuts`
+
+#### Procedure
+
+1. Apply the function below to each observation in the perturbed dataset.
+
+        setNames(as.data.frame(lapply(seq_along(x), function(i) {
+  
+2. If the variable is a character, factor, or logical change it to a numeric variable.   
+
+        if (type[i] %in% c("character", "factor", "logical")) {
+          as.numeric(x[[i]] == x[[i]][1])
+        } 
+      
+3. If the variable is some other type and `bin_continuous=TRUE`, then put the bin cuts into a variable called cuts, set the first and last bin cuts to -inf and inf, respectively, determine which bin each permutation falls into, and determine whether a permution falls into the test data observation bin of interest.
+        
+        else {
+          if (bin_continuous) {
+            cuts <- bin_cuts[[i]]
+            cuts[1] <- -Inf
+            cuts[length(cuts)] <- Inf
+            xi <- cut(x[[i]], unique(cuts), include.lowest = T)
+            as.numeric(xi == xi[1])
+
+4. If the variable is some other type and `bin_continuous=FALSE`, then just return the permutations.  
+
+          } else {
+            x[[i]]
+          }
+        }
+        }), stringsAsFactors = FALSE), names(x))
+
+#### Function 
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("numerify", "0.5.0")
+```
+
+### `feature_scale` {#feature_scale .tabset}
+
+#### Inputs
+
+- `x` = `perms`
+- `distribution` = `explainer$feature_distribution`
+- `type` = `explainer$feature_type`
+- `bin_continuous` = `explainer$bin_continuous`
+
+#### Procedure
+
+Scales the distribuiton of the numeric permutions if bin_continuous was set to FALSE.
+
+#### Function
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("feature_scale", "0.5.0")
+```
+
+### `model_permutations` {#model_permutations .tabset}
+
+#### Inputs
+
+- `x`: the `as.matrix(perms)` object with the perturbations
+- `y`: `case_res[i, , drop = FALSE]`
+- `weights`: the weights `sim`
+- `labels`: the `labels` object
+- `n_labels`: the `n_labels` object
+- `n_features`: the `n_features` object
+- `feature_method`: the `feature_select` object
+
+#### Procedure
+
+1. If all of the weights are 0 (no difference from the case of interest), then return an error.
+
+        if (all(weights[-1] == 0)) {
+          stop("All permutations have no similarity to the original observation. 
+          Try setting bin_continuous to TRUE and/or increase kernel_size", 
+          call. = FALSE)
+        }
+
+2. Create labels if `n_labels` is not NULL.
+
+        if (!is.null(n_labels)) {
+          labels <- names(y)[order(as.data.frame(y)[1, ], decreasing = TRUE)[seq_len(n_labels)]]
+        }
+
+3. Something about missing values (?)
+
+        x <- x[, colSums(is.na(x)) == 0 & apply(x, 2, var) != 0, drop = FALSE]
+  
+4. If the response has the same value for all permutations, then an error is returned.
+
+        res <- lapply(labels, function(label) {
+          if (length(unique(y[[label]])) == 1) {
+            stop("Response is constant across permutations. Please check your model", 
+            call. = FALSE)
+        }
+
+5. Select which variables are important for the model using the [`select_features`](#select_features) function. 
+
+        features <- select_features(feature_method, x, y[[label]], weights, n_features)
+    
+6. `glmnet` does not allow `n_features=1`, so in this case the model must be fit separately. This is done by 
+creating a matrix with a column of 1s for the intercept and the selected variables for the other columns, fiting a model with the probability as the response and the selected variables as the predictors, computing the r2 values, and extracting the intercept, non-intercept coefficients, and model prediction for the case of interest.
+        
+        if (length(features) == 1) {
+          x_fit = cbind("(Intercept)" = rep(1, nrow(x)), x[, features, drop = FALSE])
+          fit <- glm.fit(x = x_fit, y = y[[label]],  weights = weights, family = gaussian())
+          r2 <- 1 - fit$deviance/fit$null.deviance
+          coefs <- coef(fit)
+          intercept <- coefs[1]
+          coefs <- coefs[-1]
+          model_pred <- fit$fitted.values[1]
+
+7. When `n_features` > 1, fit the ridge regression model using `glmnet` when the order of the observations shuffled, and extract the same items as in Step 6.
+
+        } else {
+          shuffle_order <- sample(length(y[[label]])) # glm is sensitive to the order of the examples
+          fit <- glmnet(x[shuffle_order, features], y[[label]][shuffle_order], weights = weights[shuffle_order], 
+            alpha = 0, lambda = 0.001)
+          r2 <- fit$dev.ratio
+          coefs <- coef(fit)
+          intercept <- coefs[1, 1]
+          coefs <- coefs[-1, 1]
+          model_pred <- predict(fit, x[1, features, drop = FALSE])[1]
+        }
+
+8. Finally, put the values from above into a data frame.
+
+        data.frame(
+          label = label,
+          feature = names(coefs),
+          feature_weight = unname(coefs),
+          model_r2 = r2,
+          model_intercept = intercept,
+          model_prediction = model_pred,
+          stringsAsFactors = FALSE
+        )
+        })
+        
+10. Bind all of the results associated with different cases.
+      
+        do.call(rbind, res)
+
+#### Function 
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("model_permutations", "0.5.0")
+```
+
+### `select_features` {#select_features .tabset}
+
+#### Inputs
+
+- `method`: `feature_method`
+- `x`: `x`
+- `y`: `y[[label]]`
+- `weights`: `weights`
+- `n_features`: `n_features`
+
+#### Procedure
+
+Performs features selection using the specified method. Note that this is based on a handful of other [functions](#select) including the `feature_selection_method`. 
+
+        if (n_features >= ncol(x)) {
+          return(seq_len(ncol(x)))
+        }
+        method <- match.arg(method, feature_selection_method())
+        switch(
+          method,
+          auto = if (n_features <= 6) {
+            select_features("forward_selection", x, y, weights, n_features)
+          } else {
+            select_features("highest_weights", x, y, weights, n_features)
+          },
+          none = seq_len(nrow(x)),
+          forward_selection = select_f_fs(x, y, weights, n_features),
+          highest_weights = select_f_hw(x, y, weights, n_features),
+          lasso_path = select_f_lp(x, y, weights, n_features),
+          tree = select_tree(x, y, weights, n_features),
+          stop("Method not implemented", call. = FALSE)
+        )
+
+#### Function 
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("select_features", "0.5.0")
+func_check("feature_selection_method", "0.5.0")
+```
+
+### `select_` {#select .tabset}
+
+#### Options
+
+- Forward selection: `select_f_fs`
+- Heighest weights: `select_f_hw`
+- Lasso path: `select_f_lp`
+- Tree: `select_tree`
+
+#### `select_f_fs`
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("select_f_fs", "0.5.0")
+```
+
+#### `select_f_hw`
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("select_f_hw", "0.5.0")
+```
+
+#### `select_f_lp`
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("select_f_lp", "0.5.0")
+```
+
+#### `select_tree`
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("select_tree", "0.5.0")
+```
+
+### `describe_feature` {#describe_feature .tabset}
+
+#### Inputs
+
+- `feature` = `res$feature`
+- `case` = `case_perm[i[1], ]`
+- `type` = `explainer$feature_type`
+- `bin_continuous` = `explainer$bin_continuous`
+- `bin_cuts` = `explainer$bin_cuts`
+          
+#### Function 
+
+```{r}
+# Print the function (and check to see if there have been any changes)
+func_check("describe_feature", "0.5.0")
+```
+
+
+# Python Package
+
+I have not spent a lot of time going through the Python package code, but I wanted to check to see if it uses a ridge regression for the feature selection and the explainer model. This [article](https://towardsdatascience.com/how-to-perform-lasso-and-ridge-regression-in-python-3b3b75541ad8) describes that ridge regression can be fit in Python using the sklearn "package". These images below of the code from the Python lime [GitHub repository](https://github.com/marcotcr/lime/blob/master/lime/lime_base.py) seem to imply that it is using ridge regression for both of these steps.
+
+![](../../figures/python-ridge1.png)
+
+![](../../figures/python-ridge2.png)
+
+![](../../figures/python-ridge3.png)
 
 # Concept Visualizations 
 
 The images in this section were created using simulated data that I knew had a local trend around the point of interest. I consider both a linear regression and a ridge regression as the explainer model.
 
-### Data and Model
+## Data and Model
 
 This code generates the data and predictions from a hypothetical complex model.
 
@@ -127,7 +1120,7 @@ lime_data$distance <- (1 - gower_dist(x = prediction_of_interest,
                                       y = lime_data))^20
 ```
 
-### Linear Regression Explainer
+## Linear Regression Explainer
 
 These visualizations are based on a weighted linear regression model used as the explainer.
 
@@ -252,7 +1245,7 @@ This example shows that the explainer model is doing a good job of capturing the
 lime_linear_concept
 ```
 
-### Ridge Regression Explainer
+## Ridge Regression Explainer
 
 ```{r}
 # Fits the explainer model (weighted ridge regression)
@@ -348,332 +1341,9 @@ This example shows that the explainer model is **not** doing a good job of captu
 lime_ridge_concept
 ```
 
-# R Package 
-
-This section describes the procedure the the *lime* R package implements. The version of the `lime` package that is considered here is `r packageVersion("lime")`. The version considered when I first wrote this section was 0.5.0. I am only considering the `data.frame` versions of the functions. In order to determine if any of the functions that I am interested in have changed since I wrote the description, I created the function below that allows me to check if anything has changed in the function. If nothing has changed, it then prints the function.
-
-```{r}
-# Function for checking for changes in a function and printing the current version
-func_check <- function(func_name, version){
-  
-  # Specify the path to where the function will be stored
-  file_path <- paste0("../../../data/lime_functions/", func_name, "_v", version, ".rds")
-  
-  # Save the file if it does not exist, otherwise load the function and check 
-  # to make sure they have been no changes
-  if(!file.exists(file_path)) {
-    saveRDS(object = getAnywhere(func_name), file = file_path)
-  } else {
-    saved_func <- readRDS(file_path)
-    assertthat::assert_that(assertthat::are_equal(saved_func,
-                                                  getAnywhere(func_name)))
-  }
-  
-  # Print the function
-  getAnywhere(func_name)
-
-}
-```
-
-## Main Functions
-
-### `lime.data.frame` {.tabset}
-
-#### Inputs
-
-- `x`: The training data used to fit the model to be explained
-- `model`: The model to explain.
-- `preprocess = NULL`: Function to transform a character vector to the format expected from the model.
-- `bin_continuous = TRUE`: If set to `TRUE`, the continuous variables will be binned when making the explanations. If they are not binned, then perturbations will be obtained by either simulating using kernel density estimation or a normal distribution depending on what the option of `use_density` is set to.
-- `n_bins = 4`: The number of bins to use if `bin_continuous = TRUE`.
-- `quantile_bins = TRUE`: Should quantile bins be used if `bin_continuous = TRUE? (Otherwise, equally spaced bins will be used.)
-- `use_density = TRUE`: This option is only considered if `bin_continuous` is set to `FALSE`. In that situation, if `use_density = TRUE`, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.
-
-#### Procedure
-
-1. If `preprocess` is NULL, then set it to the identity function. Either way, check to make sure that it is a function.
-2. Create an explainer object.
-3. Determine the type of each of the features (e.g. integer, numeric, etc.). If any of the variables are constants, a warning is returned. If the feature type is unknown, an error is returned.
-4. Create bins for numeric and inter type variables. If `quantile_bins = TRUE`, then `n_bins` bins are created using quantiles. Otherwise, `n_bins` equally spaced bins are created. If `quantile_bins = TRUE` and `n_bins` < 3, then a warning is produced ("does not contain enough variance to use quantile binning. Using standard binning instead.") and `n_bins` equally spaced bins are returned.
-5. Determine the "distribution" for each feature. The method used is based on the type of variable. 
-    - Integer: nothing
-    - Numeric: If `bin_continuous`, then determine the
-    proportion of observations in each bin. If
-    `use_density=TRUE`, then kernel a kernel density
-    approximation is used to estimate the distribution.
-    Otherwise, the mean and standard deviation of each 
-    of the features is computed.
-    - Character: nothing
-    - Logical: nothing
-    - Factor: Determine the proportion in each category.
-6. Assign some attributes to the explainer object, and return the explainer object.
-
-#### Function
-
-```{r}
-# Print the lime function (and check to see if there have been any changes)
-func_check("lime.data.frame", "0.5.0")
-```
-
-### `explain.data.frame` {.tabset}
-
-#### Inputs
-
-- `x`: The new observations to explain (with the same format as used when creating the explainer).
-- `explainer`: This is the object output from the `lime` function.
-- `labels = NULL`: The specific labels (classes) to explain in case the model is a classifier. For classifiers either this or `n_labels` must be given.
-- `n_labels = NULL`: The number of labels to explain. If this is given for classifiers, the top `n_label` classes will be explained.
-- `n_features`: The number of features to use for each explanation. (i.e. The number of features to select during feature selection.)
-- `n_permutations = 5000`: The number of perturbations generated for each feature.
-- `feature_select = 'auto'`: This is the feature selection method for choosing the number of features specified. 
-    - `auto`: If `n_features` $\le 6$, uses `forward_selection`.
-    Otherwise, `highest_weights` is used. 
-    - `none`: Use all features for the explanation. Not advised
-    unless you have very few features.
-    - `forward_selection`: Add one feature at a time until
-    `n_features` is reached, based on quality of a ridge 
-    regression model.
-    - `highest_weights`: The `n_features` with highest absolute
-    weight in a ridge regression fit of the complex model outcome
-    are chosen.
-    - `lasso_path`: Fit a lasso model and choose the `n_features`
-    whose lars path converge to zero the latest.
-    - `tree`: Fit a tree to select `n_features` (which needs to be
-    a power of 2). It requires last version of *XGBoost*.
-- `dist_fun = 'gower'`: The distance function to use for calculating the distance from the observation to the permutations. If `dist_fun = 'gower'` (default) it will use `gower::gower_dist()`. Otherwise it will be forwarded to `stats::dist()`.
-- `kernel_width = NULL`:The width of the exponential kernel that will be used to convert the distance to a similarity in case `dist_fun != 'gower'`.
-- `gower_pow = 1`: A modifier for gower distance. The calculated distance will be raised to the power of this value.
-
-#### Procedure
-
-1. Check to make sure that `explainer` is an object output from the `lime` function. 
-
-        assertthat::assert_that(is.data_frame_explainer(explainer))
-
-2. Determine the type of the model that is contained within the explainer function (using the [`model_type`](#model_type) function), and determine the type of output that should be produced by `explain` based on the model type (using the [`output_type`](#output_type) function).
-
-        m_type <- model_type(explainer)  
-        o_type <- output_type(explainer)
-
-3. If the model type is regression, check to make sure both `labels` and `n_labels` are set to NULL. Otherwise, return a warning saying that labels and n_labels are ignored with explaining regression models. Then set `n_lables` to 1 and `labels` to NULL.
-
-        if (m_type == "regression") {
-          if (!is.null(labels) || !is.null(n_labels)) {
-            warning("\"labels\" and \"n_labels\" arguments are ignored 
-              when explaining regression models")
-          }
-          n_labels <- 1
-          labels <- NULL
-        }
-
-4. Check to make sure that only `labels` or `n_labels` is specified and the other is NULL. If not, output a warning saying that you must choose between one or the other.
-
-        assert_that(is.null(labels) + is.null(n_labels) == 1, 
-          msg = "You need to choose between labels and n_labels parameters.")
-        
-5. Return an error if `n_features` or `n_permutations` are not specified as counts.
-
-        assert_that(is.count(n_features))
-        assert_that(is.count(n_permutations))
-
-6. If the kernel width has not been specified, then compute it as the square root of the number of columns of the testing dataframe multiplied by 0.75. Then create a kernel function that will be used to weight the perturbations based on the specified kernel width using the function [`exp_kernel`](#exp_kernel). The formula used by `exp_kernel` is
-  $$f(x, w)=\sqrt{\exp\left(\frac{-(x^2)}{w}\right)}$$
-where $w$ is the kernel width.
-
-        if (is.null(kernel_width)) {
-          kernel_width <- sqrt(ncol(x)) * 0.75
-        }
-        kernel <- exp_kernel(kernel_width)
-
-7. Makes use of the [`permute_cases`](#permute_cases) function for data frames in the lime package. This is the function that creates the perturbations. One perturbation is created for each of the `n_permuations` specified.
-
-        case_perm <- permute_cases(x, n_permutations, explainer$feature_distribution, 
-          explainer$bin_continuous, explainer$bin_cuts, explainer$use_density)
-
---------- 
-
-- Predictions for the testing data using the random forest model are computed.
-     + The random forest model `rtrees` is used to make a prediction for the observation from the test dataset and each of the $n=5000$ samples as to whether or not the comparison of the two bullets in the test case are a match. Since the random forest is a classification model, `lime` is set to return the prediction probabilities.
-
-- Similarity score between the observation in the testing data and each of the $n=5000$ sampled values are obtained.
-    + The way that the similarity score is computed depends on the type of feature. Since all of the features in the Hamby 224 test dataset are continuous, the simulated values are first converted into 0-1 features where a 1 indicates that the feature from the simulated value falls in the same bin as the observed data point and a 0 indicates that the feature is not in the same bin as the observed data point. Then, by default, the Gower distance is used to compute the similarity score. (using the `gower` package in R)
-
-- Feature selection is performed by fitting some type of regression model weighted by the similarity scores is to the simulated data and the observed value. The 0-1 versions of the features are used.
-    + The user can specify the number of features, $m$, they would like to select to explain the prediction. `lime` supports the following options for feature selection
-      * forward selection with ridge regression
-      * highest weight with ridge regression
-      * LASSO model
-      * tree model
-      * default: forward selection if $m\le6$ with a ridge regression model, highest weight with ridge regression otherwise
-
-- A ridge regression model is fit as the simple model by regressing the prediction probabilities on the $m$ selected predictor variables and weighted by the similarity scores. If the response is categorical, the user can select how many categories and which categories they want to explain.
-  $$P(Match = TRUE) = \beta_0 + 
-  \beta_1 \cdot I\left[X_1 \in \mbox{obs bin}\right] + 
-  \beta_2 \cdot I\left[X_2 \in \mbox{obs bin}\right] + 
-  \beta_3 \cdot I\left[X_3 \in \mbox{obs bin}\right]$$
-For the prediction of interest, 
-  $$P(Match = TRUE) = \beta_0 + \beta_1 + \beta_2 + \beta_3.$$
-- The feature weights are extracted and used as the explanations.
-
-Note: I realized that if `bin_continuous = FALSE`, then bins are not used at all. Instead, a kernel density estimator is used to sample from the distribution (or a normal distribution if specified), and then the ridge regression models are fit without "numerified" values.
-
-#### Function
-
-```{r}
-# Print the explain function (and check to see if there have been any changes)
-func_check("explain.data.frame", "0.5.0")
-```
-
-## Helper Functions
-
-### `model_type` {#model_type .tabset}
-
-#### Info
-
-The *lime* package provides a variety of functions for extracting the model type from the complex model to be explained. The function `model_type` is an overarching function that leads to the specific functions for determining the model type. The specific functions vary based on what package was used to fit the model. 
-
-Here is information from the package documentation about models supported by *lime*. 
-
-    Out of the box, lime supports the following model objects:
-      - train from caret
-      - WrappedModel from mlr
-      - xgb.Booster from xgboost
-      - H2OModel from h2o
-      - keras.engine.training.Model from keras
-      - lda from MASS (used for low-dependency examples)
-    If your model is not one of the above you'll need to implement support yourself. If the model has a predict interface mimicking that of predict.train() from caret, it will be enough to wrap your model in as_classifier()/as_regressor() to gain support. Otherwise you'll need need to implement a predict_model() method and potentially a model_type() method (if the latter is omitted the model should be wrapped in as_classifier()/as_regressor(), everytime it is used in lime()).
-
-#### Function
-
-```{r}
-getAnywhere(model_type)
-```
-
-#### Model Specific Functions
-
-```{r}
-getAnywhere(model_type)
-getAnywhere(model_type.default)
-getAnywhere(model_type.lime_classifier)
-getAnywhere(model_type.lime_regressor)
-getAnywhere(model_type.train)
-getAnywhere(model_type.model_fit)
-getAnywhere(model_type.WrappedModel)
-getAnywhere(model_type.xgb.Booster)
-getAnywhere(model_type.lda)
-getAnywhere(model_type.keras.engine.training.Model)
-getAnywhere(model_type.H2OModel)
-getAnywhere(model_type.ranger)
-```
-
-### `output_type` {#output_type .tabset}
-
-#### Inputs
-
-- `x`: the model that is stored in the `explainer` object
-
-#### Procedure 
-
-1. Identifies which model type the model is. If it is a classification model, then the output type is set to "prob". If it is a regression model, then the output type is set to "raw". If neither of these, then an error is returned saying that the model type that was input is not supported by the package.
-
-        switch(model_type(x), 
-              classification = "prob", 
-              regression = "raw", 
-              stop(model_type(x), " models are not supported yet", call. = FALSE))
-
-#### Function
-
-```{r}
-# Print the explain function (and check to see if there have been any changes)
-func_check("output_type", "0.5.0")
-```
-
-### `exp_kernel` {#exp_kernel .tabset}
-
-#### Inputs
-
-- `width`: kernel width
-
-#### Procedure
-
-1. Create a function for computing an exponential kernel.
-
-        function(x) sqrt(exp(-(x^2)/(width^2))) 
-        
-#### Function
-
-```{r exp_kernel}
-# Print the exp_kernel function (and check to see if there have been any changes)
-if(!file.exists("../../../data/lime_functions/exp_kernel_v0.5.0.rds")) {
-  saveRDS(object = getAnywhere(exp_kernel),
-          file = "../../../data/lime_functions/exp_kernel_v0.5.0.rds")
-  getAnywhere(exp_kernel)
-} else {
-  exp_kernel_v0.5.0 <- readRDS("../../../data/lime_functions/exp_kernel_v0.5.0.rds")  
-  if(assert_that(are_equal(exp_kernel_v0.5.0, getAnywhere(exp_kernel)))){
-    getAnywhere(exp_kernel)
-  } 
-}
-```
-
-### `permute_cases` {#permute_cases .tabset}
-
-#### Inputs
-
-#### Procedure
-
-1. Compute the number of rows as the number of predictions to be explained times the number of permutations.
-
-        nrows <- nrow(cases) * n_permutations
-
-2. Create the perturbations based on the type of variable and using the feature distribution determined by the lime function. The cases are as follows.
-    - numeric variable and the feature distribution contains all NAs: the observed cases get repeated `n_permutations` times
-    - numeric variable and `bin_continuous = TRUE`: 
-    sample from 1:number of bin cuts with replacement for
-    nrows times using the probability from the variable 
-    distribution sample from a uniform(0,1) distribution
-    and then multiply by the difference in bin cuts of
-    the appropriate bin and add the quantile associated
-    with the bin
-    - numeric variable, `bin_continuous = FALSE`, and `use_density = TRUE`: 
-    - numeric variable, `bin_continuous = FALSE`, and `use_density = FALSE`: randomly sample from a normal distribution, multiply by the sd of the feature distribution, and add the mean 
-    - character variable: sample from the names of the levels in the variable based on the probability of the variable distribution
-    - logical variable: 
-    - factor variable: sample from the names of the levels in the variable based on the probability of the variable distribution and convert the samples to factors 
-    - date: 
-    - integer variable: round the permutations to the nearest integer
-3. Give the permutations the same name as the variables
-4. Add the cases back into the data frame of the permutations
-5. Return the permutations.
-  
-#### Function
-
-```{r}
-if(!file.exists("../../../data/lime_functions/permute_cases_v0.5.0.rds")) {
-  saveRDS(object = getAnywhere(permute_cases.data.frame),
-          file = "../../../data/lime_functions/permute_cases_v0.5.0.rds")
-  getAnywhere(permute_cases.data.frame)
-} else {
-  permute_cases_v0.5.0 <- readRDS("../../../data/lime_functions/permute_cases_v0.5.0.rds")  
-  if(assert_that(are_equal(permute_cases_v0.5.0, getAnywhere(permute_cases.data.frame)))){
-    getAnywhere(permute_cases.data.frame)
-  } 
-}
-```
-
-# Python Package
-
-I have not spent a lot of time going through the Python package code, but I wanted to check to see if it uses a ridge regression for the feature selection and the explainer model. This [article](https://towardsdatascience.com/how-to-perform-lasso-and-ridge-regression-in-python-3b3b75541ad8) describes that ridge regression can be fit in Python using the sklearn "package". These images below of the code from the Python lime [GitHub repository](https://github.com/marcotcr/lime/blob/master/lime/lime_base.py) seem to imply that it is using ridge regression for both of these steps.
-
-![](../../figures/python-ridge1.png)
-
-![](../../figures/python-ridge2.png)
-
-![](../../figures/python-ridge3.png)
-
 # Proposed Bin Creation Methods
 
-### The Data
+## The Data
 
 The cleaning training and testing datasets are loaded in below.
 
@@ -682,7 +1352,7 @@ The cleaning training and testing datasets are loaded in below.
 hamby173and252_train <- read.csv("../../../data/hamby173and252_train.csv")
 ```
 
-### Subsampled Bins
+## Subsampled Bins
 
 One idea that I had to try to improve the lime explanations was to subsample from the training dataset before computing the quantiles. The proportion of observations with `samesource = FALSE` is very large in the training dataset, so that overwhelms the observations with `samesource = TRUE`. By subsampling, it might allow for better locations to bin the data. I wrote the code below to attempt to apply lime to a subsampled version of the training dataset.
 
@@ -720,7 +1390,7 @@ hamby224_lime <- c(hamby224_lime_full, hamby224_lime_sub)
 hamby224_explain <- bind_rows(hamby224_explain_full, hamby224_explain_sub)
 ```
 
-### Tree Based Bins
+## Tree Based Bins
 
 Heike suggested the idea of using classification trees to choose the cutoffs for the lime bins. That is, the divisions in the tree could be used as the bin cuts. This would allow us to automate the process and to obtain a penalty parameter since the trees give us nesting. (MSE + lambda * p where p is the from the number of trees multiplied by the number of ...)
 
