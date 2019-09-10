@@ -115,6 +115,9 @@ September 10)*
   - random forests confidence intervals
       - look into papers by Giles Hooker and Lucas Mentch
       - Dr. Nettleton paper
+  - random forest interpretations
+      - read
+        <https://www.r-bloggers.com/explaining-predictions-random-forest-post-hoc-analysis-randomforestexplainer-package/>
 
 ## Contents
 
