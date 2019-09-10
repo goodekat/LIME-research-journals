@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2019-09-06" />
+<meta name="date" content="2019-09-10" />
 
 <title>Understanding LIME</title>
 
@@ -1543,7 +1543,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Understanding LIME</h1>
 <h4 class="author">Katherine Goode</h4>
-<h4 class="date">September 06, 2019</h4>
+<h4 class="date">September 10, 2019</h4>
 
 </div>
 
@@ -1926,7 +1926,7 @@ func_check(&quot;lime.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     structure(explainer, class = c(&quot;data_frame_explainer&quot;, &quot;explainer&quot;, 
 ##         &quot;list&quot;))
 ## }
-## &lt;bytecode: 0x7fa889286fb8&gt;
+## &lt;bytecode: 0x7f7fc3809348&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -2115,7 +2115,7 @@ func_check(&quot;explain.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     as_tibble(res)
 ## }
-## &lt;bytecode: 0x7fa888526908&gt;
+## &lt;bytecode: 0x7f7fdfca9508&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="implementation" class="section level4">
@@ -2160,32 +2160,32 @@ kernel &lt;- lime:::exp_kernel(kernel_width)</code></pre>
                                              explainer$bin_cuts,
                                              explainer$use_density)
 head(case_perm)</code></pre>
-<pre><code>##          ccf   rough_cor           D        sd_D   matches mismatches
-## 1 0.27042215  0.27042215 0.001396367 0.002090586 0.5901742   7.616146
-## 2 0.25629595  0.03288261 0.636209241 2.480271119 2.2899027   9.571508
-## 3 0.02469511 -0.82138221 2.953549187 2.376090178 1.4420535   8.232214
-## 4 0.08799437  0.32894840 6.887359299 2.647925635 1.1819870   7.089619
-## 5 0.08009229 -0.02124871 1.676305784 2.867841775 2.7072053   9.873614
-## 6 0.26600217 -0.17786152 3.317082221 5.685277716 8.4659459  31.373740
+<pre><code>##         ccf   rough_cor           D        sd_D    matches mismatches
+## 1 0.2704221  0.27042215 0.001396367 0.002090586  0.5901742   7.616146
+## 2 0.1634849  0.12459697 3.910072180 3.031322470  2.5119128   7.296160
+## 3 0.2919685 -0.45677581 2.397159269 2.406930055  3.2438768   7.583835
+## 4 0.6970939 -0.66721677 0.242612457 1.652043125  2.0041458  12.931105
+## 5 0.1230103 -0.08418669 3.555717403 3.103859574 15.4433492   8.415596
+## 6 0.2296265  0.17784016 2.485298617 0.997212064  3.0529123  10.967290
 ##         cms   non_cms sum_peaks
-## 1 0.5901742 3.8080731  1.463209
-## 2 1.1273476 0.4725334  1.193346
-## 3 9.7905182 3.5131781  4.003451
-## 4 1.6886496 9.5455989 17.357165
-## 5 2.8142190 5.6152620 21.645066
-## 6 0.3399310 0.6731026 13.193366</code></pre>
+## 1 0.5901742  3.808073  1.463209
+## 2 1.4700414  6.111057  3.529264
+## 3 1.0727092  1.540310 13.527986
+## 4 0.6412834  3.919057 19.146886
+## 5 0.5566334  6.407219  2.004552
+## 6 1.1768106 14.623893  1.425603</code></pre>
 <pre class="r"><code>case_res &lt;- lime:::predict_model(explainer$model, 
                                  explainer$preprocess(case_perm),
                                  type = o_type)
 case_res &lt;- lime:::set_labels(case_res, explainer$model)
 head(case_res)</code></pre>
-<pre><code>##       FALSE      TRUE
-## 1 1.0000000 0.0000000
-## 2 0.7600000 0.2400000
-## 3 0.7666667 0.2333333
-## 4 0.7566667 0.2433333
-## 5 0.8333333 0.1666667
-## 6 0.7366667 0.2633333</code></pre>
+<pre><code>##       FALSE       TRUE
+## 1 1.0000000 0.00000000
+## 2 0.8266667 0.17333333
+## 3 0.9133333 0.08666667
+## 4 0.7700000 0.23000000
+## 5 0.5400000 0.46000000
+## 6 0.6600000 0.34000000</code></pre>
 <pre class="r"><code>case_ind &lt;- split(seq_len(nrow(case_perm)), rep(seq_len(nrow(x)), each = n_permutations))
 case_ind[[1]][1:10]</code></pre>
 <pre><code>##  [1]  1  2  3  4  5  6  7  8  9 10</code></pre>
@@ -2203,7 +2203,7 @@ str(i)</code></pre>
     case_perm[i, , drop = FALSE]))^gower_pow
 }
 str(sim)</code></pre>
-<pre><code>##  num [1:5000] 1 0.91 0.767 0.798 0.779 ...</code></pre>
+<pre><code>##  num [1:5000] 1 0.876 0.825 0.765 0.793 ...</code></pre>
 <pre class="r"><code>perms &lt;- lime:::numerify(case_perm[i, ], 
                          explainer$feature_type, 
                          explainer$bin_continuous,
@@ -2211,11 +2211,11 @@ str(sim)</code></pre>
 head(perms)</code></pre>
 <pre><code>##   ccf rough_cor D sd_D matches mismatches cms non_cms sum_peaks
 ## 1   1         1 1    1       1          1   1       1         1
-## 2   1         0 1    0       0          0   0       0         1
-## 3   0         0 0    0       0          0   0       0         0
-## 4   0         1 0    0       1          1   0       0         0
-## 5   0         0 1    0       0          0   0       0         0
-## 6   1         0 0    0       0          0   1       0         0</code></pre>
+## 2   0         1 0    0       0          1   0       0         0
+## 3   0         0 0    0       0          1   0       0         0
+## 4   0         0 1    1       0          0   0       1         0
+## 5   0         0 0    0       0          0   1       0         0
+## 6   1         1 0    1       0          0   0       0         1</code></pre>
 <pre class="r"><code># error?
 # res &lt;- lime:::model_permutations(as.matrix(perms), 
 #                                  case_res[i, , drop = FALSE], 
@@ -2320,7 +2320,7 @@ head(perms)</code></pre>
 ## {
 ##     UseMethod(&quot;model_type&quot;)
 ## }
-## &lt;bytecode: 0x7fa89eb7fcf8&gt;
+## &lt;bytecode: 0x7f7fd9e25be8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type' was found
@@ -2333,7 +2333,7 @@ head(perms)</code></pre>
 ## {
 ##     UseMethod(&quot;model_type&quot;)
 ## }
-## &lt;bytecode: 0x7fa89eb7fcf8&gt;
+## &lt;bytecode: 0x7f7fd9e25be8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.default&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.default' was found
@@ -2347,7 +2347,7 @@ head(perms)</code></pre>
 ##     stop(&quot;The class of model must have a model_type method. See ?model_type to get an overview of models supported out of the box&quot;, 
 ##         call. = FALSE)
 ## }
-## &lt;bytecode: 0x7fa8a2e71c08&gt;
+## &lt;bytecode: 0x7f7fdd94f460&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.lime_classifier&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.lime_classifier' was found
@@ -2358,7 +2358,7 @@ head(perms)</code></pre>
 ## 
 ## function (x, ...) 
 ## &quot;classification&quot;
-## &lt;bytecode: 0x7fa888b2e628&gt;
+## &lt;bytecode: 0x7f7fc2f043c0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.lime_regressor&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.lime_regressor' was found
@@ -2369,7 +2369,7 @@ head(perms)</code></pre>
 ## 
 ## function (x, ...) 
 ## &quot;regression&quot;
-## &lt;bytecode: 0x7fa8a2a17540&gt;
+## &lt;bytecode: 0x7f7fdcd0bb78&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.train&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.train' was found
@@ -2382,7 +2382,7 @@ head(perms)</code></pre>
 ## {
 ##     tolower(x$modelType)
 ## }
-## &lt;bytecode: 0x7fa8a2939968&gt;
+## &lt;bytecode: 0x7f7fdc5f7808&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.model_fit&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.model_fit' was found
@@ -2395,7 +2395,7 @@ head(perms)</code></pre>
 ## {
 ##     x$spec$mode
 ## }
-## &lt;bytecode: 0x7fa8a0e22660&gt;
+## &lt;bytecode: 0x7f7fdc45a260&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.WrappedModel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.WrappedModel' was found
@@ -2409,7 +2409,7 @@ head(perms)</code></pre>
 ##     switch(x$learner$type, classif = &quot;classification&quot;, regr = &quot;regression&quot;, 
 ##         surv = &quot;survival&quot;, cluster = &quot;clustering&quot;, multilabel = &quot;multilabel&quot;)
 ## }
-## &lt;bytecode: 0x7fa8a0c4f268&gt;
+## &lt;bytecode: 0x7f7fdc286e68&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.xgb.Booster&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.xgb.Booster' was found
@@ -2430,7 +2430,7 @@ head(perms)</code></pre>
 ##         multi = &quot;classification&quot;, stop(&quot;Unsupported model type&quot;, 
 ##             call. = FALSE))
 ## }
-## &lt;bytecode: 0x7fa8a0afc350&gt;
+## &lt;bytecode: 0x7f7fdae44580&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.lda&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.lda' was found
@@ -2441,7 +2441,7 @@ head(perms)</code></pre>
 ## 
 ## function (x, ...) 
 ## &quot;classification&quot;
-## &lt;bytecode: 0x7fa8a1bf3220&gt;
+## &lt;bytecode: 0x7f7fdac10820&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.keras.engine.training.Model&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.keras.engine.training.Model' was found
@@ -2464,7 +2464,7 @@ head(perms)</code></pre>
 ##         &quot;classification&quot;
 ##     }
 ## }
-## &lt;bytecode: 0x7fa8a19dd290&gt;
+## &lt;bytecode: 0x7f7fda9fa890&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.H2OModel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.H2OModel' was found
@@ -2486,7 +2486,7 @@ head(perms)</code></pre>
 ##         stop(&quot;This h2o model is not currently supported.&quot;)
 ##     }
 ## }
-## &lt;bytecode: 0x7fa8a21b1888&gt;
+## &lt;bytecode: 0x7f7fdd33b6c0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;model_type.ranger&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'model_type.ranger' was found
@@ -2510,7 +2510,7 @@ head(perms)</code></pre>
 ##             &quot;\&quot; is not currently supported.&quot;))
 ##     }
 ## }
-## &lt;bytecode: 0x7fa8a03fc610&gt;
+## &lt;bytecode: 0x7f7fd41a2678&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -2547,7 +2547,7 @@ func_check(&quot;output_type&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         stop(model_type(x), &quot; models are not supported yet&quot;, 
 ##             call. = FALSE))
 ## }
-## &lt;bytecode: 0x7fa888b30938&gt;
+## &lt;bytecode: 0x7f7fc2f066d0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -2579,7 +2579,7 @@ func_check(&quot;exp_kernel&quot;, &quot;0.5.0&quot;)</code></pre>
 ## {
 ##     function(x) sqrt(exp(-(x^2)/(width^2)))
 ## }
-## &lt;bytecode: 0x7fa8a38cc388&gt;
+## &lt;bytecode: 0x7f7fdea98af8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -2797,7 +2797,7 @@ func_check(&quot;permute_cases.data.frame&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         ] &lt;- cases
 ##     perm
 ## }
-## &lt;bytecode: 0x7fa8a3277700&gt;
+## &lt;bytecode: 0x7f7fde498270&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="implementation-1" class="section level4">
@@ -2817,19 +2817,19 @@ seq</code></pre>
 bin &lt;- sample(seq_along(feature_distribution[[i]]), nrows, TRUE,
               as.numeric(feature_distribution[[i]]))
 head(bin)</code></pre>
-<pre><code>## [1] 1 3 2 4 2 4</code></pre>
+<pre><code>## [1] 3 1 3 2 1 4</code></pre>
 <pre class="r"><code>perms &lt;- diff(bin_cuts[[i]])[bin] * runif(nrows) + bin_cuts[[i]][bin]
 head(perms)</code></pre>
-<pre><code>##        25%        75%        50%       100%        50%       100% 
-## 0.02789014 0.34690599 0.21277094 0.86043400 0.22728322 0.83378292</code></pre>
+<pre><code>##       75%       25%       75%       50%       25%      100% 
+## 0.2983978 0.1845037 0.3186807 0.2265833 0.1754898 0.9550101</code></pre>
 <pre class="r"><code>if (is.integer(cases[[i]])) {
     perms &lt;- as.integer(round(perms))
   } else {
     perms &lt;- perms
   }
 head(perms)</code></pre>
-<pre><code>##        25%        75%        50%       100%        50%       100% 
-## 0.02789014 0.34690599 0.21277094 0.86043400 0.22728322 0.83378292</code></pre>
+<pre><code>##       75%       25%       75%       50%       25%      100% 
+## 0.2983978 0.1845037 0.3186807 0.2265833 0.1754898 0.9550101</code></pre>
 <pre class="r"><code>perm &lt;- as.data.frame(lapply(seq_along(cases), function(i) {
          perms &lt;- if (is.numeric(cases[[i]]) &amp;&amp; bin_continuous) {
              bin &lt;- sample(seq_along(feature_distribution[[i]]), 
@@ -2845,37 +2845,37 @@ head(perms)</code></pre>
 }), stringsAsFactors = FALSE)
 names(perm) &lt;- names(cases)
 head(perm)</code></pre>
-<pre><code>##         ccf    rough_cor         D     sd_D    matches mismatches
-## 1 0.3913449 -0.116931417  9.558611 2.431972  1.4107695   9.406222
-## 2 0.5209583 -0.165157308  2.753388 6.733205  0.5408805  23.383406
-## 3 0.3051695 -0.041703622  2.141970 5.794839 17.6233621  10.238466
-## 4 0.2433760 -0.018593396  2.011024 2.702710  3.1076160   5.547853
-## 5 0.4364410  0.332341975  3.667409 3.135142  1.4770039   8.566570
-## 6 0.4617406  0.001290501 19.151831 2.664355  1.4010572  32.629903
-##          cms   non_cms  sum_peaks
-## 1  0.2735577  4.531094  3.9295168
-## 2  0.2901248  5.532699  0.9265665
-## 3 11.1745836  4.171199 17.9936141
-## 4  0.7232061  6.473365  2.5583506
-## 5  1.4907840  3.936662 14.3802184
-## 6  5.0399987 25.942791 11.1507563</code></pre>
+<pre><code>##         ccf    rough_cor         D     sd_D  matches mismatches        cms
+## 1 0.2849197  0.525997827  2.875772 3.166835 2.769039   6.188938  0.8171860
+## 2 0.1655117 -0.255507365  1.996975 2.619575 1.047938   9.225632  1.2679501
+## 3 0.2327981  0.060222748 11.249632 2.411091 1.901314  24.367013  0.3031294
+## 4 0.5870168  0.005280993  1.267131 2.649863 3.177945  10.123307  7.2277320
+## 5 0.2223833 -0.180656415  2.149778 5.737636 3.181051   9.080097 13.9403728
+## 6 0.7981408 -0.327897641  2.798060 1.167434 2.914154   8.461589  9.0827383
+##    non_cms sum_peaks
+## 1 4.884279 23.305716
+## 2 2.163401  2.628655
+## 3 5.905895  1.786192
+## 4 5.788203  1.755353
+## 5 3.724090  1.346194
+## 6 2.506837  5.144303</code></pre>
 <pre class="r"><code># The first row gets replaced with the case of interest for each set of perturbations
 perm[seq.int(1, by = n_permutations, length.out = nrow(cases)), ] &lt;- cases
 head(perm)</code></pre>
-<pre><code>##         ccf    rough_cor            D        sd_D    matches mismatches
-## 1 0.2704221  0.270422149  0.001396367 0.002090586  0.5901742   7.616146
-## 2 0.5209583 -0.165157308  2.753388417 6.733204662  0.5408805  23.383406
-## 3 0.3051695 -0.041703622  2.141969865 5.794838601 17.6233621  10.238466
-## 4 0.2433760 -0.018593396  2.011024168 2.702709842  3.1076160   5.547853
-## 5 0.4364410  0.332341975  3.667408503 3.135142237  1.4770039   8.566570
-## 6 0.4617406  0.001290501 19.151830669 2.664354709  1.4010572  32.629903
-##          cms   non_cms  sum_peaks
-## 1  0.5901742  3.808073  1.4632093
-## 2  0.2901248  5.532699  0.9265665
-## 3 11.1745836  4.171199 17.9936141
-## 4  0.7232061  6.473365  2.5583506
-## 5  1.4907840  3.936662 14.3802184
-## 6  5.0399987 25.942791 11.1507563</code></pre>
+<pre><code>##         ccf    rough_cor            D        sd_D   matches mismatches
+## 1 0.2704221  0.270422149  0.001396367 0.002090586 0.5901742   7.616146
+## 2 0.1655117 -0.255507365  1.996974956 2.619574571 1.0479378   9.225632
+## 3 0.2327981  0.060222748 11.249632373 2.411090720 1.9013143  24.367013
+## 4 0.5870168  0.005280993  1.267130979 2.649863265 3.1779455  10.123307
+## 5 0.2223833 -0.180656415  2.149778457 5.737636037 3.1810511   9.080097
+## 6 0.7981408 -0.327897641  2.798060105 1.167433877 2.9141543   8.461589
+##          cms  non_cms sum_peaks
+## 1  0.5901742 3.808073  1.463209
+## 2  1.2679501 2.163401  2.628655
+## 3  0.3031294 5.905895  1.786192
+## 4  7.2277320 5.788203  1.755353
+## 5 13.9403728 3.724090  1.346194
+## 6  9.0827383 2.506837  5.144303</code></pre>
 </div>
 </div>
 <div id="predict_model" class="section level3 tabset">
@@ -3014,7 +3014,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ## {
 ##     UseMethod(&quot;predict_model&quot;)
 ## }
-## &lt;bytecode: 0x7fa89e5fa630&gt;
+## &lt;bytecode: 0x7f7fd9dfd358&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.default&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.default' was found
@@ -3030,7 +3030,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         p &lt;- data.frame(Response = p, stringsAsFactors = FALSE)
 ##     as.data.frame(p)
 ## }
-## &lt;bytecode: 0x7fa888c17a10&gt;
+## &lt;bytecode: 0x7f7fd4130a10&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.model_fit&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.model_fit' was found
@@ -3052,7 +3052,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     p
 ## }
-## &lt;bytecode: 0x7fa8883695d8&gt;
+## &lt;bytecode: 0x7f7fc3d303d8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.WrappedModel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.WrappedModel' was found
@@ -3072,7 +3072,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         p$task.desc$class.levels), stop(&quot;Type must be either \&quot;raw\&quot; or \&quot;prob\&quot;&quot;, 
 ##         call. = FALSE))
 ## }
-## &lt;bytecode: 0x7fa887983808&gt;
+## &lt;bytecode: 0x7f7fc3654280&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.xgb.Booster&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.xgb.Booster' was found
@@ -3105,7 +3105,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     p
 ## }
-## &lt;bytecode: 0x7fa889054ae8&gt;
+## &lt;bytecode: 0x7f7fc3492878&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.lda&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.lda' was found
@@ -3120,7 +3120,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     switch(type, raw = data.frame(Response = res$class, stringsAsFactors = FALSE), 
 ##         prob = as.data.frame(res$posterior, check.names = FALSE))
 ## }
-## &lt;bytecode: 0x7fa888d9d480&gt;
+## &lt;bytecode: 0x7f7fc317e3c8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.keras.engine.training.Model&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.keras.engine.training.Model' was found
@@ -3146,7 +3146,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         as.data.frame(res, check.names = FALSE)
 ##     }
 ## }
-## &lt;bytecode: 0x7fa888a6b570&gt;
+## &lt;bytecode: 0x7f7fc2e3f298&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.H2OModel&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.H2OModel' was found
@@ -3174,7 +3174,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         stop(&quot;This h2o model is not currently supported.&quot;)
 ##     }
 ## }
-## &lt;bytecode: 0x7fa8a4276e30&gt;
+## &lt;bytecode: 0x7f7fdd6c5d18&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;predict_model.ranger&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'predict_model.ranger' was found
@@ -3202,7 +3202,7 @@ func_check(&quot;predict_model&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     switch(type, raw = data.frame(Response = res), prob = as.data.frame(res))
 ## }
-## &lt;bytecode: 0x7fa8a3db6c80&gt;
+## &lt;bytecode: 0x7f7fde64cd98&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3237,7 +3237,7 @@ func_check(&quot;set_labels&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     res
 ## }
-## &lt;bytecode: 0x7fa88887dc08&gt;
+## &lt;bytecode: 0x7f7fdfd68e08&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3309,7 +3309,7 @@ func_check(&quot;numerify&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         }
 ##     }), stringsAsFactors = FALSE), names(x))
 ## }
-## &lt;bytecode: 0x7fa88790fe68&gt;
+## &lt;bytecode: 0x7f7fc338f720&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3348,7 +3348,7 @@ func_check(&quot;feature_scale&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         }
 ##     }), stringsAsFactors = FALSE), names(x))
 ## }
-## &lt;bytecode: 0x7fa8a1d2e0c8&gt;
+## &lt;bytecode: 0x7f7fdc647c08&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3479,7 +3479,7 @@ func_check(&quot;model_permutations&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     })
 ##     do.call(rbind, res)
 ## }
-## &lt;bytecode: 0x7fa8a0d4e7e8&gt;
+## &lt;bytecode: 0x7f7fdc386420&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3542,7 +3542,7 @@ func_check(&quot;select_features&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         y, weights, n_features), tree = select_tree(x, y, weights, 
 ##         n_features), stop(&quot;Method not implemented&quot;, call. = FALSE))
 ## }
-## &lt;bytecode: 0x7fa8a0a36190&gt;
+## &lt;bytecode: 0x7f7fdad80190&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 <pre class="r"><code>func_check(&quot;feature_selection_method&quot;, &quot;0.5.0&quot;)</code></pre>
 <pre><code>## A single object matching 'feature_selection_method' was found
@@ -3553,7 +3553,7 @@ func_check(&quot;select_features&quot;, &quot;0.5.0&quot;)</code></pre>
 ## function () 
 ## c(&quot;auto&quot;, &quot;none&quot;, &quot;forward_selection&quot;, &quot;highest_weights&quot;, &quot;lasso_path&quot;, 
 ##     &quot;tree&quot;)
-## &lt;bytecode: 0x7fa8a1bbaae8&gt;
+## &lt;bytecode: 0x7f7fdabd80e8&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3611,7 +3611,7 @@ func_check(&quot;select_f_fs&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     }
 ##     features
 ## }
-## &lt;bytecode: 0x7fa8a2232810&gt;
+## &lt;bytecode: 0x7f7fdd3bc808&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="select_f_hw" class="section level4">
@@ -3632,7 +3632,7 @@ func_check(&quot;select_f_hw&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     features_order &lt;- order(abs(features), decreasing = TRUE)
 ##     head(features_order, n_features)
 ## }
-## &lt;bytecode: 0x7fa8a02fb500&gt;
+## &lt;bytecode: 0x7f7fdc9439a0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="select_f_lp" class="section level4">
@@ -3655,7 +3655,7 @@ func_check(&quot;select_f_lp&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     features &lt;- which(has_value[, row])
 ##     features
 ## }
-## &lt;bytecode: 0x7fa8a1664df0&gt;
+## &lt;bytecode: 0x7f7fdb5dcdf0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 <div id="select_tree" class="section level4">
@@ -3685,7 +3685,7 @@ func_check(&quot;select_tree&quot;, &quot;0.5.0&quot;)</code></pre>
 ##     selected_words &lt;- head(dt[[&quot;Feature&quot;]], n_features)
 ##     which(colnames(mat) %in% selected_words)
 ## }
-## &lt;bytecode: 0x7fa8a125e0d8&gt;
+## &lt;bytecode: 0x7f7fdb241570&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
@@ -3742,7 +3742,7 @@ func_check(&quot;describe_feature&quot;, &quot;0.5.0&quot;)</code></pre>
 ##         }
 ##     })
 ## }
-## &lt;bytecode: 0x7fa89f1a2f58&gt;
+## &lt;bytecode: 0x7f7fd9fd8cb0&gt;
 ## &lt;environment: namespace:lime&gt;</code></pre>
 </div>
 </div>
