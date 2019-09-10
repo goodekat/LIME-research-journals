@@ -27,11 +27,10 @@ September 10)*
 
 **Current**
 
-  - finish going through code with the explain function
-  - write procedure section of LIME paper
-  - draft the rest of the paper
-  - read through papers giving an overview of the current explanation
-    methods
+  - draft methods section of the paper
+  - draft data example section of paper
+  - draft discussion section of paper
+  - draft appendices
 
 **Oral Prelim**
 
@@ -86,6 +85,8 @@ September 10)*
         reduction and coloring them by variables suggested to be
         important by lime
   - explainer models
+      - read through papers giving an overview of the current
+        explanation methods
       - look into iml (<https://www.youtube.com/watch?v=jP6Rg13PEkQ>)
       - look more into Molnar and his adviser Bernd
       - look into
