@@ -8,22 +8,9 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
-  - Graphics Group
-      - what should we do about gganimate/Halloween?
-      - treats?
-  - LIME
-      - I made a mistake when I told you that the full test dataset gets
-        included in the ridge regression model (only the case of
-        interest in included)
-      - Show updated journal on LIME (added a lot to document the
-        package)
-      - What did you think of my additions to section 2 of the paper?
-      - New goal for 1st draft of paper: next Wednesday (9/18)
-
 ## To Do List
 
-*First draft of paper due two weeks into the semester (Tuesday,
-September 10)*
+*First draft of paper due Wednesday, September 18)*
 
 **Current**
 
