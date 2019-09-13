@@ -7,6 +7,29 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
+  - Sometimes LIME does not want to run in R
+
+<!-- end list -->
+
+``` r
+library(caret)
+library(lime)
+
+# Split up the data set
+iris_test <- iris[1:5, 1:4]
+iris_train <- iris[-(1:5), 1:4]
+iris_lab <- iris[[5]][-(1:5)]
+
+# Create Random Forest model on iris data
+model <- train(iris_train, iris_lab, method = 'rf')
+
+# Create an explainer object
+explainer <- lime(iris_train, model)
+
+# Explain new observation
+explanation <- explain(iris_test, explainer, n_labels = 1, n_features = 2)
+```
+
 ## To Do List
 
 *First draft of paper due Wednesday, September 18)*

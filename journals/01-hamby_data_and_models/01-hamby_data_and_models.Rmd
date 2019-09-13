@@ -7,6 +7,8 @@ output:
     toc: true
     toc_depth: 3
     toc_float: true
+    theme: cerulean
+    highlight: textmate
 ---
 
 ```{r setup, include = FALSE}
@@ -23,6 +25,7 @@ This journal includes a description of the Hamby datasets and models fit to the 
 # Load libraries
 library(bulletr)
 library(cowplot)
+library(GGally)
 library(glmnet)
 library(plotly)
 library(randomForest)
@@ -397,6 +400,16 @@ hamby224_test %>%
   theme_bw() +
   theme(legend.position = "bottom")
 ```
+
+##### Feature Interactions
+
+```{r}
+hamby224_test %>%
+  select(rf_features, samesource) %>%
+  ggpairs(mapping = aes(color = samesource), 
+          columns = rf_features)
+```
+
 
 ##### Correlations
 
