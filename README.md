@@ -7,12 +7,13 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
-  - Sometimes LIME does not want to run in R
+  - Should I write the code in a package or just save the functions in a
+    folder in the paper repository?
+  - Sometimes LIME does not want to run in R with the bullet data
 
 <!-- end list -->
 
 ``` r
-library(caret)
 library(lime)
 
 # Split up the data set
@@ -21,10 +22,11 @@ iris_train <- iris[-(1:5), 1:4]
 iris_lab <- iris[[5]][-(1:5)]
 
 # Create Random Forest model on iris data
-model <- train(iris_train, iris_lab, method = 'rf')
+#model <- caret::train(iris_train, iris_lab, method = 'rf')
+model <- randomForest::randomForest(iris_train, iris_lab)
 
 # Create an explainer object
-explainer <- lime(iris_train, model)
+explainer <- lime(iris_train, as_classifier(model))
 
 # Explain new observation
 explanation <- explain(iris_test, explainer, n_labels = 1, n_features = 2)
