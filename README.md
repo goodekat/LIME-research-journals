@@ -9,7 +9,14 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
   - Should I write the code in a package or just save the functions in a
     folder in the paper repository?
-  - Sometimes LIME does not want to run in R with the bullet data
+  - MSEE (mean squared explanation error?) versus locality metric which
+    would need to be computed via the perturbations
+  - How to handle the issue of accessing the perturbations?
+  - Do we want to think of a metric that is stand alone? - not just for
+    comparisons
+  - Sometimes LIME does not want to run in R with the bullet data - this
+    example works but I’m running into issues with the package…I don’t
+    really understand how the predict\_model functions work
 
 <!-- end list -->
 
