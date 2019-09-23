@@ -7,6 +7,8 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
+**LIME**
+
   - Should I write the code in a package or just save the functions in a
     folder in the paper repository?
   - MSEE (mean squared explanation error?) versus locality metric which
@@ -38,6 +40,14 @@ explainer <- lime(iris_train, as_classifier(model))
 # Explain new observation
 explanation <- explain(iris_test, explainer, n_labels = 1, n_features = 2)
 ```
+
+**Graphics Group**
+
+  - I was going email Adam to check to make sure that he is still able
+    to present next week at graphics group. As the “host”, is there
+    anything I should do to help with his visit?
+  - Treats this week (I could bake something)
+  - Should we have a treats sign up next semester?
 
 ## To Do List
 
