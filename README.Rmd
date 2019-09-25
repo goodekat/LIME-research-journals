@@ -16,40 +16,13 @@ Link to csafe server: https://isu-csafe.stat.iastate.edu/rstudio/
 
 **LIME** 
 
-- Should I write the code in a package or just save the functions in a folder in the paper repository?
-- MSEE (mean squared explanation error?) versus locality metric which would need to be computed via the perturbations
-- How to handle the issue of accessing the perturbations?
-- Do we want to think of a metric that is stand alone? - not just for comparisons
-- Sometimes LIME does not want to run in R with the bullet data - this example works but I'm running into issues with the package...I don't really understand how the predict_model functions work
-
-```{r error = TRUE, message = FALSE}
-library(lime)
-
-# Split up the data set
-iris_test <- iris[1:5, 1:4]
-iris_train <- iris[-(1:5), 1:4]
-iris_lab <- iris[[5]][-(1:5)]
-
-# Create Random Forest model on iris data
-#model <- caret::train(iris_train, iris_lab, method = 'rf')
-model <- randomForest::randomForest(iris_train, iris_lab)
-
-# Create an explainer object
-explainer <- lime(iris_train, as_classifier(model))
-
-# Explain new observation
-explanation <- explain(iris_test, explainer, n_labels = 1, n_features = 2)
-```
-
-**Graphics Group**
-
-- I was going email Adam to check to make sure that he is still able to present next week at graphics group. As the "host", is there anything I should do to help with his visit?
-- Treats this week (I could bake something)
-- Should we have a treats sign up next semester?
+- What names should I give to the diagnostic plots?
+- Color themes for the paper?
+- Metrics:
+    - MSEE (mean squared explanation error?) versus locality metric which would need to be computed via the perturbations
+    - Do we want to think of a metric that is stand alone? - not just for comparisons
 
 ## To Do List
-
-*First draft of paper due Wednesday, September 18)*
 
 - draft methods section of the paper
 - draft data example section of paper
