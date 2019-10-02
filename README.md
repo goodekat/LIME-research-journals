@@ -17,6 +17,16 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
       - Do we want to think of a metric that is stand alone? - not just
         for comparisons
 
+**Sandia**
+
+  - I had a phone interview with them
+  - Did you get an email from them for a reference?
+
+**Graphics Group**
+
+  - Adam’s visit: parking, coffee/lunch, dinner, etc.
+  - Di’s email
+
 ## To Do List
 
   - draft methods section of the paper
