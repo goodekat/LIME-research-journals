@@ -9,8 +9,18 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 **LIME**
 
+  - Completed:
+      - connected limeaid to my forked version of lime
+      - added sine example and analysis of default LIME explanations to
+        paper
+      - started section on heatmap plot
+  - What do you think of my work on the methods section so far?
+  - Should we schedule my oral prelim, or should we keep waiting until I
+    get closer to finishing the paper?
   - What names should I give to the diagnostic plots?
   - Color themes for the paper?
+  - Could you help me with the interpretation of the default LIME
+    explanations?
   - Metrics:
       - MSEE (mean squared explanation error?) versus locality metric
         which would need to be computed via the perturbations
@@ -24,8 +34,7 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 **Graphics Group**
 
-  - Adam’s visit: parking, coffee/lunch, dinner, etc.
-  - Di’s email
+  - treats for Yihui’s talk?
 
 ## To Do List
 
