@@ -35,6 +35,8 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 **Graphics Group**
 
   - treats for Yihui’s talk?
+  - did you have any resources for gganimate? (check out my slides so
+    far)
 
 ## To Do List
 
