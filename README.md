@@ -22,6 +22,7 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 **Sandia**
 
+  - full time?
   - Reference?
 
 **Graphics Group**
