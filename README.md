@@ -7,21 +7,8 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
-**Sandia**
-
-  - Memo about full time
-
-**Graphics Group**
-
-  - Did you have any resources for gganimate? (check out my slides so
-    far)
-  - Treats for tomorrow?
-
 **LIME**
 
-  - What do you think of the new version of the plot that I created?
-  - Should we schedule my oral prelim, or should we keep waiting until I
-    get closer to finishing the paper?
   - What names should I give to the diagnostic plots?
   - Could you help me with the interpretation of the default LIME
     explanations?
@@ -31,9 +18,14 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
       - Do we want to think of a metric that is stand alone? - not just
         for comparisons
 
+**Sandia**
+
+**Graphics Group**
+
 ## To Do List
 
   - draft paper
+  - start organizing literature review paper
 
 ## Oral Prelim
 
