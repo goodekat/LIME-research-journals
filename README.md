@@ -7,8 +7,13 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 ## Talking points
 
+**Sandia**
+
+  - Memo about full time
+
 **LIME**
 
+  - What do you think of the new version of the plot that I created?
   - Should we schedule my oral prelim, or should we keep waiting until I
     get closer to finishing the paper?
   - What names should I give to the diagnostic plots?
@@ -20,22 +25,15 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
       - Do we want to think of a metric that is stand alone? - not just
         for comparisons
 
-**Sandia**
-
-  - full time?
-  - Reference?
-
 **Graphics Group**
 
-  - did you have any resources for gganimate? (check out my slides so
+  - Did you have any resources for gganimate? (check out my slides so
     far)
+  - Treats for tomorrow?
 
 ## To Do List
 
-  - draft methods section of the paper
-  - draft data example section of paper
-  - draft discussion section of paper
-  - draft appendices
+  - draft paper
 
 ## Oral Prelim
 
