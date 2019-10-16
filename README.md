@@ -11,6 +11,12 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
   - Memo about full time
 
+**Graphics Group**
+
+  - Did you have any resources for gganimate? (check out my slides so
+    far)
+  - Treats for tomorrow?
+
 **LIME**
 
   - What do you think of the new version of the plot that I created?
@@ -24,12 +30,6 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
         which would need to be computed via the perturbations
       - Do we want to think of a metric that is stand alone? - not just
         for comparisons
-
-**Graphics Group**
-
-  - Did you have any resources for gganimate? (check out my slides so
-    far)
-  - Treats for tomorrow?
 
 ## To Do List
 
