@@ -9,6 +9,7 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 **LIME**
 
+  - Can we talk about the LIME assumptions?
   - What names should I give to the diagnostic plots?
   - Could you help me with the interpretation of the default LIME
     explanations?
@@ -18,9 +19,11 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
       - Do we want to think of a metric that is stand alone? - not just
         for comparisons
 
-**Sandia**
-
 **Graphics Group**
+
+  - Treats?
+
+**Sandia**
 
 ## To Do List
 
