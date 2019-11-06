@@ -9,26 +9,11 @@ Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
 **LIME**
 
-  - model explainer vs explainer model?
   - reference for “sine data”
-  - what do you think of the changes I made to the paper so far?
-  - see other questions in paper?
 
 **Graphics Group**
 
-  - Eric next week - plans?
-  - Treats for tomorrow?
-  - LunchinatoRs talk on Friday - would you like to join?
-
 **Sandia**
-
-  - starting date (Dec/Jan)?
-  - salary? (seems okay to me)
-  - anything else I should ask about before accepting the position?
-
-**Other**
-
-  - meeting with Annie and David and Anabelle on Friday
 
 ## To Do List
 
