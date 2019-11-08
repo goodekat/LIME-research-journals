@@ -5,7 +5,7 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
   html_document:
     toc: true
-    toc_depth: 3
+    toc_depth: 5
     toc_float: true
     theme: cerulean
     highlight: textmate
@@ -25,7 +25,9 @@ This journal includes a description of the Hamby datasets and models fit to the 
 # Load libraries
 library(bulletr)
 library(cowplot)
+library(ggConvexHull) #devtools::install_github("cmartin/ggConvexHull")
 library(GGally)
+library(ggpcp)
 library(glmnet)
 library(plotly)
 library(randomForest)
@@ -108,7 +110,8 @@ countplot <- hamby173and252_raw %>%
   geom_tile(aes(fill = count)) + 
   facet_grid(study1 + bullet1 ~ study2 + bullet2, scales = "free") +
   theme_minimal() + 
-  scale_fill_distiller(palette = "GnBu", direction = 1)
+  scale_fill_distiller(palette = "GnBu", direction = 1) + 
+  theme(legend.position = "bottom")
 
 # Make the plot interactive
 ggplotly(countplot, width = 800, height = 700) %>%
@@ -679,40 +682,99 @@ rf_features_ordered <- data.frame(feature = rownames(bulletr::rtrees$importance)
 
 Below is a parallel coordinate plot of the training dataset. It is facetted by `samesource` and colored by `rfscore`. The features are sorted by the variable importance scores (descending from left to right) from the `rtrees` model. It is interesting to see that the matches with low rfscores have feature values that are similar to the nonmatches.
 
-```{r fig.width = 10}
+```{r fig.width = 14}
 hamby173and252_train %>%
-  mutate(case = 1:n()) %>%
-  select(case, rfscore, samesource, ccf:sum_peaks) %>%
-  mutate_at(rf_features, scale) %>%
-  gather(variable, value, 4:12) %>%
-  mutate(variable = factor(variable, levels = rf_features_ordered$feature)) %>%
-  ggplot(aes(x = variable, y = value, group = case, color = rfscore)) + 
-  geom_point() + 
-  geom_line(alpha = 0.2) + 
-  facet_grid( ~ samesource) + 
+  na.omit() %>%
+  ggplot(aes(color = rfscore)) + 
+  geom_pcp(aes(vars = vars(as.vector(rf_features_ordered$feature))), alpha = 0.1) + 
+  facet_grid(. ~ samesource) + 
   scale_color_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   labs(x = "Feature (sorted by rtrees variable importance)", 
-       y = "Standardized Feature Values")
+       y = "Standardized Feature Values") 
 ```
 
 Below is a parallel coordinate plot of the testing dataset. It is facetted by `samesource` and colored by `rfscore`. You can see a clear distinction between the trends of the feature values from the nonmatches and matches. It is interesting to consider the cases in set 1 that are matches but were predicted to be nonmatches by the model. These are the cases colored in grey, and their feature values are very different from the observations that were predicted to be matches by the model. The nonmatch predictions have values that are closer to the nonmatches.
 
-```{r fig.width = 10}
+```{r fig.width = 14}
 hamby224_test %>%
   na.omit() %>%
-  select(case, set, rfscore, samesource, ccf:sum_peaks) %>%
-  mutate_at(rf_features, scale) %>%
-  gather(variable, value, 5:13) %>%
-  mutate(variable = factor(variable, levels = rf_features_ordered$feature)) %>%
-  ggplot(aes(x = variable, y = value, group = case, color = rfscore)) + 
-  geom_point() + 
-  geom_line(alpha = 0.5) + 
-  facet_grid(set ~ samesource) + 
+  ggplot(aes(color = rfscore)) + 
+  geom_pcp(aes(vars = vars(as.vector(rf_features_ordered$feature))), alpha = 0.1) + 
+  facet_grid(. ~ samesource) + 
   scale_color_gradient2(low = "darkgrey", high = "darkorange", midpoint = 0.5) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   labs(x = "Feature (sorted by rtrees variable importance)", 
-       y = "Standardized Feature Values")
+       y = "Standardized Feature Values") 
+```
+
+##### Partial Dependence Plots
+
+I tried using the package `pdp`, but I got the following error.
+
+```{r error = TRUE}
+library(pdp)
+partial(object = rtrees, pred.var = "rough_cor", plot = TRUE, plot.engine = "ggplot2")
+```
+
+Then I tried creating some plots myself. 
+
+```{r}
+# Specify the number of breaks in the grid
+n <- 100000
+
+# Create a prediction grid
+set.seed(20191108)
+simulated_data <- hamby173and252_train %>%
+  select(rf_features) %>%
+  gather(variable, value) %>%
+  group_by(variable) %>%
+  summarise(min = min(value),
+            max = max(value)) %>%
+  rowwise() %>%
+  mutate(samples = list(runif(n, min, max))) %>%
+  select(variable, samples) %>%
+  unnest() %>%
+  mutate(case = rep(1:n, 9)) %>%
+  spread(variable, samples) %>%
+  select(-case)
+
+simulated_data$rfpred <- predict(rtrees, newdata = simulated_data, type = "prob")[,2]
+```
+
+```{r}
+simulated_data %>%
+  gather(key = variable, value = value, rf_features) %>%
+  ggplot(aes(x = value, y = rfpred, color = rfpred)) + 
+  geom_point() + 
+  facet_wrap(. ~ variable, scales = "free_x") + 
+  scale_color_viridis_c("rfpred", option = "A", limits = c(0, 1))
+```
+
+```{r}
+ggplot() + 
+  stat_summary_2d(data = simulated_data,
+                  mapping = aes(x = ccf, y = rough_cor, z = rfpred), 
+                  bins = 75, 
+                  fun = mean) + 
+  scale_fill_viridis_c("rfpred", option = "A", limits = c(0, 1)) + 
+  geom_convexhull(data = hamby173and252_train, 
+                  mapping = aes(x = ccf, y = rough_cor), 
+                  alpha = 0, 
+                  color = "black")
+```
+
+```{r}
+ggplot() + 
+  stat_summary_2d(data = simulated_data,
+                  mapping = aes(x = ccf, y = matches, z = rfpred), 
+                  bins = 75, 
+                  fun = mean) + 
+  scale_fill_viridis_c("rfpred", option = "A", limits = c(0, 1)) + 
+  geom_convexhull(data = hamby173and252_train, 
+                  mapping = aes(x = ccf, y = matches), 
+                  alpha = 0, 
+                  color = "black")
 ```
 
 ##### Biplot
