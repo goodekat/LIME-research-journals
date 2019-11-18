@@ -1274,6 +1274,131 @@ func_check("select_f_lp", "0.5.0")
 func_check("select_tree", "0.5.0")
 ```
 
+#### Implementation
+
+```{r}
+# Set up and implementation
+x <- hamby224_test %>% 
+  arrange(case) %>%
+  select(rf_features) %>% 
+  na.omit()
+explainer <- lime:::lime.data.frame(x = hamby173and252_train %>%
+                                      select(rf_features), 
+                                    y = hamby173and252_train %>%
+                                      select(samesource), 
+                                    model = as_classifier(bulletr::rtrees))
+label = TRUE
+n_labels = NULL
+n_features = 3
+n_permutations = 5000
+feature_select = 'auto'
+dist_fun = "gower"
+kernel_width = NULL
+gower_pow = 1
+o_type <- lime:::output_type(explainer)
+if (is.null(kernel_width)) {
+   kernel_width <- sqrt(ncol(x)) * 0.75
+}
+kernel <- lime:::exp_kernel(kernel_width)
+case_perm <- lime:::permute_cases.data.frame(x,
+                                             n_permutations,
+                                             explainer$feature_distribution,
+                                             explainer$bin_continuous,
+                                             explainer$bin_cuts,
+                                             explainer$use_density)
+case_res <- lime:::predict_model(explainer$model, 
+                                 explainer$preprocess(case_perm),
+                                 type = o_type)
+case_res <- lime:::set_labels(case_res, explainer$model)
+case_ind <- split(seq_len(nrow(case_perm)), rep(seq_len(nrow(x)), each = n_permutations))
+i <- case_ind[[1]]
+if (dist_fun == "gower") {
+  sim <- 1 - (gower_dist(case_perm[i[1], , drop = FALSE], 
+    case_perm[i, , drop = FALSE]))^gower_pow
+}
+perms <- lime:::numerify(case_perm[i, ], 
+                         explainer$feature_type, 
+                         explainer$bin_continuous,
+                         explainer$bin_cuts)
+
+# Running the function
+lime:::select_f_fs(x = as.matrix(perms), 
+                   y = case_res[i, , drop = FALSE][[label]], 
+                   weights = sim, 
+                   n_features = n_features)
+```
+
+```{r}
+# One implementation of the inside of select_f_fs
+
+# Input values
+x = as.matrix(perms)
+y = case_res[i, , drop = FALSE][[label]]
+weights = sim
+n_features = n_features
+
+# Creates a vector where to store the selected features
+features <- c()
+
+#for (i in seq_len(n_features)) {
+
+# My code to run this loop
+seq_len(n_features)
+loopi <- 1
+
+# Settings
+max <- -1e+05
+best <- 0
+
+seq_len(ncol(x))
+
+for (loopj in seq_len(ncol(x))) {
+
+#if (loopj %in% features)
+#  next
+
+if (length(features) == 0) {
+  
+  x_fit = cbind(`(Intercept)` = rep(1, nrow(x)), x[, loopj, drop = FALSE])
+  print(head(x_fit))
+  
+  fit <- glm.fit(x = x_fit, y = y, weights = weights, family = gaussian())
+  
+  r2 <- 1 - fit$deviance/fit$null.deviance
+  print(r2)
+
+  } else {
+    
+    x_fit = x[, c(features, loopj), drop = FALSE]
+    print(head(x_fit))
+    fit <- glmnet(x_fit,
+                  y, weights = weights, alpha = 0, lambda = 0)
+    
+    r2 <- fit$dev.ratio
+    print(r2)
+  }
+
+if (is.finite(r2) && r2 > max) {
+  max <- r2
+  best <- loopj
+  print(max)
+}
+
+}
+
+if (best == 0) {
+             stop("Failed to select features with forward selection. Please choose another feature selector",
+                 call. = FALSE)
+}
+
+features <- c(features, best)
+
+#}
+
+features
+```
+
+
 ### `describe_feature` {#describe_feature .tabset}
 
 #### Inputs
