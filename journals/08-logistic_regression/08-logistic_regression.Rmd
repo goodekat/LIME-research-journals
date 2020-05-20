@@ -1,0 +1,162 @@
+---
+title: "LIME Applied to a Logistic Regression"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: true
+    theme: cerulean
+    highlight: textmate
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE,
+                      warning = FALSE, 
+                      eval = TRUE,
+                      cache = TRUE, 
+                      fig.width = 12)
+```
+
+This journal includes LIME examples with a logistic regression model fit to the sine data.
+
+```{r}
+library(caret)
+library(cowplot)
+library(lime)
+library(limeaid)
+```
+
+# Data
+
+Prepare the sine data
+
+```{r}
+# Prepare training and testing data
+x_train = sine_data_train[c("x1", "x2", "x3")]
+y_train = factor(sine_data_train$y)
+x_test = sine_data_test[1:5, c("x1", "x2", "x3")]
+```
+
+# Logistic Regression Models
+
+## Main Effects Only
+
+Logistic regression model: y ~ x1 + x2 + x3
+
+```{r}
+# Fit the model
+lrm <- caret::train(
+  as.factor(y) ~ x1 + x2 + x3,
+  preProcess = "scale",
+  data = sine_data_train,
+  method = "glm",
+  family = "binomial"
+)
+
+lrm$finalModel
+```
+
+## All Interactions 
+
+Logistic regression model: y ~ x1 * x2 * x3
+
+```{r}
+# Fit the model
+lri <- caret::train(
+  as.factor(y) ~ x1 * x2 * x3,
+  preProcess = "scale",
+  data = sine_data_train,
+  method = "glm",
+  family = "binomial"
+)
+
+lri$finalModel
+```
+
+# Apply LIME
+
+Apply LIME with 3 quantile bins, 4 quantile bins, and kernel density to both models
+
+```{r}
+# Run apply_lime
+resm <- apply_lime(
+  train = x_train,
+  test = x_test,
+  model = lrm,
+  label = "1",
+  n_features = 2,
+  sim_method = c('quantile_bins',
+                 'kernel_density'),
+  nbins = 3:4,
+  return_perms = TRUE
+)
+
+# Run apply_lime
+resi <- apply_lime(
+  train = x_train,
+  test = x_test,
+  model = lri,
+  label = "1",
+  n_features = 2,
+  sim_method = c('quantile_bins',
+                 'kernel_density'),
+  nbins = 3:4,
+  return_perms = TRUE
+)
+```
+
+# Exlanation Visualizations
+
+Plot the LIME explanation plot and my EOI plot for each prediction in the test data and each implementation of LIME
+
+```{r}
+# Plot the explanation of interest
+join_plots <- function(id, exp) {
+  p1 <- lime::plot_features(exp$explain[id:(id+1),])
+  p2 <- eoi_plot(exp$explain[id:(id+1),])
+  plot_grid(p1, p2)
+}
+```
+
+## Main Effects Only 
+
+### 3 quantile bins
+
+```{r}
+purrr::map(.x = seq(1, 9, 2), .f = join_plots, exp = resm)
+```
+
+### 4 quantile bins
+
+```{r}
+purrr::map(.x = seq(11, 19, 2), .f = join_plots, exp = resm)
+```
+
+### kernel density
+
+```{r}
+purrr::map(.x = seq(21, 29, 2), .f = join_plots, exp = resm)
+```
+
+## All Interactions
+
+### 3 quantile bins
+
+```{r}
+purrr::map(.x = seq(1, 9, 2), .f = join_plots, exp = resi)
+```
+
+### 4 quantile bins
+
+```{r}
+purrr::map(.x = seq(11, 19, 2), .f = join_plots, exp = resi)
+```
+
+### kernel density
+
+```{r}
+purrr::map(.x = seq(21, 29, 2), .f = join_plots, exp = resi)
+```
