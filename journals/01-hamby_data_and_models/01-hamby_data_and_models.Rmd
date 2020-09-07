@@ -23,7 +23,7 @@ This journal includes a description of the Hamby datasets and models fit to the 
 
 ```{r}
 # Load libraries
-library(bulletr)
+library(bulletxtrctr)
 library(cowplot)
 library(ggConvexHull) #devtools::install_github("cmartin/ggConvexHull")
 library(GGally)
@@ -46,11 +46,11 @@ CSAFE has access to test sets 44, 173, and 252. The bullets were scanned 6 times
 
 CSAFE aggregated the signatures from test sets 173 and 252 and left the signatures from test set 44 separate. Within these two groups, pairs of lands were evaluated to determine how similar the signatures from the two lands were. This was done by measuring a set of variables they determined that would capture how alike the two signatures where. Some of these variables are described in Hare, Hofmann, and Carriquiry. The vignette at https://github.com/heike/bulletxtrctr/blob/master/vignettes/features.Rmd includes some additional descriptions. Note that it was not possible to evaluate all pairs of lands due to tank rash on some of the lands. The data set created from the comparisons of test sets 173 and 252 will be referred to as `hamby173and252` throughout these journals. Hare, Hofmann, and Carriquiry used `hamby173and252` as a training data set to fit the random forest model `rtrees`. The data set created from the comparisons of test sets 44 will be referred to as `hamby44` and is not used in this research project.
 
-Both the training and the testing data will require the use of a vector of the names of the features used in the `rtrees` random forest included in the bulletr library. I created such a vector to use in this journal, and this vector is printed below. It includes nine features.
+Both the training and the testing data will require the use of a vector of the names of the features used in the `rtrees` random forest included in the `bulletxtrctr` library. I created such a vector to use in this journal, and this vector is printed below. It includes nine features.
 
 ```{r}
 # Obtain features used when fitting the rtrees random forest
-rf_features <- rownames(bulletr::rtrees$importance)
+rf_features <- rownames(bulletxtrctr::rtrees$importance)
 rf_features
 ```
 
@@ -149,7 +149,7 @@ hamby173and252_train_cleaning <- hamby173and252_raw %>%
                                  as.character(barrel2))),
          land1 = factor(land1),
          land2 = factor(land2),
-         rfscore = predict(bulletr::rtrees, hamby173and252_raw %>%
+         rfscore = predict(bulletxtrctr::rtrees, hamby173and252_raw %>%
                              select(rf_features), 
                            type = "prob")[,2]) %>%
   rename(samesource = match) %>%
@@ -164,7 +164,7 @@ I discovered that the number of rtrees predictions does not match the length of 
 ```{r}
 # Compare the dimensions of my training data and the number of predictions from rtrees
 dim(hamby173and252_train_cleaning)
-dim(predict(bulletr::rtrees, type = "prob"))
+dim(predict(bulletxtrctr::rtrees, type = "prob"))
 ```
 
 When I talked to Heike about this, she told me that this training dataset probably still contains the four land impressions that had tank ranks and were removed before `rtrees` was fit. When I looked in Eric's paper, it said that the lands that were removed were the following four: 
@@ -192,7 +192,7 @@ When I look at the dimensions of my training data now and the number of predicti
 # Compare the dimensions of my further cleaned training data and the
 # number of predictions from rtrees
 dim(hamby173and252_train)
-dim(predict(bulletr::rtrees, type = "prob"))
+dim(predict(bulletxtrctr::rtrees, type = "prob"))
 ```
 
 It is possible that the labels that Eric was using are different from the labels in my training dataset. In order to check whether I removed the correct datapoints, Heike suggested that I look at a parallel coordinate plots to see if the observations that were removed stand out as being unusual compared to the rest of the data. The code below prepares the training data before observations were removed to be plotted.
@@ -228,9 +228,9 @@ MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$samesource_col
 
 The cleaned data is saved and used as the training dataset for the rest of this research project.
 
-```{r eval = FALSE}
+```{r}
 # Save the datasets and response variables as .csv files
-write.csv(hamby173and252_train, "../../data/hamby173and252_train.csv", row.names = FALSE)
+write.csv(hamby173and252_train, "../../../data/hamby173and252_train.csv", row.names = FALSE)
 ```
 
 ### Testing Data
@@ -320,17 +320,43 @@ hamby224_test <- suppressWarnings(bind_rows(hamby224_set1_cleaned,
          !(bullet1 == "Known 2" & bullet2 == "Known 1")) %>%
   arrange(rfscore) %>%
   mutate(case = factor(1:length(study))) %>%
-  select(case, study:samesource)
+  select(case, study, set, bullet1, land1, bullet2, land2, ccf:sum_peaks, samesource, rfscore)
 ```
 
 **Saving the Data**
 
 The testing data file is saved below.
 
-```{r eval = FALSE}
+```{r}
 # Save the test data as a .csv file
-write.csv(hamby224_test, "../../data/hamby224_test.csv", row.names = FALSE)
+write.csv(hamby224_test, "../../../data/hamby224_test.csv", row.names = FALSE)
 ```
+
+**Data for LIME Diagnostics Paper**
+
+The code below takes the dataset `hamby224_test` and makes some formatting adjustments to prepare it to be used in the LIME diagnostics paper, so that it matches the training dataset published by Heike that was used to fit `rtrees`.
+
+```{r}
+# Change format of dataset to be used in the paper
+paper_bullet_test_data <- 
+  hamby224_test %>%
+  mutate(study = str_remove(study, " "),
+         set = str_remove(set, " "),
+         bullet1 = str_replace(bullet1, "Known ", "B"),
+         bullet2 = str_replace(bullet2, "Known ", "B"),
+         bullet1 = str_replace(bullet1, "Questioned", "BUnk"),
+         bullet2 = str_replace(bullet2, "Questioned", "BUnk"),
+         land1 = str_replace(land1, "Land ", "L"),
+         land2 = str_replace(land2, "Land ", "L")) %>%
+  mutate(land_id1 = paste(study, set, bullet1, land1, sep = "-"),
+         land_id2 = paste(study, set, bullet2, land2, sep = "-")) %>%
+  select(-study, -set, -bullet1, -land1, -bullet2, -land2) %>%
+  select(case, land_id1, land_id2, everything())
+
+# ave the file to the folder where the LIME diagnostics paper is stored
+write.csv(paper_bullet_test_data , "../../../diagnostics-paper/data-bullet-test.csv", row.names = FALSE)
+```
+
 
 ### Plots of Features
 
@@ -539,9 +565,9 @@ plot_grid(cor_title_test,
 
 ### Description
 
-The random forest model that was fit to the Hamby training dataset is discussed in the paper "Automatic Matching of Bullet Land Impressions" by E. Hare Et. Al. The model is available through the GitHub version of the `bulletr` package. The link to the GitHub repository for `bulletr` is https://github.com/CSAFE-ISU/bulletr. 
+The random forest model that was fit to the Hamby training dataset is discussed in the paper "Automatic Matching of Bullet Land Impressions" by E. Hare Et. Al. The model is available through the GitHub version of the `bulletxtrctr` package. The link to the GitHub repository for `bulletxtrctr` is https://github.com/heike/bulletxtrctr. 
 
-The random forest model is stored in the package `bulletr` as a data object called `rtrees`. The paper does not include many details about the model fitting process, so I looked at some of the model features, which are printed below. These values told me that the model was fit using the predictive features of `ccf`, `rough_cor`, `D`, `sd_D`, `matches`, `mismatches`, `cms`, `non_cms`, and `sum_peaks` with 300 trees and the parameter of `mtry` set to 3, which is the "number of variables randomly sampled as candidates at each split" as explained in the `randomforest` package documentation.
+The random forest model is stored in the package `bulletxtrctr` as a data object called `rtrees`. The paper does not include many details about the model fitting process, so I looked at some of the model features, which are printed below. These values told me that the model was fit using the predictive features of `ccf`, `rough_cor`, `D`, `sd_D`, `matches`, `mismatches`, `cms`, `non_cms`, and `sum_peaks` with 300 trees and the parameter of `mtry` set to 3, which is the "number of variables randomly sampled as candidates at each split" as explained in the `randomforest` package documentation.
 
 ```{r}
 # Importance values from the random forest
@@ -675,8 +701,8 @@ style(subplot(p1, p2, p3, p4, p5, p6, p7, p8, p9,
 
 ```{r}
 # Create a dataframe with the random forest features ordered by importance
-rf_features_ordered <- data.frame(feature = rownames(bulletr::rtrees$importance), 
-                                  MeanDecreaseGini = bulletr::rtrees$importance) %>%
+rf_features_ordered <- data.frame(feature = rownames(bulletxtrctr::rtrees$importance), 
+                                  MeanDecreaseGini = bulletxtrctr::rtrees$importance) %>%
   arrange(desc(MeanDecreaseGini))
 ```
 
