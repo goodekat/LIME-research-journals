@@ -332,32 +332,6 @@ The testing data file is saved below.
 write.csv(hamby224_test, "../../../data/hamby224_test.csv", row.names = FALSE)
 ```
 
-**Data for LIME Diagnostics Paper**
-
-The code below takes the dataset `hamby224_test` and makes some formatting adjustments to prepare it to be used in the LIME diagnostics paper, so that it matches the training dataset published by Heike that was used to fit `rtrees`.
-
-```{r}
-# Change format of dataset to be used in the paper
-paper_bullet_test_data <- 
-  hamby224_test %>%
-  mutate(study = str_remove(study, " "),
-         set = str_remove(set, " "),
-         bullet1 = str_replace(bullet1, "Known ", "B"),
-         bullet2 = str_replace(bullet2, "Known ", "B"),
-         bullet1 = str_replace(bullet1, "Questioned", "BUnk"),
-         bullet2 = str_replace(bullet2, "Questioned", "BUnk"),
-         land1 = str_replace(land1, "Land ", "L"),
-         land2 = str_replace(land2, "Land ", "L")) %>%
-  mutate(land_id1 = paste(study, set, bullet1, land1, sep = "-"),
-         land_id2 = paste(study, set, bullet2, land2, sep = "-")) %>%
-  select(-study, -set, -bullet1, -land1, -bullet2, -land2) %>%
-  select(case, land_id1, land_id2, everything())
-
-# ave the file to the folder where the LIME diagnostics paper is stored
-write.csv(paper_bullet_test_data , "../../../diagnostics-paper/data-bullet-test.csv", row.names = FALSE)
-```
-
-
 ### Plots of Features
 
 ##### Distributions by `samesource`
