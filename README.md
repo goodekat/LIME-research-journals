@@ -5,47 +5,6 @@ Repository for research projects on LIME
 
 Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
 
-## Talking points
-
-**LIME**
-
-  - reference for “sine data”
-
-**Graphics Group**
-
-**Sandia**
-
-## To Do List
-
-  - draft paper
-  - start organizing literature review paper
-  - set up dissertation R markdown document
-
-## Oral Prelim
-
-**Schedule**
-
-  - can be anytime during the semester
-  - just needs to be 6 months before final defense
-  - schedule when it gets closer to the time
-  - schedule 3 or 4 weeks in advance
-  - send prelim materials to committee 2 weeks in advance
-
-**Materials**
-
-  - Chapter 0 (complete)
-      - lit review
-      - research statement: “this is what this thesis will investigate”
-  - Chatper 1 (as close to submission as possible)
-      - LIME and shortcomings
-      - Dr. Dixon likes to give feedback before submission
-  - Chapter 2 (draft)
-      - Diagnostics for RF
-  - Chapter 3 (some idea)
-      - Diagnostics for Bayesian Neural Networks
-      - Could switch to chapter 2 if more complete
-  - Conclusion (not needed)
-
 ## Ideas
 
 **LIME diagnostics**
@@ -162,6 +121,11 @@ This folder contains folders with research journals.
   - `06-literature_review`: notes on papers relating to LIME
   - `07-computation_issues`: documentation of some of the computation
     issues I ran into during the project
+  - `08-logistic_regression`: examples of applying LIME to explain
+    logistic regression models
+  - `09-refitting-rtrees`: examples where I retrain the rtrees model
+    with the “current” version of the training data and compare the
+    results
 
 **main**
 
