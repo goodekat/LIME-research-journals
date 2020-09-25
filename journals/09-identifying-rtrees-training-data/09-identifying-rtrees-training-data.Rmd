@@ -1,0 +1,396 @@
+---
+title: "Identifying `rtrees` Training Data"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: true
+    theme: cerulean
+    highlight: textmate
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  eval = TRUE,
+  cache = FALSE, 
+  dpi = 300
+)
+```
+
+This journal contains work to identify the data used to train `rtrees` (contained in both `bulletr` and `bulletxtrctr`). We recently discovered some discrepancies between `rtrees` and the training data we were using (`hamby-comparisons.csv`, previously `features-hamby173and252.csv`). Unfortunately, the original work by Eric is not well documented, so it is difficult to know for sure which dataset was used to train the model. However, Eric recently pointed us to some [code](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R), which he believes was used to train `rtrees`. Heike was able to rerun part of the code to extract data from the CSAFE database that was created by the first part of the code (scans to features). The new data (`CCFs_withlands`) contains the same number of rows the number of predictions associated with `rtrees`. I have gathered all of our work trying to determine that `CCFs_withlands` is the data used to train `rtrees` in this journal.
+
+```{r}
+library(cowplot)
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(randomForest)
+library(tidyr)
+```
+
+# Raw Datasets
+
+This section contains code for loading and performing initial comparisons of the raw datasets.
+
+## Load Data
+
+Load the data provided by Heike and CSAFE that we have been using and believed to be the training data for rtrees:
+
+```{r}
+hamby_comparisons <- read.csv("../../../data/raw/hamby-comparisons.csv")
+```
+
+Load the data extracted (on 2020-09-23) from the CSAFE database and corresponds to the [R script](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R) Eric believes to be the one used to train `rtrees`.
+
+```{r}
+CCFs_withlands <- read.csv("../../../data/raw/CCFs_withlands.csv")
+```
+
+Obtain the features used to train `rtrees` for use throughout this journal:
+
+```{r}
+rtrees_features <- rownames(bulletxtrctr::rtrees$importance)
+```
+
+## Initial Comparisons
+
+Dimensions of the raw datasets:
+
+```{r}
+dim(hamby_comparisons)
+dim(CCFs_withlands)
+```
+
+Note that `CCFs_withlands` has the same number of rows as the number of predictions associated with `rtrees`:
+
+```{r}
+length(bulletxtrctr::rtrees$predicted)
+```
+
+Comparing summaries of the distributions of the features used to train `rtrees` from the two datasets. Note that I even remove the observations in `hamby_comparisons` known to have tank rash (`flag == FALSE`). The main differences are seen with the distributions of `D` (distance) and `sd_D` (standard deviation of distance).
+
+```{r}
+summary(hamby_comparisons %>% filter(flag == FALSE) %>% select(all_of(rtrees_features)))
+summary(CCFs_withlands %>% select(all_of(rtrees_features)))
+```
+
+Comparing visualizations of the distributions of the features used to train `rtrees` from the two datasets to again see the differences in distributions of `D` and `sd_D`:
+
+```{r fig.width = 10, fig.height = 3}
+bind_rows(
+  hamby_comparisons %>%
+    filter(flag == FALSE) %>%
+    select(all_of(rtrees_features)) %>%
+    pivot_longer(cols = everything()) %>%
+    mutate(dataset = "hamby_comparisons"),
+  CCFs_withlands %>% select(all_of(rtrees_features)) %>%
+    pivot_longer(cols = everything()) %>%
+    mutate(dataset = "CCFs_withlands")
+) %>%
+  ggplot(aes(x = value, fill = dataset)) + 
+  geom_histogram() +
+  facet_grid(dataset ~ name)
+```
+
+
+<!-- New data plot: -->
+
+<!-- ```{r} -->
+<!-- preds <- -->
+<!--   data.frame( -->
+<!--     oob = predict(bulletxtrctr::rtrees, type = "prob")[, 2], -->
+<!--     all_data = predict( -->
+<!--       bulletxtrctr::rtrees, -->
+<!--       ccfs_withlands_raw %>% select(all_of(rf_features)), -->
+<!--       type = "prob" -->
+<!--     )[, 2] -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- preds %>%  -->
+<!--   ggplot(aes(x = all_data, y = oob)) +  -->
+<!--   geom_point() -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- preds %>% -->
+<!--   mutate(obs = 1:n()) %>% -->
+<!--   pivot_longer(cols = -obs) %>% -->
+<!--   ggplot(aes(x = value, fill = name)) +  -->
+<!--   geom_density(alpha = 0.5) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- preds %>%  -->
+<!--   mutate(diff = oob - all_data) %>% -->
+<!--   ggplot(aes(x = diff)) +  -->
+<!--   geom_histogram() -->
+<!-- ``` -->
+<!-- # Data -->
+
+<!-- Load the prepared training data which only has observations with `flag == FALSE` (prepared in the LIME diagnostics paper repository): -->
+
+<!-- ```{r} -->
+<!-- bullet_train <- read.csv("../../../diagnostics-paper/data/bullet-train.csv") -->
+<!-- ``` -->
+
+<!-- Load the random forest `rtrees` from the `bulletxtrctr` package and the random forest model I recently fit using the `bullet_train` data in the paper: -->
+
+<!-- ```{r} -->
+<!-- rtrees <- bulletxtrctr::rtrees -->
+<!-- paper_rf <- readRDS("../../../diagnostics-paper/data/bullet-rf.rds") -->
+<!-- ``` -->
+
+<!-- Extract the features used to fit `rtrees`: -->
+
+<!-- ```{r} -->
+<!-- bullet_features <- rownames(bulletxtrctr::rtrees$importance) -->
+<!-- bullet_features -->
+<!-- ``` -->
+
+<!-- # `rtrees` versus paper model -->
+
+<!-- The code below was used to fit the random forest in the paper but is not run here: -->
+
+<!-- ```{r eval = FALSE} -->
+<!-- set.seed(20160104) -->
+<!-- bullet_rf <- -->
+<!--   randomForest( -->
+<!--     y = factor(bullet_train$samesource), -->
+<!--     x = bullet_train %>% select(all_of(bullet_features)), -->
+<!--     ntree = bulletxtrctr::rtrees$ntree, -->
+<!--     mtry = bulletxtrctr::rtrees$mtry -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- Confusion matrices from the two models: -->
+
+<!-- ```{r} -->
+<!-- rtrees$confusion -->
+<!-- paper_rf$confusion -->
+<!-- ``` -->
+
+<!-- Variable importance values: -->
+
+<!-- ```{r} -->
+<!-- vi = data.frame( -->
+<!--   features = rownames(rtrees$importance), -->
+<!--   rtrees = rtrees$importance[, 1], -->
+<!--   paper = paper_rf$importance[, 1] -->
+<!-- ) -->
+<!-- ``` -->
+
+<!-- # New Random Forests -->
+
+<!-- Randomly select 100 seeds (using a random seed):  -->
+
+<!-- ```{r} -->
+<!-- set.seed(20200917) -->
+<!-- seeds = sample(x = 10000000:100000000, size = 100, replace = FALSE) -->
+<!-- seeds -->
+<!-- ``` -->
+
+<!-- Function for fitting random forests to mimic rtrees with different seeds: -->
+
+<!-- ```{r} -->
+<!-- fit_rf <- function(seed) { -->
+<!--   set.seed(seed) -->
+<!--   bullet_rf <- -->
+<!--     randomForest( -->
+<!--       y = factor(bullet_train$samesource), -->
+<!--       x = bullet_train %>% select(all_of(bullet_features)), -->
+<!--       ntree = bulletxtrctr::rtrees$ntree, -->
+<!--       mtry = bulletxtrctr::rtrees$mtry -->
+<!--     )   -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- Fit 100 new random forests and save or load: -->
+
+<!-- ```{r} -->
+<!-- # Fit (and save) or load random forests -->
+<!-- bullet_rfs_file = "../../../data/bullet_rfs.rds" -->
+<!-- if (!file.exists(bullet_rfs_file)) { -->
+<!--   bullet_rfs = map(.x = seeds, .f = fit_rf) -->
+<!--   saveRDS(object = bullet_rfs, file = bullet_rfs_file) -->
+<!-- } else { -->
+<!--   bullet_rfs = readRDS(bullet_rfs_file) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- Function for extracting the confusion matrices from the model and put in a nice data frame: -->
+
+<!-- ```{r} -->
+<!-- extract_confus <- function(model) { -->
+<!--   data.frame(model$confusion) %>% -->
+<!--   rename("FALSE" = "FALSE.", "TRUE" = "TRUE.", "class_error" = "class.error") %>% -->
+<!--   mutate(observed = rownames(model$confusion)) %>% -->
+<!--   pivot_wider(names_from = observed, values_from = everything())   -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- Function for extracting the importance values, computing the rank of the features based on importance, and putting in a data frame:  -->
+
+<!-- ```{r} -->
+<!-- extract_importance <- function(model) { -->
+<!--   data.frame(model$importance) %>% -->
+<!--     mutate(features = rownames(model$importance)) %>% -->
+<!--     arrange(desc(MeanDecreaseGini)) %>% -->
+<!--     mutate(rank = 1:n()) %>% -->
+<!--     rename("importance" = "MeanDecreaseGini") %>% -->
+<!--     select(features, importance, rank) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- Extract the confusion matrices and importance values from all random forest models: -->
+
+<!-- ```{r} -->
+<!-- res_confus <- map_df(.x = bullet_rfs, .f = extract_confus, .id = "rf_model_id") -->
+<!-- res_importance <- map_df(.x = bullet_rfs, .f = extract_importance, .id = "rf_model_id") -->
+<!-- ``` -->
+
+<!-- # Visualizations of Results -->
+
+<!-- ## Class Errors -->
+
+<!-- Obtain the class errors from `rtrees` and the paper random forest: -->
+
+<!-- ```{r} -->
+<!-- comparison_values <- -->
+<!--   data.frame( -->
+<!--     model = c("paper", "rtrees"), -->
+<!--     class_error_true = c(paper_rf$confusion[2, 3], rtrees$confusion[2, 3]), -->
+<!--     class_error_false = c(paper_rf$confusion[1, 3], rtrees$confusion[1, 3]) -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- Histograms of the class errors (true and false) show that the rtrees values appear to be in the extreme (false) or outside of the new random forest models (true): -->
+
+<!-- ```{r fig.width = 10, fig.height = 4.5} -->
+<!-- hist_true <-  -->
+<!--   res_confus %>% -->
+<!--   ggplot(aes(x = class_error_TRUE)) + -->
+<!--   geom_histogram() + -->
+<!--   geom_vline(data = comparison_values, -->
+<!--              mapping = aes(xintercept = class_error_true, color = model)) -->
+
+<!-- hist_false <-  -->
+<!--   res_confus %>% -->
+<!--   ggplot(aes(x = class_error_FALSE)) + -->
+<!--   geom_histogram() + -->
+<!--   geom_vline(data = comparison_values, -->
+<!--              mapping = aes(xintercept = class_error_false, color = model)) -->
+
+<!-- plot_grid(hist_true, hist_false) -->
+<!-- ``` -->
+
+<!-- Class error for TRUE versus class error for FALSE and again the rtrees observations falls outside the range of the newly trained random forest models: -->
+
+<!-- ```{r} -->
+<!-- ggplot() + -->
+<!--   geom_point(data = res_confus, -->
+<!--              mapping = aes(x = class_error_FALSE, y = class_error_TRUE)) + -->
+<!--   geom_point( -->
+<!--     data = comparison_values, -->
+<!--     mapping = aes(x = class_error_false, y = class_error_true, color = model) -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- ## Variable Importance  -->
+
+<!-- Prepare variable importance from `rtrees` and paper models for plotting: -->
+
+<!-- ```{r} -->
+<!-- vi_ranks <-  -->
+<!--   vi %>% -->
+<!--   arrange(desc(rtrees)) %>% -->
+<!--   mutate(rtrees_rank = 1:n()) %>%  -->
+<!--   arrange(desc(paper)) %>% -->
+<!--   mutate(paper_rank = 1:n()) %>% -->
+<!--   select(-rtrees, -paper) %>% -->
+<!--   pivot_longer(names_to = "rf_model_id", values_to = "rank", cols = -features) -->
+<!-- ``` -->
+
+<!-- Tile plot showing the variable importance ranks for each model showing variability across newly trained models and some agreement (ex: rough_cor and ccf) and some disagreement (ex: sum_peaks and non_cms) with `rtrees`: -->
+
+<!-- ```{r fig.width = 10, fig.height = 4.5} -->
+<!-- rtrees_var_order <- -->
+<!--   vi_ranks %>% -->
+<!--   filter(rf_model_id == "rtrees_rank") %>% -->
+<!--   arrange(desc(rank)) %>% -->
+<!--   pull(features) -->
+
+<!-- tile_org <- -->
+<!--   vi_ranks %>% -->
+<!--   mutate( -->
+<!--     rank = factor(rank, levels = 1:9), -->
+<!--     features = factor(features, levels = rtrees_var_order),  -->
+<!--     rf_model_id = factor(rf_model_id, levels = c("rtrees_rank", "paper_rank")) -->
+<!--   ) %>% -->
+<!--   ggplot(aes(x = rf_model_id, y = features, fill = rank)) + -->
+<!--   geom_tile() + -->
+<!--   scale_fill_brewer(palette = "RdYlBu") -->
+
+<!-- tile_new <- -->
+<!--   res_importance %>% -->
+<!--   mutate( -->
+<!--     rank = factor(rank, levels = 1:9), -->
+<!--     features = factor(features, levels = rtrees_var_order) -->
+<!--   ) %>% -->
+<!--   ggplot(aes(x = rf_model_id, y = features, fill = rank)) + -->
+<!--   geom_tile() + -->
+<!--   scale_fill_brewer(palette = "RdYlBu") -->
+
+<!-- plot_grid(tile_org, tile_new) -->
+<!-- ``` -->
+
+<!-- Box plot of ranks across the models with colored points added for the `rtrees` and paper model variable importance ranks (features ordered by `rtrees` variable importance): -->
+
+<!-- ```{r} -->
+<!-- res_importance %>% -->
+<!--   mutate(features = factor(features, levels = rtrees_var_order)) %>% -->
+<!--   ggplot() + -->
+<!--   geom_boxplot(aes(x = rank, y = features)) + -->
+<!--   geom_jitter( -->
+<!--     data = vi_ranks, -->
+<!--     mapping = aes(x = rank, y = features, color = rf_model_id), -->
+<!--     width = 0, -->
+<!--     height = 0.2 -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- Features versus variable importance ranks for new models (black lines and points) and `rtrees` and paper model (features ordered by `rtrees` variable importance): -->
+
+<!-- ```{r} -->
+<!-- res_importance %>% -->
+<!--   mutate( -->
+<!--     rank = factor(rank, levels = 1:9), -->
+<!--     features = factor(features, levels = rtrees_var_order) -->
+<!--   ) %>% -->
+<!--   ggplot(aes(x = rank, y = features, group = rf_model_id)) + -->
+<!--   geom_line(alpha = 0.2, size = 2) + -->
+<!--   geom_point(alpha = 0.2, size = 3) + -->
+<!--   geom_line( -->
+<!--     data = vi_ranks, -->
+<!--     mapping = aes( -->
+<!--       x = rank, -->
+<!--       y = features, -->
+<!--       group = rf_model_id, -->
+<!--       color = rf_model_id -->
+<!--     ) -->
+<!--   ) + -->
+<!--   geom_jitter( -->
+<!--     data = vi_ranks, -->
+<!--     mapping = aes(x = rank, y = features, color = rf_model_id), -->
+<!--     width = 0.1, -->
+<!--     height = 0 -->
+<!--   ) + -->
+<!--   labs(title = "new random forest lines and points created with alpha shading") -->
+<!-- ``` -->
+

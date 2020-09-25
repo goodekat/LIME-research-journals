@@ -78,8 +78,7 @@ The dataset loaded in below is the original Hamby 172 and 252 dataset that Heike
 # Load in the Hamby 173 and 252 dataset
 hamby173and252_raw <- read.csv("../../../data/raw/features-hamby173and252.csv") %>%
   filter(study1 != "Cary", study2 != "Cary") %>%
-  mutate(study1 = factor(study1), 
-         study2 = factor(study2))
+  mutate(study1 = factor(study1), study2 = factor(study2))
 ```
 
 **Number of Rows**
@@ -88,16 +87,16 @@ If we include symmetric comparisons, each set of test bullets should result in a
   $$(35 \mbox{ bullets} \times 6 \mbox{ lands})^2=44100 \mbox{ rows},$$
 where a row would contain information on a pair of lands. If we do not include the symmetric comparisons, then the dataset should have
   $$\frac{(44100 \mbox{ rows} - (35 \mbox{ bullets} \times 6))}{2} + (35 \mbox{ bullets} \times 6) = 22155 \mbox{ rows}.$$
-However, when I looked at the dimension of the datasets, neither of these seem to be the case. See the R code and output below. Note that `hamby173` is currently incorrectly labelled as `hamby44`. Both test sets have less than but close to 22,155 rows. This suggests that these do not include symmetric comparisons. When I checked with Heike, she confirmed that this is the case. This table also shows that there are comparisons across `hamby173` and `hamby252`. These missing observations will be explored more in the next section.
+However, when I looked at the dimension of the datasets, neither of these seem to be the case. See the R code and output below. Note that `hamby173` is currently incorrectly labeled as `hamby44`. Both test sets have less than but close to 22,155 rows. This suggests that these do not include symmetric comparisons. When I checked with Heike, she confirmed that this is the case. This table also shows that there are comparisons across `hamby173` and `hamby252`. These missing observations will be explored more in the next section.
 
 ```{r}
-# Summary of the number of observations in the Hamby173and252 datase
+# Summary of the number of observations in the Hamby173and252 database
 table(hamby173and252_raw$study1, hamby173and252_raw$study2)
 ```
 
 **Missing Observations**
 
-The plot below considers the number of observations within a barrel and bullet comparison from all known cases in the Hamby 173 and 252 data. We can see that the observations on the lower diagonals are missing in all cases which confirms that the symmetric comparisons were not included in the data. Additionally, a handful of cases have less than 36 observations. For the comparisons within the Hamby 173 or Hamby 252 study, the cells on the diagonals are less than 36, because none of the repeats from the symmetric comparisons of lands are included. The cells above the diagonal with less than 36 observations are missing some observations due to tank rash. For the comparisons across studies, the cases with less than expected are also due to tank rash. For some reason, the comparisons between bullets 1 from Hamby 173 and Hamby 252, the cells are being colored grey even though they have 36 observations. I am not sure why this is...
+The plot below considers the number of observations within a barrel and bullet comparison from all known cases in the Hamby 173 and 252 data. We can see that the observations on the lower diagonals are missing in all cases which confirms that the symmetric comparisons were not included in the data. Additionally, a handful of cases have less than 36 observations. For the comparisons within the Hamby 173 or Hamby 252 study, the cells on the diagonals are less than 36, because none of the repeats from the symmetric comparisons of lands are included. The cells above the diagonal with less than 36 observations are missing some observations due to tank rash. For the comparisons across studies, the cases with less than expected are also due to tank rash. For some reason, the comparisons between bullets 1 from Hamby 173 and Hamby 252, the cells are being colored gray even though they have 36 observations. I am not sure why this is...
 
 ```{r}
 # Create the plot to look at number of comparisons within the known bullets
@@ -129,26 +128,28 @@ The code below cleans the training data. The cleaning involves:
 
 ```{r}
 # Determine the letters associated with the unknown bullets
-letters <- levels(hamby173and252_raw$barrel1)[11:length(levels(hamby173and252_raw$barrel1))]
+all_barrel_labels <-
+  unique(c(
+    as.character(hamby173and252_raw$barrel1),
+    as.character(hamby173and252_raw$barrel2)
+  ))
+letters <- all_barrel_labels[!(all_barrel_labels %in% 1:10)]
+letters
+
+#letters <- levels(hamby173and252_raw$barrel1)[11:length(levels(hamby173and252_raw$barrel1))]
 
 # Cleaning the testing data
-hamby173and252_train_cleaning <- hamby173and252_raw %>%
+hamby173and252_train_cleaning <- 
+  hamby173and252_raw %>%
   mutate(study1 = fct_recode(study1, "Hamby173" = "Hamby44"),
-         study2 = fct_recode(study2, "Hamby173" = "Hamby44"),
-         bullet1 = factor(ifelse(barrel1 %in% letters,
-                                 as.character(barrel1),
-                                 as.character(bullet1))),
-         barrel1 = factor(ifelse(barrel1 %in% letters, 
-                                 as.character("Unknown"), 
-                                 as.character(barrel1))),
-         bullet2 = factor(ifelse(barrel2 %in% letters,
-                                 as.character(barrel2),
-                                 as.character(bullet2))),
-         barrel2 = factor(ifelse(barrel2 %in% letters, 
-                                 as.character("Unknown"), 
-                                 as.character(barrel2))),
-         land1 = factor(land1),
-         land2 = factor(land2),
+         study2 = fct_recode(study2, "Hamby173" = "Hamby44")) %>%
+  mutate(across(is.factor, as.character)) %>%
+  mutate(bullet1 = ifelse(barrel1 %in% letters, barrel1, bullet1),
+         barrel1 = ifelse(barrel1 %in% letters, "Unknown", barrel1),
+         bullet2 = ifelse(barrel2 %in% letters, barrel2, bullet2),
+         barrel2 = ifelse(barrel2 %in% letters, "Unknown", barrel2),
+         land1 = as.character(land1),
+         land2 = as.character(land2),
          rfscore = predict(bulletxtrctr::rtrees, hamby173and252_raw %>%
                              select(rf_features), 
                            type = "prob")[,2]) %>%
@@ -179,8 +180,8 @@ The code below removes any comparisons from the testing data that include one of
 ```{r}
 # Remove the comparisons involving the four lands with tank rash
 hamby173and252_train <- hamby173and252_train_cleaning %>%
-  mutate(bbl1 = barrel1:bullet1:land1,
-         bbl2 = barrel2:bullet2:land2) %>%
+  mutate(bbl1 = paste(barrel1, bullet1, land1, sep = ":"),
+         bbl2 = paste(barrel2, bullet2, land2, sep = ":")) %>%
   filter(!(bbl1 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4") | 
            bbl2 %in% c("6:2:1", "9:2:4", "Unknown:B:2", "Unknown:Q:4"))) %>%
   select(-bbl1, -bbl2)
@@ -198,10 +199,10 @@ dim(predict(bulletxtrctr::rtrees, type = "prob"))
 It is possible that the labels that Eric was using are different from the labels in my training dataset. In order to check whether I removed the correct datapoints, Heike suggested that I look at a parallel coordinate plots to see if the observations that were removed stand out as being unusual compared to the rest of the data. The code below prepares the training data before observations were removed to be plotted.
 
 ```{r}
-# Create dataset for creating the paralle coordinate plot
+# Create dataset for creating the parallel coordinate plot
 par_data <- hamby173and252_train_cleaning %>%
-  mutate(bbl1 = barrel1:bullet1:land1,
-         bbl2 = barrel2:bullet2:land2) %>%
+  mutate(bbl1 = paste(barrel1, bullet1, land1, sep = ":"),
+         bbl2 = paste(barrel2, bullet2, land2, sep = ":")) %>%
   mutate(category = factor(ifelse(!(bbl1 %in% c("6:2:1", "9:2:4", "Unknown:B:2",
                                                 "Unknown:Q:4") | 
                                       bbl2 %in% c("6:2:1", "9:2:4", "Unknown:B:2",
@@ -216,7 +217,7 @@ par_data <- hamby173and252_train_cleaning %>%
                                   rgb(0, 0, 0, alpha = 0.01)))
 ```
 
-The first plot shows the observations that were kept in black and the observations that were removed in blue. These observations do not stand out to me. It is not clear if these were the ones that were suppose to be removed or not. The second plot shows the observations from matches plotted in red, and the third plot shows the observations from nonmatches plotted in black.
+The first plot shows the observations that were kept in black and the observations that were removed in blue. These observations do not stand out to me. It is not clear if these were the ones that were suppose to be removed or not. The second plot shows the observations from matches plotted in red, and the third plot shows the observations from non-matches plotted in black.
 
 ```{r}
 MASS::parcoord(par_data %>% select(ccf:sum_peaks), col = par_data$tankrash_colors)
@@ -680,7 +681,7 @@ rf_features_ordered <- data.frame(feature = rownames(bulletxtrctr::rtrees$import
   arrange(desc(MeanDecreaseGini))
 ```
 
-Below is a parallel coordinate plot of the training dataset. It is facetted by `samesource` and colored by `rfscore`. The features are sorted by the variable importance scores (descending from left to right) from the `rtrees` model. It is interesting to see that the matches with low rfscores have feature values that are similar to the nonmatches.
+Below is a parallel coordinate plot of the training dataset. It is faceted by `samesource` and colored by `rfscore`. The features are sorted by the variable importance scores (descending from left to right) from the `rtrees` model. It is interesting to see that the matches with low rfscores have feature values that are similar to the nonmatches.
 
 ```{r fig.width = 14}
 hamby173and252_train %>%
@@ -694,7 +695,7 @@ hamby173and252_train %>%
        y = "Standardized Feature Values") 
 ```
 
-Below is a parallel coordinate plot of the testing dataset. It is facetted by `samesource` and colored by `rfscore`. You can see a clear distinction between the trends of the feature values from the nonmatches and matches. It is interesting to consider the cases in set 1 that are matches but were predicted to be nonmatches by the model. These are the cases colored in grey, and their feature values are very different from the observations that were predicted to be matches by the model. The nonmatch predictions have values that are closer to the nonmatches.
+Below is a parallel coordinate plot of the testing dataset. It is faceted by `samesource` and colored by `rfscore`. You can see a clear distinction between the trends of the feature values from the nonmatches and matches. It is interesting to consider the cases in set 1 that are matches but were predicted to be nonmatches by the model. These are the cases colored in gray, and their feature values are very different from the observations that were predicted to be matches by the model. The nonmatch predictions have values that are closer to the nonmatches.
 
 ```{r fig.width = 14}
 hamby224_test %>%
@@ -792,7 +793,7 @@ biplot(pca, col = hamby224_test %>%
 
 # Logistic Regressions
 
-I have been thinking a lot about it is difficult to determine whether LIME is providing reasonable explanations, because we cannot know what the random forest is doing. That is the point of LIME. Heike suggested that we fit a logistic regression model to the training bullet data. We can then apply LIME to the logistic regression and determine if the explanations match what we would expect based on the coefficients of the logistic regression that we can interpret. She also suggested including interactions in the logistic regression model. This section includes code for fitting several logisitic regression models.
+I have been thinking a lot about it is difficult to determine whether LIME is providing reasonable explanations, because we cannot know what the random forest is doing. That is the point of LIME. Heike suggested that we fit a logistic regression model to the training bullet data. We can then apply LIME to the logistic regression and determine if the explanations match what we would expect based on the coefficients of the logistic regression that we can interpret. She also suggested including interactions in the logistic regression model. This section includes code for fitting several logistic regression models.
 
 ### Main Effects Only
 

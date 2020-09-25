@@ -49,11 +49,15 @@ rtrees2 <-
 
 # plot votes in a scatterplot
 plot(rtrees2$votes, rtrees3$votes)
-plot(rtrees2$votes[,2], bulletxtrctr::rtrees$votes[,2])
-plot(rtrees3$votes[,2], bulletxtrctr::rtrees$votes[,2])
+plot(rtrees2$votes, bulletxtrctr::rtrees$votes)
+plot(rtrees3$votes, bulletxtrctr::rtrees$votes)
 
 plot(sort(rtrees2$votes[,2]), sort(bulletxtrctr::rtrees$votes[,2]))
 plot(sort(rtrees3$votes[,2]), sort(bulletxtrctr::rtrees$votes[,2]))
+
+bulletxtrctr::rtrees$confusion
+rtrees2$confusion
+rtrees3$confusion
 ```
 
 ```{r}
