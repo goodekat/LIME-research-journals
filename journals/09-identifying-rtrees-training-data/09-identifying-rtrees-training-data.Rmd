@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-This journal contains work to identify the data used to train `rtrees` (contained in both `bulletr` and `bulletxtrctr`). We recently discovered some discrepancies between `rtrees` and the training data we were using (`hamby-comparisons.csv`, previously `features-hamby173and252.csv`). Unfortunately, the original work by Eric is not well documented, so it is difficult to know for sure which dataset was used to train the model. However, Eric recently pointed us to some [code](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R), which he believes was used to train `rtrees`. Heike was able to rerun part of the code to extract data from the CSAFE database that was created by the first part of the code (scans to features). The new data (`CCFs_withlands`) contains the same number of rows the number of predictions associated with `rtrees`. I have gathered all of our work trying to determine that `CCFs_withlands` is the data used to train `rtrees` in this journal.
+This journal contains work to identify the data used to train `rtrees` (contained in both `bulletr` and `bulletxtrctr`). We recently discovered some discrepancies between `rtrees` and the training data we were using (`hamby-comparisons.csv`, previously `features-hamby173and252.csv`). Unfortunately, the original work by Eric is not well documented, so it is difficult to know for sure which dataset was used to train the model. However, Eric recently pointed us to some [code](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R), which he believes was used to train `rtrees`. Heike was able to rerun part of the code to extract data from the CSAFE database that was created by the first part of the code (scans to features). The new data (`CCFs_withlands.csv`) contains the same number of rows the number of predictions associated with `rtrees`. I have gathered all of our work trying to determine that `CCFs_withlands` is the data used to train `rtrees` in this journal.
 
 ```{r}
 library(cowplot)
@@ -30,6 +30,7 @@ library(dplyr)
 library(ggplot2)
 library(purrr)
 library(randomForest)
+library(stringr)
 library(tidyr)
 ```
 
@@ -42,13 +43,13 @@ This section contains code for loading and performing initial comparisons of the
 Load the data provided by Heike and CSAFE that we have been using and believed to be the training data for rtrees:
 
 ```{r}
-hamby_comparisons <- read.csv("../../../data/raw/hamby-comparisons.csv")
+hamby_comparisons_raw <- read.csv("../../../data/raw/hamby-comparisons.csv")
 ```
 
 Load the data extracted (on 2020-09-23) from the CSAFE database and corresponds to the [R script](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R) Eric believes to be the one used to train `rtrees`.
 
 ```{r}
-CCFs_withlands <- read.csv("../../../data/raw/CCFs_withlands.csv")
+CCFs_withlands_raw <- read.csv("../../../data/raw/CCFs_withlands.csv")
 ```
 
 Obtain the features used to train `rtrees` for use throughout this journal:
@@ -62,8 +63,8 @@ rtrees_features <- rownames(bulletxtrctr::rtrees$importance)
 Dimensions of the raw datasets:
 
 ```{r}
-dim(hamby_comparisons)
-dim(CCFs_withlands)
+dim(hamby_comparisons_raw)
+dim(CCFs_withlands_raw)
 ```
 
 Note that `CCFs_withlands` has the same number of rows as the number of predictions associated with `rtrees`:
@@ -72,23 +73,29 @@ Note that `CCFs_withlands` has the same number of rows as the number of predicti
 length(bulletxtrctr::rtrees$predicted)
 ```
 
-Comparing summaries of the distributions of the features used to train `rtrees` from the two datasets. Note that I even remove the observations in `hamby_comparisons` known to have tank rash (`flag == FALSE`). The main differences are seen with the distributions of `D` (distance) and `sd_D` (standard deviation of distance).
+Comparing summaries of the distributions of the features used to train `rtrees` from the two datasets. Note that the main differences are seen with the distributions of `D` (distance) and `sd_D` (standard deviation of distance):
 
 ```{r}
-summary(hamby_comparisons %>% filter(flag == FALSE) %>% select(all_of(rtrees_features)))
-summary(CCFs_withlands %>% select(all_of(rtrees_features)))
+summary(hamby_comparisons_raw %>% select(all_of(rtrees_features)))
+summary(CCFs_withlands_raw %>% select(all_of(rtrees_features)))
+```
+
+This result is even true when the observations in `hamby_comparisons` known to have tank rash (`flag == FALSE`) are removed. This seems to suggest that the units of `D` and `sd_D` changed from `CCFs_withlands`:  
+
+```{r}
+summary(hamby_comparisons_raw %>% filter(flag == FALSE) %>% select(all_of(rtrees_features)))
 ```
 
 Comparing visualizations of the distributions of the features used to train `rtrees` from the two datasets to again see the differences in distributions of `D` and `sd_D`:
 
 ```{r fig.width = 10, fig.height = 3}
 bind_rows(
-  hamby_comparisons %>%
+  hamby_comparisons_raw %>%
     filter(flag == FALSE) %>%
     select(all_of(rtrees_features)) %>%
     pivot_longer(cols = everything()) %>%
     mutate(dataset = "hamby_comparisons"),
-  CCFs_withlands %>% select(all_of(rtrees_features)) %>%
+  CCFs_withlands_raw %>% select(all_of(rtrees_features)) %>%
     pivot_longer(cols = everything()) %>%
     mutate(dataset = "CCFs_withlands")
 ) %>%
@@ -97,6 +104,352 @@ bind_rows(
   facet_grid(dataset ~ name)
 ```
 
+# Data Cleaning
+
+There are discrepancies in the naming conventions of the two datasets. This section contains the code that identifies the differences and cleans the data.
+
+## Extracting Variables of Interest
+
+The following variables are contained in the raw versions of the data. Note that they have different variables and different names. For our analysis, we only need the variables identifying the lands, the features used to train `rtrees`, the ground truth for whether or not the bullets are a match, and variables flagging bullets with tank rash.
+
+```{r}
+names(hamby_comparisons_raw)
+names(CCFs_withlands_raw)
+```
+
+The code below separates the land id variables in `hamby_comparisons_raw` into separate columns for study, barrel, bullet, and land and selects only the variables of interest. 
+
+```{r}
+hamby_comparisons_select <- 
+  hamby_comparisons_raw %>%
+  separate(land_id1, c("study1", "barrel1", "bullet1", "land1")) %>%
+  separate(land_id2, c("study2", "barrel2", "bullet2", "land2")) %>%
+  select(
+    study1,
+    barrel1,
+    bullet1,
+    land1,
+    study2,
+    barrel2,
+    bullet2,
+    land2,
+    all_of(rtrees_features),
+    same_source,
+    flag
+  )
+```
+
+The code below renames some of the variables in `CCFs_withlands_raw`, selects only the variables of interest, and converts all land labels to characters.
+
+```{r}
+CCFs_withlands_select <- 
+  CCFs_withlands_raw %>%
+  rename(
+    "study1" = "study.x",
+    "barrel1" = "barrel.x",
+    "bullet1" = "bullet.x",
+    "land1" = "land.x",
+    "study2" = "study.y",
+    "barrel2" = "barrel.y",
+    "bullet2" = "bullet.y",
+    "land2" = "land.y",
+    "same_source"= "match"
+  ) %>%
+  select(
+    study1,
+    barrel1,
+    bullet1,
+    land1,
+    study2,
+    barrel2,
+    bullet2,
+    land2,
+    all_of(rtrees_features),
+    same_source
+  ) %>%
+  mutate(across(c(bullet1, land1, bullet2, land2), as.character))
+```
+
+Check to make sure the structures of the two datasets agree:
+
+```{r}
+hamby_comparisons_select %>% str()
+CCFs_withlands_select %>% str()
+```
+
+## Matching Labels
+
+The function below extracts the labels from the two datasets for a given variable name `var` and creates a plot to show the discrepancies between `hamby_comparison_select` and `CCFs_withlands_select`.
+
+```{r}
+plot_labels <- function(var, ccf_data) {
+  
+  # Extract the labels
+  hc_labels <-
+    unique(c(
+      hamby_comparisons_select %>% pull(paste0(var, "1")),
+      hamby_comparisons_select %>% pull(paste0(var, "2"))
+    ))
+  ccfwl_labels <-
+    unique(c(
+      ccf_data %>% pull(paste0(var, "1")),
+      ccf_data %>% pull(paste0(var, "2"))
+    ))
+
+  # Plot the labels
+  data.frame(data = c(
+    rep("hamby comparisons", length(hc_labels)),
+    rep("CCFs with lands", length(ccfwl_labels))
+  ),
+  labels = c(hc_labels, ccfwl_labels)) %>%
+    ggplot(aes(x = labels, y = data)) +
+    geom_tile() +
+    labs(x = "", y = "", title = paste("Comparing labels in variable:", var))  
+}
+```
+
+The plots below show that the following changes need to be made to `CCFs_withlands_select` in order to match with `hamby_comparison_select`: 
+  - study label of `Hamby44` needs to be changed to `Hamby173`
+  - lettered barrels need to be changed to `BrUnk` and `Br` needs to be added to other barrels
+  - barrel letters need to be made the bullet label and `B` needs to be added to all bullets
+  - `L` needs to be added to lands
+
+```{r fig.width = 14, fig.height = 2.5}
+plot_labels(var = "study", ccf_data = CCFs_withlands_select)
+plot_labels(var = "barrel", ccf_data = CCFs_withlands_select)
+plot_labels(var = "bullet", ccf_data = CCFs_withlands_select)
+plot_labels(var = "land", ccf_data = CCFs_withlands_select)
+```
+
+Determine the letters in the `CCFs_withlands_select` unkown barrels:
+
+```{r}
+all_barrel_labels <-
+  unique(c(
+    as.character(CCFs_withlands_select$barrel1),
+    as.character(CCFs_withlands_select$barrel2)
+  ))
+letters <- all_barrel_labels[!(all_barrel_labels %in% 1:10)]
+letters
+```
+
+Clean `CCFs_withlands_select` so the labels match `bullet_train_raw`:
+
+```{r}
+CCFs_withlands_labelled <- 
+  CCFs_withlands_select %>%
+  mutate(
+    study1 = ifelse(study1 == "Hamby44", "Hamby173", study1),
+    study2 = ifelse(study2 == "Hamby44", "Hamby173", study2),
+    bullet1 = ifelse(barrel1 %in% letters, as.character(barrel1), as.character(bullet1)),
+    barrel1 = ifelse(barrel1 %in% letters, "Unk", barrel1),
+    bullet2 = ifelse(barrel2 %in% letters, as.character(barrel2), as.character(bullet2)),
+    barrel2 = ifelse(barrel2 %in% letters, "Unk", barrel2)
+    ) %>%
+  mutate(
+    barrel1 = paste0("Br", barrel1),
+    bullet1 = paste0("B", bullet1),
+    land1 = paste0("L", land1),
+    barrel2 = paste0("Br", barrel2),
+    bullet2 = paste0("B", bullet2),
+    land2 = paste0("L", land2)
+  )
+```
+
+The plots below show that the labels are now in agreement:
+
+```{r fig.width = 14, fig.height = 2.5}
+plot_labels(var = "study", ccf_data = CCFs_withlands_labelled)
+plot_labels(var = "barrel", ccf_data = CCFs_withlands_labelled)
+plot_labels(var = "bullet", ccf_data = CCFs_withlands_labelled)
+plot_labels(var = "land", ccf_data = CCFs_withlands_labelled)
+```
+
+## Final Touches
+
+Create the land ids for both datasets:
+
+```{r}
+hamby_comparisons <-
+  hamby_comparisons_select %>%
+  mutate(
+    land_id1 = paste(study1, barrel1, bullet1, land1, sep = "-"),
+    land_id2 = paste(study2, barrel2, bullet2, land2, sep = "-")
+  ) %>%
+  select(land_id1, land_id2, all_of(rtrees_features), same_source, flag)
+
+CCFs_withlands <-
+  CCFs_withlands_labelled %>%
+  mutate(
+    land_id1 = paste(study1, barrel1, bullet1, land1, sep = "-"),
+    land_id2 = paste(study2, barrel2, bullet2, land2, sep = "-")
+  ) %>%
+  select(land_id1, land_id2, all_of(rtrees_features), same_source)
+```
+
+The structures of the cleaned data:
+
+```{r}
+hamby_comparisons %>% str()
+CCFs_withlands %>% str()
+```
+
+# Land ID Differences
+
+This section considers the differences in bullets included in the two datasets. The code below extracts the unique land IDs from the two datasets:
+
+```{r}
+hamby_comparisons_ids = unique(c(hamby_comparisons$land_id1, hamby_comparisons$land_id2))
+CCFs_withlands_ids = unique(c(CCFs_withlands$land_id1, CCFs_withlands$land_id2))
+```
+
+Below are the number of bullets contained in each of the datasets. There are less in `CCFs_withlands` than `hamby_comparisons`:
+
+```{r}
+length(hamby_comparisons_ids)
+length(CCFs_withlands_ids)
+```
+
+Identify the land ID in `CCFs_withlands` but not in `hamby-comparisons`:
+
+```{r}
+CCFs_withlands_ids[!(CCFs_withlands_ids %in% hamby_comparisons_ids)]
+```
+
+Identify the land ID in `hamby-comparisons` but not in `CCFs_withlands`:
+
+```{r}
+hamby_comparisons_ids[!(hamby_comparisons_ids %in% CCFs_withlands_ids)]
+```
+
+# Comparisons to rtrees
+
+## Dimensions
+
+One of the aspects which led to the realization that the `hamby-comparisons` data is not the training data for `rtrees` is that the number of observations in the data do not agree with the number of predictions in the `rtrees` model. The number of observations used to train `rtrees` is the following:
+
+```{r}
+length(bulletxtrctr::rtrees$predicted)
+```
+
+Here are the dimensions of the `hamby_comparisons` data which does not agree with the number of observations used to train `rtrees`:
+
+```{r}
+hamby_comparisons %>% dim()
+```
+
+Even with the observations removed that are known to have tank rash (`flag != FALSE`), the dimensions of the `hamby_comparisons` data do not agree with `rtrees`:
+
+```{r}
+hamby_comparisons %>% filter(flag == FALSE) %>% dim()
+```
+
+In the Hare, Hofmann, and Carriquiry (2017), they describe removing four land impressions that were flagged for quality assessment:
+
+- Barrel 6 Bullet 2-1
+- Barrel 9 Bullet 2-4
+- Unknown Bullet B-2
+- Unknown Bullet Q-4
+
+These lands should correspond to Hamby 252. However, it is possible to obtain the same number of observations as used to train `rtrees` by filtering out observations in `hamby_comparisons` using these barrel, bullet, and land combinations without specifying the study (that is removing observations from both Hamby 173 and Hamby 252).
+
+```{r}
+hamby_comparisons_filtered <- 
+  hamby_comparisons %>%
+  mutate(bbl1 = str_remove(land_id1, pattern = "Hamby252-|Hamby173-"),
+         bbl2 = str_remove(land_id2, pattern = "Hamby252-|Hamby173-")) %>%
+  filter(!(bbl1 %in% c("Br6-B2-L1", "Br9-B2-L4", "BrUnk-BB-L2", "BrUnk-BQ-L4") | 
+           bbl2 %in% c("Br6-B2-L1", "Br9-B2-L4", "BrUnk-BB-L2", "BrUnk-BQ-L4"))) %>%
+  select(-bbl1, -bbl2)
+hamby_comparisons_filtered %>% dim()
+```
+
+While it is possible to use `hamby_comparisons` to get to the same number of observations as `rtrees`, it is only a guess as to how the bullets were removed. On the other hand, the number of rows in `CCFs_withlands` already has the same number of rows as `rtrees`:
+
+```{r}
+CCFs_withlands %>% dim()
+```
+
+# Old Code
+
+<!-- The code below removes observations based on Eric Hare's code (available [here](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R)), which he thinks may be the code used to train `rtrees`: -->
+
+<!-- ```{r} -->
+<!-- bullet_train_eric_filter <-  -->
+<!--   bullet_train_raw %>% -->
+<!--   separate(col = "land_id1", into = c("study1", "barrel1", "bullet1", "land1")) %>% -->
+<!--   separate(col = "land_id2", into = c("study2", "barrel2", "bullet2", "land2")) %>% -->
+<!--   filter(study1 != "Hamby173" | bullet1 != "BE") %>% -->
+<!--   filter(study2 != "Hamby173" | bullet2 != "BE") -->
+
+<!-- # Eric's code for reference: -->
+<!-- # filter(study.y != "Hamby44" | barrel.y != "E") %>% -->
+<!-- # filter(study.x != "Hamby44" | barrel.x != "E") %>% -->
+<!-- ``` -->
+
+<!-- Here, the dimensions to not agree with the number of observations in `rtrees`: -->
+
+<!-- ```{r} -->
+<!-- dim(bullet_train_eric_filter) -->
+<!-- length(bulletxtrctr::rtrees$predicted) == dim(bullet_train_eric_filter)[1] -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- bullet_train_eric_filter_v2 <- -->
+<!--   bullet_train_raw %>% -->
+<!--   mutate(bbl1 = str_remove(land_id1, pattern = "Hamby252-|Hamby173-"), -->
+<!--          bbl2 = str_remove(land_id2, pattern = "Hamby252-|Hamby173-")) %>% -->
+<!--   filter(!(bbl1 %in% c("Br6-B2-L1", "Br9-B2-L4", "BrUnk-BB-L2", "BrUnk-BQ-L4") |  -->
+<!--            bbl2 %in% c("Br6-B2-L1", "Br9-B2-L4", "BrUnk-BB-L2", "BrUnk-BQ-L4"))) %>% -->
+<!--   select(-bbl1, -bbl2) %>% -->
+<!--   separate(col = "land_id1", -->
+<!--            into = c("study1", "barrel1", "bullet1", "land1")) %>% -->
+<!--   separate(col = "land_id2", -->
+<!--            into = c("study2", "barrel2", "bullet2", "land2")) %>% -->
+<!--   filter(study1 != "Hamby173" | bullet1 != "BE") %>% -->
+<!--   filter(study2 != "Hamby173" | bullet2 != "BE") -->
+
+<!-- dim(bullet_train_eric_filter_v2) -->
+<!-- length(bulletxtrctr::rtrees$predicted) == dim(bullet_train_eric_filter_v2)[1] -->
+<!-- ``` -->
+
+<!-- Extracting the predictions on the training data from `rtrees` and using `rtrees` to make predictions on the filtered data: -->
+
+<!-- ```{r} -->
+<!-- rtrees_pred = predict(bulletxtrctr::rtrees, type = "prob")[,2] -->
+
+<!-- new_pred = predict(bulletxtrctr::rtrees,  -->
+<!--                    bullet_train_filtered %>%  -->
+<!--                      select(rownames(bulletxtrctr::rtrees$importance)), type = "prob")[,2] -->
+
+<!-- new_pred_full = predict(bulletxtrctr::rtrees,  -->
+<!--                         bullet_train_raw %>% -->
+<!--                           select(rownames(bulletxtrctr::rtrees$importance)), type = "prob")[,2] -->
+<!-- ``` -->
+
+<!-- Plot comparing the two predictions (we discovered that the `predict` function from random forest returns different results when applied to only the model (out-of-bag predictions) and the training data (regular predictions), so this is not a good way to test for agreement between training data and models): -->
+
+<!-- ```{r} -->
+<!-- data.frame(rtrees_pred = sort(rtrees_pred), new_pred = sort(new_pred)) %>% -->
+<!--   ggplot(aes(rtrees_pred, new_pred)) +  -->
+<!--   geom_point() -->
+<!-- ``` -->
+
+<!-- Plot showing distributions of predictions from `rtrees` and new predictions made on full training data (same comment here as above about not being able to use this to determine if we have the correct training data for the model): -->
+
+<!-- ```{r} -->
+<!-- data.frame(data = c(rep("rtrees", length(rtrees_pred)),  -->
+<!--                     rep("new predictions on full data", length(new_pred_full))), pred = c(rtrees_pred, new_pred_full)) %>% -->
+<!--   ggplot(aes(x = pred, fill = data)) +  -->
+<!--   geom_density(alpha = 0.75) -->
+<!-- ``` -->
+
+<!-- Comparison to the data Eric Hare said was used to fit `rtrees` which has half the number of observations as the number of rtrees predictions:  -->
+
+<!-- ```{r} -->
+<!-- eric <- read.csv("https://raw.githubusercontent.com/erichare/imaging-paper/master/data/data-25-25/bullet-stats.csv") -->
+<!-- dim(eric) -->
+<!-- ``` -->
 
 <!-- New data plot: -->
 
@@ -394,3 +747,8 @@ bind_rows(
 <!--   labs(title = "new random forest lines and points created with alpha shading") -->
 <!-- ``` -->
 
+# Session Info
+
+```{r}
+sessionInfo()
+```
