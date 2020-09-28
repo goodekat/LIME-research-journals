@@ -167,7 +167,7 @@ CCFs_withlands_select <-
     all_of(rtrees_features),
     same_source
   ) %>%
-  mutate(across(c(bullet1, land1, bullet2, land2), as.character))
+  mutate(across(c(barrel1, bullet1, land1, barrel2, bullet2, land2), as.character))
 ```
 
 Check to make sure the structures of the two datasets agree:
@@ -221,7 +221,7 @@ plot_labels(var = "bullet", ccf_data = CCFs_withlands_select)
 plot_labels(var = "land", ccf_data = CCFs_withlands_select)
 ```
 
-Determine the letters in the `CCFs_withlands_select` unkown barrels:
+Determine the letters in the `CCFs_withlands_select` unknown barrels:
 
 ```{r}
 all_barrel_labels <-
@@ -241,9 +241,9 @@ CCFs_withlands_labelled <-
   mutate(
     study1 = ifelse(study1 == "Hamby44", "Hamby173", study1),
     study2 = ifelse(study2 == "Hamby44", "Hamby173", study2),
-    bullet1 = ifelse(barrel1 %in% letters, as.character(barrel1), as.character(bullet1)),
+    bullet1 = ifelse(barrel1 %in% letters, barrel1, bullet1),
     barrel1 = ifelse(barrel1 %in% letters, "Unk", barrel1),
-    bullet2 = ifelse(barrel2 %in% letters, as.character(barrel2), as.character(bullet2)),
+    bullet2 = ifelse(barrel2 %in% letters, barrel2, bullet2),
     barrel2 = ifelse(barrel2 %in% letters, "Unk", barrel2)
     ) %>%
   mutate(
@@ -292,6 +292,10 @@ The structures of the cleaned data:
 ```{r}
 hamby_comparisons %>% str()
 CCFs_withlands %>% str()
+```
+
+```{r}
+length(unique(c(CCFs_withlands$land_id1, CCFs_withlands$land_id2)))
 ```
 
 # Land ID Differences
@@ -344,6 +348,28 @@ Even with the observations removed that are known to have tank rash (`flag != FA
 hamby_comparisons %>% filter(flag == FALSE) %>% dim()
 ```
 
+The code below removes observations based on Eric Hare's code (available [here](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R)), which he thinks may be the code used to train `rtrees`:
+
+```{r}
+bullet_train_eric_filter <-
+  hamby_comparisons %>%
+  separate(col = "land_id1", into = c("study1", "barrel1", "bullet1", "land1")) %>%
+  separate(col = "land_id2", into = c("study2", "barrel2", "bullet2", "land2")) %>%
+  filter(study1 != "Hamby173" | bullet1 != "BE") %>%
+  filter(study2 != "Hamby173" | bullet2 != "BE")
+
+# Eric's code for reference:
+# filter(study.y != "Hamby44" | barrel.y != "E") %>%
+# filter(study.x != "Hamby44" | barrel.x != "E") %>%
+```
+
+Again, the dimensions do not agree with the number of observations in `rtrees`:
+
+```{r}
+dim(bullet_train_eric_filter)
+length(bulletxtrctr::rtrees$predicted) == dim(bullet_train_eric_filter)[1]
+```
+
 In the Hare, Hofmann, and Carriquiry (2017), they describe removing four land impressions that were flagged for quality assessment:
 
 - Barrel 6 Bullet 2-1
@@ -370,130 +396,121 @@ While it is possible to use `hamby_comparisons` to get to the same number of obs
 CCFs_withlands %>% dim()
 ```
 
+Note that if the code used in Eric Hare's [R script](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R), which he thinks may be the code used to train `rtrees`), is used to filter `CCFs_withlands`, the number of rows does not change!
+
+```{r}
+CCFs_withlands %>%
+  separate(col = "land_id1", into = c("study1", "barrel1", "bullet1", "land1")) %>%
+  separate(col = "land_id2", into = c("study2", "barrel2", "bullet2", "land2")) %>%
+  filter(study1 != "Hamby173" | bullet1 != "BE") %>%
+  filter(study2 != "Hamby173" | bullet2 != "BE") %>% dim()
+```
+
+## Predictions
+
+It is not possible to directly compare the internal predictions from `rtrees` (`predict(bulletxtrctr::rtrees, type = "prob")[,2])`) to those obtained by using `rtrees` to make predictions on the `hamby_comparisons` and `CCFs_withlands` data, because those obtained using the `predict` function from `randomForest` are the out-of-bag (OOB) predictions. The predictions obtained by using the `predict` function from `randomForest` to obtain predictions on a new dataset are created using all the training data. From the documentation for `randomForest:::predict.randomForest`: 
+
+> `newdata`: a data frame or matrix containing new data. (Note: If not given, the out-of-bag prediction in object is returned.
+
+This was determined by Heike based on the following code. She pointed out, "Have a look at the code below - we would expect a line of identity in the last plot. Sorting values also does not help (that would help in case the observations got re-ordered internally in some way). "
+
+```{r}
+x1 <- rnorm(1000)
+x2 <- rnorm(1000)
+x3 <- rnorm(1000)
+z <- rbinom(1000,1, 0.4)
+
+dframe <- data.frame(x1,x2,x3,z)
+
+rf1 <- randomForest(factor(z)~x1+x2+x3, data = dframe)
+
+dframe$predict <- predict(rf1, newdata=dframe, type="prob")[,2]
+dframe$rfscore <- predict(rf1, type="prob")[,2]
+
+dframe %>% 
+  ggplot(aes(x = predict, y = rfscore)) + geom_point()
+```
+
+However, we may still gain some insights by comparing the distributions of the predictions. The code below extracts the predictions on the training data from `rtrees` and uses `rtrees` to make predictions on `hamby_comparisons` and `CCFs_withlands`:
+
+```{r}
+rtrees_pred = predict(bulletxtrctr::rtrees, type = "prob")[,2]
+hc_pred = predict(bulletxtrctr::rtrees, hamby_comparisons %>% select(rtrees_features), type = "prob")[,2]
+ccfwl_pred = predict(bulletxtrctr::rtrees, CCFs_withlands %>% select(rtrees_features), type = "prob")[,2]
+
+all_pred <-
+  data.frame(
+    dataset = c(
+      rep("internal", length(rtrees_pred)),
+      rep("Hamby comparisons", length(hc_pred)),
+      rep("CCFs with lands", length(ccfwl_pred))
+    ),
+    pred = c(rtrees_pred, hc_pred, ccfwl_pred)
+  )
+```
+
+Plot showing distributions of three set of predictions from `rtrees`: (light blue) internal predictions from `rtrees`, (blue) predictions obtained by applying `rtrees` to the observations in the `CCFs_withlands` data, and (purple) predictions obtained by applying `rtrees` to the observations in the `hamby_comparisons` data. Note that even though the internal predictions from `rtrees` are OOB and those computed using `CCFs_withlands` are not OOB, the distributions are very similar. On the other hand, the predictions from `hamby_comparions` are very different. This provides evidence that `rtrees` was trained on `CCFs_withlands`, and the change in units of `D` and `sd_D` in `hamby_comparisons` is apparent by the much different distribution of predictions from `rtrees`:
+
+```{r}
+all_pred %>%
+  ggplot(aes(x = pred, fill = dataset, color = dataset)) +
+  geom_density(alpha = 0.5, size = 1) +
+  scale_fill_manual(values = c("blue", "purple", "lightblue")) + 
+  scale_color_manual(values = c("blue", "purple", "lightblue")) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  labs(x = "rtrees predictions",
+       y = "Density",
+       fill = "Data predictions computed on",
+       color = "Data predictions computed on")
+```
+The four plots below show direct comparisons of predictions between the internal `rtrees` predictions and those computed on `hamby_comparisons` and `CCFs_withlands` using `rtrees`. There are two versions of the plots for each of the possible training datasets. One plots the predictions without adjusting the order of the predictions in any way. The other plot sorts the predictions from lowest to highest (for a dataset) in case it helps to see a direct relationship. None of the figures show a 1-to-1 relationship, but notice that the plot with the title "Comparing internal to CCFs with lands (not sorted)" looks very similar to the one created by Heike with the example data and random forest. This is additional evidence that `CCFs_withlands` was used to train `rtrees` since even without sorting the predictions, the relationship between the OOB and new predictions is very similar to an example where we know the same training data was used.
+
+```{r fig.width = 12, fig.height = 10}
+plot_grid(
+  all_pred %>%
+    filter(dataset != "CCFs with lands") %>%
+    group_by(dataset) %>%
+    mutate(case = 1:n()) %>%
+    pivot_wider(names_from = "dataset", values_from = "pred") %>%
+    ggplot(aes(x = `Hamby comparisons`, y = internal)) +
+    geom_point() + 
+    theme(aspect.ratio = 1) +
+    labs(title = "Comparing internal to Hamby Comparisons (not sorted)"),
+  all_pred %>%
+    filter(dataset != "CCFs with lands") %>%
+    group_by(dataset) %>%
+    arrange(pred) %>%
+    mutate(case = 1:n()) %>%
+    pivot_wider(names_from = "dataset", values_from = "pred") %>%
+    ggplot(aes(x = `Hamby comparisons`, y = internal)) +
+    geom_point() + 
+    theme(aspect.ratio = 1) +
+    labs(title = "Comparing internal to Hamby Comparisons (sorted)"),
+  all_pred %>%
+    filter(dataset != "Hamby comparisons") %>%
+    group_by(dataset) %>%
+    mutate(case = 1:n()) %>%
+    pivot_wider(names_from = "dataset", values_from = "pred") %>%
+    ggplot(aes(x = `CCFs with lands`, y = internal)) +
+    geom_point() + 
+    theme(aspect.ratio = 1) +
+    labs(title = "Comparing internal to CCFs with lands (not sorted)"), 
+  all_pred %>%
+    filter(dataset != "Hamby comparisons") %>%
+    group_by(dataset) %>%
+    arrange(pred) %>%
+    mutate(case = 1:n()) %>%
+    pivot_wider(names_from = "dataset", values_from = "pred") %>%
+    ggplot(aes(x = `CCFs with lands`, y = internal)) +
+    geom_point() + 
+    theme(aspect.ratio = 1) +
+    labs(title = "Comparing internal to CCFs with lands (sorted)")
+)
+```
+
 # Old Code
 
-<!-- The code below removes observations based on Eric Hare's code (available [here](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R)), which he thinks may be the code used to train `rtrees`: -->
-
-<!-- ```{r} -->
-<!-- bullet_train_eric_filter <-  -->
-<!--   bullet_train_raw %>% -->
-<!--   separate(col = "land_id1", into = c("study1", "barrel1", "bullet1", "land1")) %>% -->
-<!--   separate(col = "land_id2", into = c("study2", "barrel2", "bullet2", "land2")) %>% -->
-<!--   filter(study1 != "Hamby173" | bullet1 != "BE") %>% -->
-<!--   filter(study2 != "Hamby173" | bullet2 != "BE") -->
-
-<!-- # Eric's code for reference: -->
-<!-- # filter(study.y != "Hamby44" | barrel.y != "E") %>% -->
-<!-- # filter(study.x != "Hamby44" | barrel.x != "E") %>% -->
-<!-- ``` -->
-
-<!-- Here, the dimensions to not agree with the number of observations in `rtrees`: -->
-
-<!-- ```{r} -->
-<!-- dim(bullet_train_eric_filter) -->
-<!-- length(bulletxtrctr::rtrees$predicted) == dim(bullet_train_eric_filter)[1] -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- bullet_train_eric_filter_v2 <- -->
-<!--   bullet_train_raw %>% -->
-<!--   mutate(bbl1 = str_remove(land_id1, pattern = "Hamby252-|Hamby173-"), -->
-<!--          bbl2 = str_remove(land_id2, pattern = "Hamby252-|Hamby173-")) %>% -->
-<!--   filter(!(bbl1 %in% c("Br6-B2-L1", "Br9-B2-L4", "BrUnk-BB-L2", "BrUnk-BQ-L4") |  -->
-<!--            bbl2 %in% c("Br6-B2-L1", "Br9-B2-L4", "BrUnk-BB-L2", "BrUnk-BQ-L4"))) %>% -->
-<!--   select(-bbl1, -bbl2) %>% -->
-<!--   separate(col = "land_id1", -->
-<!--            into = c("study1", "barrel1", "bullet1", "land1")) %>% -->
-<!--   separate(col = "land_id2", -->
-<!--            into = c("study2", "barrel2", "bullet2", "land2")) %>% -->
-<!--   filter(study1 != "Hamby173" | bullet1 != "BE") %>% -->
-<!--   filter(study2 != "Hamby173" | bullet2 != "BE") -->
-
-<!-- dim(bullet_train_eric_filter_v2) -->
-<!-- length(bulletxtrctr::rtrees$predicted) == dim(bullet_train_eric_filter_v2)[1] -->
-<!-- ``` -->
-
-<!-- Extracting the predictions on the training data from `rtrees` and using `rtrees` to make predictions on the filtered data: -->
-
-<!-- ```{r} -->
-<!-- rtrees_pred = predict(bulletxtrctr::rtrees, type = "prob")[,2] -->
-
-<!-- new_pred = predict(bulletxtrctr::rtrees,  -->
-<!--                    bullet_train_filtered %>%  -->
-<!--                      select(rownames(bulletxtrctr::rtrees$importance)), type = "prob")[,2] -->
-
-<!-- new_pred_full = predict(bulletxtrctr::rtrees,  -->
-<!--                         bullet_train_raw %>% -->
-<!--                           select(rownames(bulletxtrctr::rtrees$importance)), type = "prob")[,2] -->
-<!-- ``` -->
-
-<!-- Plot comparing the two predictions (we discovered that the `predict` function from random forest returns different results when applied to only the model (out-of-bag predictions) and the training data (regular predictions), so this is not a good way to test for agreement between training data and models): -->
-
-<!-- ```{r} -->
-<!-- data.frame(rtrees_pred = sort(rtrees_pred), new_pred = sort(new_pred)) %>% -->
-<!--   ggplot(aes(rtrees_pred, new_pred)) +  -->
-<!--   geom_point() -->
-<!-- ``` -->
-
-<!-- Plot showing distributions of predictions from `rtrees` and new predictions made on full training data (same comment here as above about not being able to use this to determine if we have the correct training data for the model): -->
-
-<!-- ```{r} -->
-<!-- data.frame(data = c(rep("rtrees", length(rtrees_pred)),  -->
-<!--                     rep("new predictions on full data", length(new_pred_full))), pred = c(rtrees_pred, new_pred_full)) %>% -->
-<!--   ggplot(aes(x = pred, fill = data)) +  -->
-<!--   geom_density(alpha = 0.75) -->
-<!-- ``` -->
-
-<!-- Comparison to the data Eric Hare said was used to fit `rtrees` which has half the number of observations as the number of rtrees predictions:  -->
-
-<!-- ```{r} -->
-<!-- eric <- read.csv("https://raw.githubusercontent.com/erichare/imaging-paper/master/data/data-25-25/bullet-stats.csv") -->
-<!-- dim(eric) -->
-<!-- ``` -->
-
-<!-- New data plot: -->
-
-<!-- ```{r} -->
-<!-- preds <- -->
-<!--   data.frame( -->
-<!--     oob = predict(bulletxtrctr::rtrees, type = "prob")[, 2], -->
-<!--     all_data = predict( -->
-<!--       bulletxtrctr::rtrees, -->
-<!--       ccfs_withlands_raw %>% select(all_of(rf_features)), -->
-<!--       type = "prob" -->
-<!--     )[, 2] -->
-<!--   ) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- preds %>%  -->
-<!--   ggplot(aes(x = all_data, y = oob)) +  -->
-<!--   geom_point() -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- preds %>% -->
-<!--   mutate(obs = 1:n()) %>% -->
-<!--   pivot_longer(cols = -obs) %>% -->
-<!--   ggplot(aes(x = value, fill = name)) +  -->
-<!--   geom_density(alpha = 0.5) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- preds %>%  -->
-<!--   mutate(diff = oob - all_data) %>% -->
-<!--   ggplot(aes(x = diff)) +  -->
-<!--   geom_histogram() -->
-<!-- ``` -->
-<!-- # Data -->
-
-<!-- Load the prepared training data which only has observations with `flag == FALSE` (prepared in the LIME diagnostics paper repository): -->
-
-<!-- ```{r} -->
-<!-- bullet_train <- read.csv("../../../diagnostics-paper/data/bullet-train.csv") -->
-<!-- ``` -->
-
-<!-- Load the random forest `rtrees` from the `bulletxtrctr` package and the random forest model I recently fit using the `bullet_train` data in the paper: -->
 
 <!-- ```{r} -->
 <!-- rtrees <- bulletxtrctr::rtrees -->
