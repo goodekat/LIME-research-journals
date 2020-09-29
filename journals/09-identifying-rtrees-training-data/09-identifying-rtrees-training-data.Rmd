@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
   warning = FALSE,
   eval = TRUE,
   cache = FALSE, 
-  dpi = 300
+  dpi = 500
 )
 ```
 
@@ -294,8 +294,11 @@ hamby_comparisons %>% str()
 CCFs_withlands %>% str()
 ```
 
+Save the cleaned data:
+
 ```{r}
-length(unique(c(CCFs_withlands$land_id1, CCFs_withlands$land_id2)))
+write.csv(x = hamby_comparisons, file = "../../../data/hamby_comparisons_clean.csv", row.names = FALSE)
+write.csv(x = CCFs_withlands, file = "../../../data/CCFs_withlands_clean.csv", row.names = FALSE)
 ```
 
 # Land ID Differences
@@ -390,6 +393,12 @@ hamby_comparisons_filtered <-
 hamby_comparisons_filtered %>% dim()
 ```
 
+Save the cleaned and filtered data: 
+
+```{r}
+write.csv(x = hamby_comparisons_filtered , file = "../../../data/hamby_comparisons_filtered.csv", row.names = FALSE)
+```
+
 While it is possible to use `hamby_comparisons` to get to the same number of observations as `rtrees`, it is only a guess as to how the bullets were removed. On the other hand, the number of rows in `CCFs_withlands` already has the same number of rows as `rtrees`:
 
 ```{r}
@@ -436,8 +445,8 @@ However, we may still gain some insights by comparing the distributions of the p
 
 ```{r}
 rtrees_pred = predict(bulletxtrctr::rtrees, type = "prob")[,2]
-hc_pred = predict(bulletxtrctr::rtrees, hamby_comparisons %>% select(rtrees_features), type = "prob")[,2]
-ccfwl_pred = predict(bulletxtrctr::rtrees, CCFs_withlands %>% select(rtrees_features), type = "prob")[,2]
+hc_pred = predict(bulletxtrctr::rtrees, hamby_comparisons %>% select(all_of(rtrees_features)), type = "prob")[,2]
+ccfwl_pred = predict(bulletxtrctr::rtrees, CCFs_withlands %>% select(all_of(rtrees_features)), type = "prob")[,2]
 
 all_pred <-
   data.frame(
@@ -599,7 +608,7 @@ rtrees_votes <-
 
 Plots comparing the votes from `rtrees` to those from the newly trained models. The top row contains the comparisons with the random forests trained on `CCFs_withlands`. Note that the first two plots comparing the `CCFs_withlands` newly trained random forest vote to `rtrees` looks very similar to the third plots which compares the votes from the two newly trained random forests on `CCFs_withlands`. This suggests that even though all three models are trained using different seeds, the training data is the same. On the other hand, the bottom row of plots are created using the votes from the random forests trained on `hamby_comparisons_filtered`, and the two plots comparing the votes to `rtrees` look very different from the third plot comparing the votes from the two newly trained models. This suggests that the `hamby_comparisons_filtered` was not the training data for `rtrees`, or at least, the observations are not ordered the same in the dataset.
 
-```{r fig.width = 12, fig.height = 5}
+```{r fig.width = 15, fig.height = 8}
 plot_grid(
   rtrees_votes %>%
     ggplot(aes(
@@ -608,7 +617,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees2 votes",
-         title = "Retrained RF on Hamby comparison data versus rtrees; Seed 20140501"),
+         title = "Retrained RF on Hamby comparison data \nversus rtrees; Seed 20140501"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -617,7 +626,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees3 votes",
-         title = "Retrained RF on Hamby comparison data versus rtrees; Seed 20170222"),
+         title = "Retrained RF on Hamby comparison data \nversus rtrees; Seed 20170222"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -626,7 +635,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees2 votes",
-         title = "Both retrained RFs on Hamby comparison data"),
+         title = "Both retrained RFs on Hamby \ncomparison data"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -635,7 +644,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees4 votes",
-         title = "Retrained RF on CCFs with lands data versus rtrees; Seed 20140501"),
+         title = "Retrained RF on CCFs with lands data \nversus rtrees; Seed 20140501"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -644,7 +653,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees5 votes",
-         title = "Retrained RF on CCFs with lands data versus rtrees; Seed 20170222"),
+         title = "Retrained RF on CCFs with lands data \nversus rtrees; Seed 20170222"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -653,14 +662,14 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees5 votes",
-         title = "Both retrained RFs on CCFs with lands data"),
+         title = "Both retrained RFs on CCFs with \nlands data"),
   nrow = 2
 )
 ```
 
 To address the issue that the observations in `CCFs_withlands` and `hamby_comparisons` may not be ordered the same way as the training data for `rtrees`, the set of plots are recreated by first ordering all votes. If the training data and seed are the same as those used to train `rtrees`, we would expect a 1-to-1 relationship. 1-to-1 lines are included in the plots, and none of the votes result in an exact 1-to-1 relationship.
 
-```{r fig.width = 12, fig.height = 5}
+```{r fig.width = 15, fig.height = 8}
 plot_grid(
   rtrees_votes %>%
     ggplot(aes(
@@ -670,7 +679,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees2 votes",
-         title = "Retrained RF on Hamby comparison data versus rtrees; Seed 20140501"),
+         title = "Retrained RF on Hamby comparison data \nversus rtrees; Seed 20140501"),
   
   rtrees_votes%>%
     ggplot(aes(
@@ -680,7 +689,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees3 votes",
-         title = "Retrained RF on Hamby comparison data versus rtrees; Seed 20170222"),
+         title = "Retrained RF on Hamby comparison data \nversus rtrees; Seed 20170222"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -690,7 +699,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees2 votes",
-         title = "Both retrained RFs on Hamby comparison data"),
+         title = "Both retrained RFs on Hamby \ncomparison data"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -700,7 +709,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees4 votes",
-         title = "Retrained RF on CCFs with lands data versus rtrees; Seed 20140501"),
+         title = "Retrained RF on CCFs with lands data \nversus rtrees; Seed 20140501"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -710,7 +719,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees5 votes",
-         title = "Retrained RF on CCFs with lands data versus rtrees; Seed 20170222"),
+         title = "Retrained RF on CCFs with lands data \nversus rtrees; Seed 20170222"),
   
   rtrees_votes %>%
     ggplot(aes(
@@ -720,7 +729,7 @@ plot_grid(
     geom_point(shape = 1) +
     labs(x = "rtrees votes",
          y = "rtrees5 votes",
-         title = "Both retrained RFs on CCFs with lands data"),
+         title = "Both retrained RFs on CCFs with \nlands data"),
   nrow = 2
 )
 ```
@@ -828,9 +837,11 @@ Extract the feature importance from the new models:
 
 ```{r}
 hamby_comparison_importance <-
-  map_df(.x = rfs_hamby_comparison, .f = extract_importance, .id = "rf_model_id")
+  map_df(.x = rfs_hamby_comparison, .f = extract_importance, .id = "rf_model_id") %>%
+  mutate(scenario = "Hamby Comparisons")
 CCFs_withlands_importance <-
-  map_df(.x = rfs_CCFs_withlands, .f = extract_importance, .id = "rf_model_id")
+  map_df(.x = rfs_CCFs_withlands, .f = extract_importance, .id = "rf_model_id") %>%
+  mutate(scenario = "CCFs with lands")
 ```
 
 Extract the feature importance from `rtrees`:
@@ -841,9 +852,10 @@ rtrees_importance <-
              bulletxtrctr::rtrees$importance) %>%
   arrange(desc(MeanDecreaseGini)) %>%
   mutate(rank = 1:n(),
-         rf_model_id = "rtrees") %>%
+         rf_model_id = "rtrees", 
+         scenario = "rtrees") %>%
   rename("importance" = "MeanDecreaseGini") %>%
-  select(rf_model_id, features, importance, rank)
+  select(rf_model_id, features, importance, rank, scenario)
 ```
 
 ### Class Error Distributions
@@ -859,34 +871,34 @@ rtrees_values <-
   )
 ```
 
-Histograms of the class errors (true and false) show that the rtrees values appear to be in the extreme (false) or outside of the new random forest models (true):
+Histograms of the class errors (true and false) show that the rtrees class errors are in the tails of the distributions of the class errors from the models trained on the `hamby_comparisons` data  but closer to the center of the class error distributions from the models trained on the `CCFs_withlands` data:
 
 ```{r fig.width = 10, fig.height = 4.5}
 hist_true_hc <-
   hamby_comparison_confus %>%
   ggplot(aes(x = class_error_TRUE)) +
-  geom_histogram() +
+  geom_histogram(bins = 20) +
   geom_vline(data = rtrees_values,
              mapping = aes(xintercept = class_error_true, color = model))
 
 hist_false_hc <- 
   hamby_comparison_confus %>%
   ggplot(aes(x = class_error_FALSE)) +
-  geom_histogram() +
+  geom_histogram(bins = 20) +
   geom_vline(data = rtrees_values,
              mapping = aes(xintercept = class_error_false, color = model))
 
 hist_true_ccfwl <-
   CCFs_withlands_confus %>%
   ggplot(aes(x = class_error_TRUE)) +
-  geom_histogram() +
+  geom_histogram(bins = 20) +
   geom_vline(data = rtrees_values,
              mapping = aes(xintercept = class_error_true, color = model))
 
 hist_false_ccfwl <- 
   CCFs_withlands_confus %>%
   ggplot(aes(x = class_error_FALSE)) +
-  geom_histogram() +
+  geom_histogram(bins = 20) +
   geom_vline(data = rtrees_values,
              mapping = aes(xintercept = class_error_false, color = model))
 
@@ -895,45 +907,31 @@ plot_grid(hist_true_hc, hist_false_hc, hist_true_ccfwl, hist_false_ccfwl)
 
 ### Comparing Feature Importance
 
-Heatmap depicting feature importance across models: 
+Heatmap depicting feature importance across models (note that `rtrees` importance ranks for `D` and `non_cms` are more similar to random forests trained using `CCFs_withlands` than `hamby_comparisons`): 
 
-```{r fig.width = 12, fig.height = 5}
-plot_grid(
-  bind_rows(rtrees_importance, hamby_comparison_importance) %>%
+```{r fig.width = 15, fig.height = 5}
+bind_rows(rtrees_importance, hamby_comparison_importance, CCFs_withlands_importance) %>%
     mutate(
+      scenario = factor(scenario, levels = c("rtrees", "Hamby Comparisons", "CCFs with lands")),
       rf_model_id = factor(rf_model_id, levels = c("rtrees", 1:length(seeds))),
       rank = factor(rank, levels = 1:9),
       features = factor(features, levels = rev(rtrees_importance$features))
     ) %>%
     ggplot(aes(x = rf_model_id, y = features, fill = rank)) +
     geom_tile() +
+    facet_grid(. ~ scenario, scales = "free_x") +
     scale_fill_brewer(palette = "RdYlBu") + 
     theme_bw() +
     labs(
       x = "Random Forest Model", 
       y = "Feature", 
-      title = "Comparing rtrees importance to random forests fit using Hamby comparisons data"
-    ),
-  
-  bind_rows(rtrees_importance, CCFs_withlands_importance) %>%
-    mutate(
-      rf_model_id = factor(rf_model_id, levels = c("rtrees", 1:length(seeds))),
-      rank = factor(rank, levels = 1:9),
-      features = factor(features, levels = rev(rtrees_importance$features))
-    ) %>%
-    ggplot(aes(x = rf_model_id, y = features, fill = rank)) +
-    geom_tile() +
-    scale_fill_brewer(palette = "RdYlBu") + 
-    theme_bw() +
-    labs(
-      x = "Random Forest Model", 
-      y = "Feature", 
-      title = "Comparing rtrees importance to random forests fit using CCFs with lands data"
+      title = "Comparing Feature Importance to rtrees"
     )
-)
 ```
 
-```{r fig.width = 12, fig.height = 5}
+Plots of features versus importance ranks (importance ranks vary more in the middle of the features for the models trained using `hamby_comparisons` and near the tail end of the features for the models trained using `CCFs_withlands`):
+
+```{r fig.width = 15, fig.height = 5}
 plot_grid(
   bind_rows(rtrees_importance, hamby_comparison_importance) %>%
     mutate(
@@ -942,15 +940,24 @@ plot_grid(
       features = factor(features, levels = rev(rtrees_importance$features)),
       rtrees_ind = ifelse(rf_model_id == "rtrees", "rtrees", "Hamby Comparison")
     ) %>%
-    ggplot(aes(x = rank, y = features, group = rf_model_id, color = rtrees_ind)) +
-    geom_point(alpha = 0.5, shape = 1) + 
-    geom_line(alpha = 0.5) +
-    scale_color_manual(values = c("grey50", "blue")) +
+    arrange(desc(rf_model_id)) %>%
+    ggplot(
+      aes(
+        x = rank,
+        y = features,
+        group = rf_model_id,
+        color = rtrees_ind,
+        size = rtrees_ind,
+        alpha = rtrees_ind
+      )
+    ) +
+    geom_line() +
+    scale_color_manual(values = c("black", "purple")) +
     theme_bw() +
     labs(
       x = "Random Forest Model", 
       y = "Feature", 
-      title = "Comparing rtrees importance to random forests fit using Hamby comparisons data"
+      title = "Comparing rtrees importance to random forests fit \nusing Hamby comparisons data"
     ), 
     bind_rows(rtrees_importance, CCFs_withlands_importance) %>%
     mutate(
@@ -959,16 +966,23 @@ plot_grid(
       features = factor(features, levels = rev(rtrees_importance$features)),
       rtrees_ind = ifelse(rf_model_id == "rtrees", "rtrees", "CCFs with lands")
     ) %>%
-    ggplot(aes(x = rank, y = features, group = rf_model_id, color = rtrees_ind)) +
-    geom_point(alpha = 0.5, shape = 1) + 
-    geom_line(alpha = 0.5) +
-    scale_color_manual(values = c("grey50", "blue")) +
+    arrange(desc(rf_model_id)) %>%
+    ggplot(
+      aes(
+        x = rank,
+        y = features,
+        group = rf_model_id,
+        color = rtrees_ind,
+        size = rtrees_ind,
+        alpha = rtrees_ind
+      )
+    ) +
+    geom_line() +
+    scale_color_manual(values = c("black", "purple")) +
     theme_bw() +
-    labs(
-      x = "Random Forest Model", 
-      y = "Feature", 
-      title = "Comparing rtrees importance to random forests fit using CCFs with lands data"
-    )
+    labs(x = "Random Forest Model",
+         y = "Feature",
+         title = "Comparing rtrees importance to random forests fit \nusing CCFs with lands data")
 )
 ```
 
