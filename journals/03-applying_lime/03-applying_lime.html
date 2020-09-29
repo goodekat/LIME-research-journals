@@ -1515,8 +1515,6 @@ div.tocify {
 </div>
 
 
-<div id="overview" class="section level1">
-<h1>Overview</h1>
 <p>This journal includes code for applying lime to various models (<code>rtrees</code> and logisitic regression with main effects only).</p>
 <pre class="r"><code># Load libraries
 library(bulletr)
@@ -1538,7 +1536,6 @@ hamby224_test &lt;- read.csv(&quot;../../../data/hamby224_test.csv&quot;)</code>
 <p>A vector containing the features used in the random forest <code>rtrees</code> is created below.</p>
 <pre class="r"><code># Obtain features used when fitting the rtrees random forest
 rf_features &lt;- rownames(rtrees$importance)</code></pre>
-</div>
 <div id="random-forest" class="section level1">
 <h1>Random Forest</h1>
 <div id="one-implementation" class="section level3">
