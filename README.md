@@ -1,5 +1,5 @@
 
-# LIME Research <img align="right" height="200" src="./figures/lime.png">
+# LIME Research <img align="right" height="200" src="https://i.pinimg.com/originals/de/18/33/de18338e3313edd97d8156d987244e74.jpg">
 
 Repository for research journals for my research projects related to
 LIME. See below for descriptions of the contents of this repository. For
