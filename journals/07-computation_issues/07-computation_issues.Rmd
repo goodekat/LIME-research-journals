@@ -15,8 +15,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE)
 ```
 
-# Overview
-
 This journal documents some of the computation issues I have run into and my "solutions" or "conclusions". 
 
 ```{r}
