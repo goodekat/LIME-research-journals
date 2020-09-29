@@ -15,9 +15,7 @@
 *.toc
 *_cache/
 *_files/
-
 # Specific
 data
 journals/09-understanding_lime/data
-
-
+.Rhistory 2
