@@ -1,0 +1,1 @@
+These folders contain the old versions of my work relating to case studies with LIME. It is likely that the code will no run anymore due to changes in data and file paths, but the html versions of the journals may be helpful.

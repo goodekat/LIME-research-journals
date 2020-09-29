@@ -1,0 +1,141 @@
+---
+title: "Re-scanning: Hamby-44"
+author: "Heike Hofmann, CSAFE"
+date: "8/19/2017"
+output: html_document
+bibliography: ../references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,  fig.width=8, fig.height=8)
+
+sam_boot <- function(n = 1000, values, observed, m = 6) {
+  res <- replicate(n, {
+    X = base::sample(x = values, size = m, replace = FALSE)
+    mean(X, na.rm=TRUE)
+  })
+  list(pval=sum(res>=observed)/n, samples = res)
+}
+```
+## Study Setup
+
+
+## Results: 
+
+All lands are processed using the fully automated matching algorithm described in [@aoas, @bulletr], resulting in all land-to-land comparisons of known and unknown LEAs. 
+Bullet-by-bullet comparisons are based on Sequence Average Maximums (SAMs) [@sam] of land-by-land comparisons of maximized cross-correlation (sam_ccf) and scores from the random forest (sam_rf). 
+
+## Checking for consistency
+
+```{r dataload, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(knitr)
+library(pander)
+features <- read.csv("data/features.csv")
+f2 <- features 
+
+f2nest <- f2 %>% filter(!(barrel1==barrel2 & bullet1 == bullet2)) %>% group_by( bullet2, barrel1, barrel2, bullet1) %>%  nest()  
+
+rotate <- function(x, lag) {
+  n <- length(x)
+  rep(x, 2)[lag+1:n]
+}
+
+f3nest <- f2nest %>% mutate(
+  sam_ccf = data %>% purrr::map_dbl(.f=function(d) {
+    dt = xtabs(ccf ~land1+land2, data=d)
+    drow <- dim(dt)[2]
+    1:drow %>% purrr::map_dbl(.f=function(i) {
+      mean(diag(dt[,rotate(1:drow,i)]))
+    }) %>% max()
+  }),
+  sam_rf = data %>% purrr::map_dbl(.f=function(d) {
+    dt = xtabs(rfscore ~land1+land2, data=d)
+    drow <- dim(dt)[2]
+    1:drow %>% purrr::map_dbl(.f=function(i) {
+      mean(diag(dt[,rotate(1:drow,i)]))
+    }) %>% max()
+  })#,
+#  KM = data %>% purrr::map_lgl(.f=function(d) { any(d$KM) })
+)
+
+f3nest <- f3nest %>% mutate(
+  bulletland2 = paste( barrel2, bullet2, sep="-"),
+  bulletland1 = paste( barrel1, bullet1, sep="-")
+) 
+
+```
+
+### Checking consistency: knowns against knowns
+
+```{r, echo=FALSE, fig.cap="Bullet-to-bullet summary of all test fires. Two test fires are available for each of ten barrels. We expect to see orange tiles (high rf values) on the diagonal and grey tiles everywhere else.", fig.width=7, fig.height=6.5}
+knowns <- f3nest %>% filter(barrel1!="Unk", barrel2!="Unk") 
+knowns %>% ggplot(aes(x = bullet1, y = bullet2, fill=sam_rf)) + geom_tile() +
+  scale_fill_gradient2(low="darkgrey", high="darkorange", midpoint=.35) +
+  facet_grid(barrel1~barrel2)
+```
+
+```{r, echo=FALSE, fig.cap="Land-to-land overview for test fires from the same barrels. We expect to see one diagonal line of six orange tiles in each of the squares.", fig.width=8, fig.height =6}
+knowns %>% filter(barrel1==barrel2) %>% unnest(data) %>% 
+  mutate(land1 = gsub("and ", "", land1), land2 = gsub("and ", "", land2)) %>%
+  ggplot(aes(x = land1, y = land2, fill=rfscore)) + geom_tile() +
+  scale_fill_gradient2(low="darkgrey", high="darkorange", midpoint=.35) +
+  facet_wrap(~barrel1)
+
+```
+
+### Checking unknowns against unknowns
+
+```{r, echo=FALSE, fig.cap="Bullet-to-bullet overview of all pairwise comparisons of questioned bullets. Fifteen bullets are questioned in Hamby-44. It is known that all fires come from the same ten barrels. We would therefore expect at least five matches between questioned bullets.", fig.width=8, fig.height=8}
+unknowns <- f3nest %>% filter(barrel1=="Unk", barrel2 == "Unk")
+
+library(seriation)
+dt <- matrix(xtabs(I(sam_rf*(sam_rf>.35))~bulletland1+bulletland2, data=unknowns), ncol=length(unique(unknowns$bulletland1)))
+order <- seriate(dt, method="PCA_angle")
+unknowns <- unknowns %>% mutate(
+  bulletland1 = factor(bulletland1),
+  bulletland2 = factor(bulletland2)
+)
+unknowns <- unknowns %>% mutate(
+  bulletland1 = factor(bulletland1, levels=levels(unknowns$bulletland1)[order[[1]]]),
+  bulletland2 = factor(bulletland2, levels= levels(unknowns$bulletland2)[order[[2]]])
+)
+
+
+unknowns %>% ggplot(aes(x = bullet1, y = bullet2, fill=sam_rf)) + geom_tile() +
+  scale_fill_gradient2(low="darkgrey", high="darkorange", midpoint=.35) 
+```
+
+```{r, echo=FALSE, fig.width=8, fig.height=6, fig.cap="Land-to-land overviews between any two questioned bullets that show a score high enough for matching (0.375). If the bullets are indeed a match, we would like to see a matching sequence in the tiles."}
+unknowns %>% filter(sam_rf > 0.375) %>% unnest(data) %>% 
+  mutate(land1 = gsub("and ", "", land1), land2 = gsub("and ", "", land2)) %>%
+  ggplot(aes(x = land1, y = land2, fill=rfscore)) + geom_tile() +
+  scale_fill_gradient2(low="darkgrey", high="darkorange", midpoint=.35) +
+  facet_wrap(~bullet1+bullet2)
+
+```
+
+## Results from matching
+
+```{r, echo=FALSE, fig.width=10, fig.height=7.5, fig.cap="Bullet-to-bullet overview of questioned bullets (along y axis) and all known fires from the ten barrels. We want to see one barrel match for each questioned bullet (i.e. both test fires should show a match, and only one barrel should match)."}
+questioned <- f3nest %>% filter(barrel1!="Unk", barrel2=="Unk") 
+questioned <- questioned %>% mutate(
+  bullet2 = factor(bullet2, 
+                   levels=rev(c("K", "S", "O", "L", "P", "J", "I", "H", "Y", "G", "X", "U", "E", "F", "T")))
+)
+questioned %>% 
+  ggplot(aes(x = bullet1, y = bullet2, fill=sam_rf)) + geom_tile() +
+  scale_fill_gradient2(low="darkgrey", high="darkorange", midpoint=.3) +
+  facet_grid(.~barrel1)
+```
+
+
+```{r, echo=FALSE, fig.width=10, fig.height=8, fig.cap="Land-to-land overview of all pairs of questioned bullets and known test fires. For each match, we want to see q matching sequence in the tiles."}
+questioned %>% unnest(data) %>%
+  mutate(land1 = gsub("and ", "", land1), land2 = gsub("and ", "", land2)) %>%
+  ggplot(aes(x = land1, y = land2, fill=rfscore)) + geom_tile() +
+  scale_fill_gradient2(low="darkgrey", high="darkorange", midpoint=.3) +
+  facet_grid(bullet2~barrel1+bullet1)
+```
+
+## References

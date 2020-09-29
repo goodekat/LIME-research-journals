@@ -1,0 +1,65 @@
+---
+title: "Testing Lime"
+author: "Heike Hofmann"
+date: "10/7/2017"
+output: pdf_document
+---
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(knitr)
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  error = FALSE, 
+  collapse = TRUE,
+  comment = "",
+  fig.height = 6,
+  fig.width = 6,
+  fig.align = "center",
+  out.width= '\\textwidth',
+  cache = FALSE,
+  fig.path='figures-lime/',
+  echo=TRUE
+)
+options(knitr.table.format = "latex")
+
+library(tidyverse)
+library(scales)
+library(multidplyr)
+library(bulletr)
+library(gridExtra)
+library(kableExtra)
+```
+
+```{r read}
+hamby <- read.csv("data/features-hamby.csv.gz") %>% filter(study1 != "Cary", study2 != "Cary")
+library(caret)
+library(lime)
+
+# Split up the data set
+idx <- createDataPartition(hamby$match, p = 0.1, list=FALSE)
+
+hamby_test <- hamby[idx,]
+hamby_train <- hamby[-idx,]
+
+# Create Random Forest model on hamby data
+vars <- c("ccf", "rough_cor", "lag", "D", "sd_D", "overlap", "cms", "non_cms", "sum_peaks")
+model <- train(hamby_train %>% select(one_of(vars)), factor(hamby_train$match), method = 'rf')
+saveRDS(model, file="lime-data/model.rds")
+
+# Create an explainer object
+explainer <- lime(hamby_train %>% select(one_of(vars)), model)
+saveRDS(explainer, file="lime-data/explainer.rds")
+
+# Explain new observation
+explanation <- explain(hamby_test %>% select(one_of(vars)), explainer, n_labels = 1, n_features = 9)
+explanation$truth <- rep(hamby_test$match,each=9)
+plot_features(explanation[1:9,])
+saveRDS(explanation, file="lime-data/explanation.rds")
+```
+
+```{r second}
+newGrid = expand.grid(mtry = 4:6)
+second <- train(hamby_train %>% select(one_of(vars)), factor(hamby_train$match), method = 'rf', tuneGrid = newGrid)
+saveRDS(second, file="lime-data/model-second.rds") # mtry=4 seems to work the best (by a very small margin, but there's not that much room for improvement anyway)
+```

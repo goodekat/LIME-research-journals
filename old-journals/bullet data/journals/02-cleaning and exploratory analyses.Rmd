@@ -1,0 +1,501 @@
+---
+title: "Cleaning and Exploring the Hamby Data"
+author: "Katherine Goode"
+date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE, 
+                      fig.align = "center")
+```
+
+# Overview 
+
+In this journal, I explore the two Hamby datasets, clean and combine them into one data frame, and create the training and testing datasets that will be used when LIME is applied. I start by familiarizing myself with what variables are in the datasets and attempt to understand some of the inconsistencies in the data that I have come across. Then I clean the datasets and combine them into one data frame. Finally, I create the forms of the training and testing datasets that are required by the `lime` R package that include the numeric features that were used to fit the random forest. I also create some plots to explore the features in the training and testing datasets.
+
+The following R libraries will be used in this journal
+
+\vspace{0.25cm}
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(plotly)
+```
+
+# Familiarizing Myself with the Datasets
+
+The Hamby datasets are loaded in below. Note that when the `hamby173and252` dataset is read in, the studies called "Cary" are excluded. The data file contains rows based on bullet scans from a different study. These rows are no longer being included since Heike has found the study they came from to be poorly executed. 
+
+\vspace{0.25cm}
+
+```{r}
+# Load in the Hamby 173 and 252 dataset
+hamby173and252 <- read.csv("../data/features-hamby173and252.csv") %>%
+  filter(study1 != "Cary", study2 != "Cary")
+
+# Load in the Hamby 44 dataset
+hamby44 <- read.csv("../data/features-hamby44.csv")
+```
+
+## Comparing Variables in the Two Datasets
+
+The datasets `hamby173and252` and `hamby44` contain variables that identify which bullet and barrel each land is associated with and variables that compare the similarity of the two signatures. However, the versions of these datasets that I have now do not match in terms of variables. Some variables are in both datasets, and some variables are only in one of the datasets. The following code creates the figure shown below that contains all of the variable names and indicates if the variable is in a dataset by a turquoise square. 
+
+\vspace{0.25cm}
+
+```{r}
+# Create a dataframe with the names of the variables from both datasets
+hamby_vars <- data.frame(vars = factor(c(names(hamby173and252), names(hamby44)))) %>%
+  distinct() %>%
+  arrange(vars)
+
+# Create variables that indicate whether a variable is in a dataset
+hamby_vars$hamby173and252 <- hamby_vars$vars %in% names(hamby173and252)
+hamby_vars$hamby44 <- hamby_vars$vars %in% names(hamby44)
+
+# Reformat the data to be plotted
+hamby_vars_gathered <- hamby_vars %>% 
+  gather(key = dataset, value = contained, 2:3) %>%
+  filter(contained == TRUE)
+```
+
+```{r fig.height = 2.5, fig.width = 10}
+# Plot the variables in the datasets
+ggplot(hamby_vars_gathered, aes(x = vars, y = dataset)) +
+  geom_tile(aes(fill = contained), fill = "mediumturquoise") + 
+  labs(x = "Variable", y = "Dataset", fill = "Contained in Dataset?") + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+\vspace{0.25cm}
+
+Note that both datasets contain a variable that indicates whether the two lands are a match or not based on the random forest score, but the variables have different names in the two datasets. In `hamby173and252` this variables is called `match`, and in `hamby44`, this variable is called `samesource`.
+
+## Considering the Number of Rows in Each Dataset
+
+If we include symmetric comparisons, each set of test bullets should result in a dataset with
+  $$(35 \mbox{ bullets} \times 6 \mbox{ lands})^2=44100 \mbox{ rows},$$
+where a row would contain information on a pair of lands. If we do not include the symmetric comparisons, then the dataset should have
+  $$\frac{(44100 \mbox{ rows} - (35 \mbox{ bullets} \times 6))}{2} + (35 \mbox{ bullets} \times 6) = 22155 \mbox{ rows}.$$
+However, when I looked at the dimension of the datasets, neither of these seem to be the case. See the R code and output below. Note that `hamby173` is currently incorrectly labelled as `hamby44`. All three test sets have less than 44,100 rows. `hamby44` is close, and when I checked with Heike, she said that when we created the dataset, she chose to include the symmetric comparisons. `hamby173` and `hamby252` are much are closer to 22,155 rows, which suggests that these do no include symmetric comparisons. When I checked with Heike, she confirmed that this is the case. This table also shows that there are comparisons across `hamby173` and `hamby252`. These missing observations will be explored more in the section.
+
+\vspace{0.25cm}
+
+```{r}
+# Summary of the number of observations in the Hamby173and252 datase
+table(hamby173and252$study1, hamby173and252$study2)
+
+# Determine the dimensions of hamby44
+dim(hamby44)
+```
+
+## Understanding the Missing Observations
+
+I wanted to better understand why the number of rows in the datasets were less than what I expected. The plots below attempt to figure this out.
+
+The plot below considers the number of observations within a barrel and bullet comparison for the known bullets in the `hamby44` dataset. I would expect there to be (6 lands) x (6 lands) = 36 observations within a cell. Most of the cells have 36 observations, but the diagonal for the cases that compare the lands from the same barrel and bullet are missing 6 observations. The next plot gets at this issue. We also can see that there is something wrong with barrel 9. Heike said that the bullets from barrel 9 had tank rash, which caused some of the lands to be excluded.
+
+\vspace{0.25cm}
+
+```{r}
+countplot44 <- hamby44 %>%
+  filter(barrel1 != "Unk", barrel2 != "Unk") %>%
+  group_by(barrel1, barrel2, bullet1, bullet2) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = barrel1, y = barrel2)) +
+  geom_tile(aes(fill = count)) + 
+  facet_grid(bullet1 ~ bullet2) +
+  theme_bw() + 
+  labs(title = "Number of Observations per Barrel-Bullet Pair in Hamby 44")
+
+ggplotly(countplot44, width = 600, height = 500) %>%
+  shiny::div(align = "center")
+```
+
+\vspace{0.25cm}
+
+The plot below considers the match responses for the land comparisons with barrel 1 and bullet 1 from `hamby44`. I was expecting the 6 missing observations to be the matches, but that does not seem to be the case based on this plot. I found this to be the same for other bullets that I considered. Heike said that the six missing observations should be the matches, which means that something is wrong with the `samesource` variable.
+
+\vspace{0.25cm}
+
+```{r}
+hamby44 %>%
+  filter(barrel1 == 1, bullet1 == 1, barrel2 == 1, bullet2 == 1) %>%
+  ggplot(aes(x = land1, y = land2)) +
+  geom_tile(aes(fill = samesource)) +
+  theme_bw() +
+  labs(title = "Matches for Each Pair of Lands for Barrel 1 and Bullet 1 in Hamby 44")
+```
+
+\vspace{0.25cm}
+
+This is the same plot as the previous one, but the colors represent the random forest score. The scores do not seem to match up with the previous plot.
+
+\vspace{0.25cm}
+
+```{r}
+hamby44 %>%
+  filter(barrel1 == 1, bullet1 == 1, barrel2 == 1, bullet2 == 1) %>%
+  ggplot(aes(x = land1, y = land2)) +
+  geom_tile(aes(fill = rfscore)) +
+  theme_bw() +
+  labs(title = "RF Score for Each Pair of Lands for Barrel 1 and Bullet 1 in Hamby 44")
+```
+
+\vspace{0.25cm}
+
+The plot below considers the match responses for the land comparisons with barrel 9 and bullet 2 from `hamby44`. There are additional missing observations here due to the tank rash, which appears to be on land 3.
+
+\vspace{0.25cm}
+
+```{r}
+hamby44 %>%
+  filter(barrel1 == 9, bullet1 == 2, barrel2 == 9, bullet2 == 2) %>%
+  ggplot(aes(x = land1, y = land2)) +
+  geom_tile(aes(fill = samesource)) +
+  theme_bw() +
+  labs(title = "Matches for Each Pair of Lands for Barrel 9 and Bullet 2 in Hamby 44")
+```
+
+\vspace{0.25cm}
+
+I started to create the same plots for the `hamby173and252` data. When I did this, I discovered that the barrels are not labelled the same between the two datasets. Heike said that the unknown bullets in the `hamby44` dataset are given letters in the bullet column. See the additional code below.
+
+\vspace{0.25cm}
+
+```{r}
+# The levels of these do not agree...
+summary(hamby173and252$barrel1)
+summary(hamby44$barrel1)
+```
+
+```{r}
+# The bullet levels
+levels(factor(hamby173and252$bullet1))
+levels(factor(hamby44$bullet1))
+```
+
+\vspace{0.25cm}
+
+The plot below considers the number of observations within a barrel and bullet comparison from the Hamby 173 test set data. We can see that the observations on the lower diagonals are missing, and a handful of cases have less than 36 observations. This is due to observations in the upper diagonal corresponding exactly to the ones below the diagonal, so the repeats are excluded from the data. The diagonal also is lower, because none of the repeats from the symmetric comparisons of lands are included. The rows or columns with less than 36 observations are missing values due to tank rash.
+
+\vspace{0.25cm}
+
+```{r}
+countplot173 <- hamby173and252 %>%
+  filter(study1 == "Hamby44", study2 == "Hamby44") %>%
+  filter(barrel1 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+         barrel2 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")) %>%
+  group_by(barrel1, barrel2, bullet1, bullet2) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = barrel1, y = barrel2)) +
+  geom_tile(aes(fill = count)) + 
+  facet_grid(bullet1 ~ bullet2) +
+  theme_bw() + 
+  labs(title = "Number of Observations per Barrel-Bullet Pair in Hamby 173")
+
+ggplotly(countplot173, width = 600, height = 500) %>%
+  shiny::div(align = "center")
+```
+
+\vspace{0.25cm}
+
+This plot considers the number of observations within a barrel and bullet comparison from the Hamby 252 test set data. Again, the observations on the lower diagonals are missing, and a handful of cases have less than 36 observations. This is due to the same reason as with Hamby 173. 
+
+\vspace{0.25cm}
+
+```{r}
+countplot252 <- hamby173and252 %>%
+  filter(study1 == "Hamby252", study2 == "Hamby252") %>%
+  filter(barrel1 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+         barrel2 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")) %>%
+  group_by(barrel1, barrel2, bullet1, bullet2) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = barrel1, y = barrel2)) +
+  geom_tile(aes(fill = count)) + 
+  facet_grid(bullet1 ~ bullet2) +
+  theme_bw() + 
+  labs(title = "Number of Observations per Barrel-Bullet Pair in Hamby 252")
+
+ggplotly(countplot252, width = 600, height = 500) %>%
+  shiny::div(align = "center")
+```
+
+\vspace{0.25cm}
+
+Finally, this plot considers the number of observations within a barrel and bullet comparison from the cases where `study1` and `study2` are not equal. That is, these are the cases that compare across `hamby173` and `hamby252`. Again, the observations on the lower diagonals are missing. Here, some cases have less than 36 observations and other have more than 36 observations. The cases with more than 36 observations are due to both test sets having the same numbered barrels but different bullets, and the cases with less than expected are due to tank rash.
+
+\vspace{0.25cm}
+
+```{r}
+countplot173and252 <- hamby173and252 %>%
+  filter(study1 != study2) %>%
+  filter(barrel1 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+         barrel2 %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")) %>%
+  group_by(barrel1, barrel2, bullet1, bullet2) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = barrel1, y = barrel2)) +
+  geom_tile(aes(fill = count)) + 
+  facet_grid(bullet1 ~ bullet2) +
+  theme_bw() + 
+  labs(title = "Number of Observations per Barrel-Bullet Pair in Comparisons of 
+       Hamby 173 and 252")
+
+ggplotly(countplot173and252, width = 600, height = 500) %>%
+  shiny::div(align = "center")
+```
+
+\vspace{0.25cm}
+
+Below are plots of the match values associated with the land comparisons within barrel 1 and bullet 1 from `hamby173and252`. Both of these plots only have observations on the upper diagonal since the symmetric cases are not included.
+
+\vspace{0.25cm}
+
+```{r}
+hamby173and252 %>%
+  filter(study1 == "Hamby44", study2 == "Hamby44") %>%
+  filter(barrel1 == 1, bullet1 == 1, barrel2 == 1, bullet2 == 1) %>%
+  ggplot(aes(x = land1, y = land2)) +
+  geom_tile(aes(fill = match)) +
+  theme_bw() +
+  labs(title = "Matches for Each Pair of Lands for Barrel 1 and Bullet 1 in Hamby 173")
+```
+
+```{r}
+hamby173and252 %>%
+  filter(study1 == "Hamby252", study2 == "Hamby252") %>%
+  filter(barrel1 == 1, bullet1 == 1, barrel2 == 1, bullet2 == 1) %>%
+  ggplot(aes(x = land1, y = land2)) +
+  geom_tile(aes(fill = match)) +
+  theme_bw() +
+  labs(title = "Matches for Each Pair of Lands for Barrel 1 and Bullet 1 in Hamby 252")
+```
+
+# Cleaning the Data
+
+After working with the data, I have found some issues that I have mentioned in the journals. The code below cleans the `hamby173and252` and `hamby44` data files and joins them based on the variables that both datasets share. However, I did include the random forest prediction probability variable from `hamby44` that was not in `hamby173and252`. The cleaned data is exported as a .csv file.
+
+\vspace{0.25cm}
+
+```{r}
+# Create a vector of the features in both datasets
+features <- hamby_vars %>% 
+  filter(hamby173and252 == TRUE, hamby44 == TRUE) %>%
+  pull(vars) %>%
+  as.character()
+
+# Clean the data from test sets 173 and 252
+hamby173and252_cleaning <- hamby173and252 %>%
+  mutate(study1 = factor(study1),
+         study2 = factor(study2)) %>%
+  mutate(study1 = fct_recode(study1, "Hamby173" = "Hamby44"),
+         study2 = fct_recode(study2, "Hamby173" = "Hamby44")) %>%
+  rename(samesource = match) %>%
+  select(features, samesource, study1, study2)
+
+# Determine the unknown bullet letters in the hamby173and252 data
+letters <- levels(hamby173and252_cleaning$barrel1)[11:length(
+  levels(hamby173and252_cleaning$barrel1))]
+
+# Adjust the barrel1 and bullet1 names for the known case
+hamby173and252_cleaning_known1 <- hamby173and252_cleaning %>%
+  filter(!barrel1 %in% letters) %>%
+  mutate(bullet1 = factor(bullet1)) %>%
+  select(barrel1, barrel2, bullet1, bullet2, 5:21)
+
+# Adjust the barrel1 and bullet1 names for the unknown case
+hamby173and252_cleaning_unknown1 <- hamby173and252_cleaning %>%
+  filter(barrel1 %in% letters) %>%
+  mutate(bullet1 = barrel1) %>%
+  select(barrel1, barrel2, bullet1, bullet2, 5:21) %>%
+  mutate(barrel1 = factor("Unk"))
+
+# Join the two parts
+hamby173and252_cleaning_still <- bind_rows(hamby173and252_cleaning_known1,
+                                           hamby173and252_cleaning_unknown1)
+
+# Adjust the barrel2 and bullet2 names for the known case
+hamby173and252_cleaning_known2 <- hamby173and252_cleaning_still %>%
+  filter(!barrel2 %in% letters) %>%
+  mutate(bullet2 = factor(bullet2)) %>%
+  select(barrel1, barrel2, bullet1, bullet2, 5:21)
+
+# Adjust the barrel2 and bullet2 names for the unknown case
+hamby173and252_cleaning_unknown2 <- hamby173and252_cleaning_still %>%
+  filter(barrel2 %in% letters) %>%
+  mutate(bullet2 = barrel2) %>%
+  select(barrel1, barrel2, bullet1, bullet2, 5:21) %>%
+  mutate(barrel2 = factor("Unk"))
+
+# Join the two parts
+hamby173and252_cleaned <- bind_rows(hamby173and252_cleaning_known2,
+                                    hamby173and252_cleaning_unknown2)
+
+# Clean the data from test sets 44
+hamby44_cleaned <- hamby44 %>% 
+  select(features, rfscore, samesource) %>%
+  mutate(study1 = "Hamby44", study2 = "Hamby44")
+
+# Bind the cleaned dataframes
+hamby_cleaned <- bind_rows(hamby173and252_cleaned, hamby44_cleaned) %>%
+  select(study1, barrel1, bullet1, land1, 
+         study2, barrel2, bullet2, land2,
+         ccf, cms, D, lag, matches, mismatches, non_cms, overlap, 
+         rough_cor, sd_D, signature_length, sum_peaks, rfscore, samesource) %>%
+  mutate(study1 = factor(study1),
+         barrel1 = factor(barrel1),
+         bullet1 = factor(bullet1),
+         land1 = factor(land1),
+         study2 = factor(study2),
+         barrel2 = factor(barrel2),
+         bullet2 = factor(bullet2),
+         land2 = factor(land2))
+
+# Export the cleaned data as a .csv file
+write.csv(hamby_cleaned, "../data/features_cleaned.csv", row.names = FALSE)
+```
+
+\vspace{0.25cm}
+
+Below is a summary of the structure of the cleaned hamby data.
+
+\vspace{0.25cm}
+
+```{r}
+# Structure of the cleaned hamby data
+str(hamby_cleaned)
+```
+
+# Creating the Training and Testing Datasets
+
+Prior to applying LIME to the random forest model and the testing data, I need to recreate the training data that was used to fit the random forest model and create a matching testing dataset. The training data is created from the Hamby 173 and 252 test sets, and the testing data is created from the Hamby 44 test set. Based on the information learned in the previous journal about the random forest model `rtrees` that was used by Eric, the features of `ccf`, `rough_cor`, `D`, `sd_D`, `matches`, `mismatches`, `cms`, `non_cms`, and `sum_peaks` need to be included in the training and testing datasets. Additionally, variables describing the pair of bullets in a row are included. The code below creates these two datasets and saves them as .csv files. The response variables of `samesource` are put in separate data frames along with the identification variables. These datasets are also saved as .csv files.
+
+\vspace{0.25cm}
+
+```{r}
+# Create a vector of the random forest features to be included
+rf_features <- c("ccf", "rough_cor", "D", "sd_D", "matches", 
+                 "mismatches", "cms", "non_cms", "sum_peaks")
+
+# Create the training dataset
+hamby_train <- hamby_cleaned %>% 
+  filter(study1 %in% c("Hamby173", "Hamby252")) %>%
+  select(study1, barrel1, bullet1, land1, study2, barrel2, bullet2, land2, 
+         rf_features, samesource)
+
+# Create the testing dataset
+hamby_test <- hamby_cleaned %>% 
+  filter(study1 %in% c("Hamby44")) %>% 
+  select(study1, barrel1, bullet1, land1, study2, barrel2, bullet2, land2, 
+         rf_features, rfscore, samesource)
+
+# Save the datasets and response variables as .csv files
+write.csv(hamby_train, "../data/hamby_train.csv", row.names = FALSE)
+write.csv(hamby_test, "../data/hamby_test.csv", row.names = FALSE)
+```
+
+# Exploring the Random Forest Features
+
+I was interested in exploring the numeric features from the datasets to better understand them. The code below goes through the process of creating histograms for all of the numeric variables that compare two signatures for both the training and testing datasets. The distributions of the features look really similar when comparing the training and testing datasets.
+
+\vspace{0.25cm}
+
+```{r}
+# Function for checking if a variable is type dbl
+check_dbl <- function(x) type_sum(x) == "dbl"
+```
+
+```{r}
+# Subset the Hamby 173 and 252 dataset to only contain the double variables
+hamby_train_numeric <- hamby_train %>% 
+  select_if(check_dbl) %>%
+  select(sort(names(.)))
+
+# Gather the data to use for plotting
+hamby_train_numeric_gathered <- hamby_train_numeric %>%
+  gather(key = "variable", value = "measurement")
+
+# Plot histograms of the variables
+ggplot(hamby_train_numeric_gathered, aes(x = measurement)) + 
+  geom_histogram(bins = 30) + 
+  facet_wrap( ~ variable, scales = "free") +
+  theme_bw() + 
+  labs(title = "Histograms of the Numeric Variables in the Hamby 173 and 252 Data", 
+       x = "Count", y = "Measurement")
+```
+
+```{r}
+# Subset the Hamby 44 dataset to only contain the double variables
+hamby_test_numeric <- hamby_test %>% 
+  select_if(check_dbl) %>%
+  select(sort(names(.)), -rfscore)
+
+# Gather the data to use for plotting
+hamby_test_numeric_gathered <- hamby_test_numeric %>%
+  gather(key = "variable", value = "measurement")
+
+# Plot histograms of the variables
+ggplot(hamby_test_numeric_gathered, aes(x = measurement)) + 
+  geom_histogram(bins = 30) + 
+  facet_wrap( ~ variable, scales = "free", ncol = 3) +
+  theme_bw() + 
+  labs(title = "Histograms of the Numeric Variables in the Hamby 44 Data",
+       x = "Count", y = "Measurement")
+```
+
+\vspace{0.25cm}
+
+Correlations are computed below between all pairs of variables that were used to fit the random forest `rtrees` within both the training or testing datasets. These are plotted in heat maps shown below using `plotly` to make them interactive.
+
+\vspace{0.25cm}
+
+```{r fig.width = 5, fig.height = 5}
+# Compute a correlation matrix of the numeric variables
+cormat_train <- cor(hamby_train_numeric)
+
+# Melt the matrix for plotting purposes
+melted_cormat_train <- reshape2::melt(cormat_train) %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")))
+
+# Create a heatmap of the correlation matrix
+plotcor_train <- ggplot(data = melted_cormat_train, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() + 
+  scale_fill_gradient2() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Correlations of Numeric Variables in the Hamby 173 and 252 Data")
+
+# Plot the correlation heatmap as an interactive plotly object
+ggplotly(plotcor_train, width = 600, height = 500) %>%
+  shiny::div(align = "center")
+```
+
+```{r fig.width = 5, fig.height = 5}
+# Compute a correlation matrix of the numeric variables
+cormat_test <- cor(hamby_test_numeric)
+
+# Melt the matrix for plotting purposes
+melted_cormat_test <- reshape2::melt(cormat_test) %>%
+  mutate(Var1 = factor(Var1, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")),
+         Var2 = factor(Var2, levels = c("ccf", "cms", "matches", "rough_cor", "sum_peaks",
+                                        "D", "sd_D", "mismatches", "non_cms")))
+
+# Create a heatmap of the correlation matrix
+plotcor_test <- ggplot(data = melted_cormat_test, aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() + 
+  scale_fill_gradient2() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  labs(x = "", y = "", fill = "Correlation",
+       title = "Correlations of Numeric Variables in the Hamby 44 Data")
+
+# Plot the correlation heatmap as an interactive plotly object
+ggplotly(plotcor_test, width = 600, height = 500) %>%
+  shiny::div(align = "center")
+```

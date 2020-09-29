@@ -1,0 +1,320 @@
+---
+title: "Results from LIME Applied to the Bullet Data"
+author: "Katherine Goode"
+date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warnings = FALSE, eval = TRUE)
+```
+
+# Overview
+
+This document explores the explanations resulting from the `lime` R package applied to the bullet data. Different visualizations are made in an attempt to be able to comprehend the many explanations created.
+
+The following R libraries will be used.
+
+\vspace{0.25cm}
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(lime)
+library(randomForest)
+library(bulletr)
+```
+
+# Comparisons within `hamby44` of Barrel 1 and Barrel 2
+
+For now, only explanations have been made on the comparisons between the lands from barrel 1 and barrel 2 in the `hamby44` test data. 
+
+## Combining the Data and Explanations
+
+The code below reads in the subset of the test data and the LIME explanations that accompany the data, and they are joined into one data frame. Additionally, variable types are adjusted as need be, and some additional variables are added. These new variables are the interaction between barrel and bullet, which will be used for plotting, and my own computation of the random forest prediction score from `rtrees` to compare with the one in the data frame that I was given.
+
+\vspace{0.25cm}
+
+```{r}
+# Load in the test data and explanations for barrels 1 and 2
+hamby_test_barrels1and2 <- read.csv("../data/hamby_test_barrels1and2.csv")
+hamby_explain_barrels1and2 <- readRDS("../data/hamby_explain_barrels1and2.rds")
+
+# Add a case variable to the test data
+hamby_test_barrels1and2 <- hamby_test_barrels1and2 %>%
+  mutate(case = as.character(1:dim(hamby_test_barrels1and2)[1])) %>%
+  select(case, study1:samesource)
+
+# Create a vector of the random forest features to be included
+rf_features <- c("ccf", "rough_cor", "D", "sd_D", "matches", 
+                 "mismatches", "cms", "non_cms", "sum_peaks")
+
+# Join the data and the explanations and edit and add additional variables
+hamby_barrels1and2 <- full_join(hamby_test_barrels1and2, hamby_explain_barrels1and2, 
+                                by = "case") %>%
+  mutate(case = factor(case),
+         barrel1 = factor(barrel1),
+         bullet1 = factor(bullet1),
+         land1 = factor(land1),
+         barrel2 = factor(barrel2),
+         bullet2 = factor(bullet2),
+         land2 = factor(land2)) %>%
+  mutate(barrelbullet1 = barrel1:bullet1, 
+         barrelbullet2 = barrel2:bullet2, 
+         mypred = rep(predict(rtrees, hamby_test_barrels1and2 %>% select(rf_features), 
+                                type = "prob")[,2], each = 3)) %>%
+  select(case:bullet1, barrelbullet1, land1:bullet2, barrelbullet2, land2:rfscore, 
+         mypred, samesource:prediction)
+
+# The structure of the joined data
+str(hamby_barrels1and2 %>% select(-c(prediction, data)))
+```
+
+## Plotting the Data and Explanations
+
+### Plot of $R^2$ from LIME Local Models
+
+Before looking at the plots of the explanations, first consider the $R^2$ values for the local models fit by `lime`. The plot below shows the $R^2$ value for the local models fit for each of the land to land comparisons. The plot shows that the $R^2$ values are pretty low. This is an indicator that some of the default settings in `lime` should be adjusted to improve the local model fit. For example, the kernel width could be decreased to try to make the fit more local.
+
+\vspace{0.25cm}
+
+```{r}
+# Plot of r2 values
+hamby_barrels1and2 %>%
+  select(case, land1, land2, barrelbullet1, barrelbullet2, model_r2) %>%
+  distinct() %>%
+  ggplot(aes(x = land1, y = land2)) +
+  geom_tile(aes(fill = model_r2)) + 
+  facet_grid(barrelbullet1 ~ barrelbullet2) + 
+  theme_bw()
+```
+
+### Feature Plots Produced by `lime`
+
+The plots below shows the explanations produced by `lime` for the first eight cases in the `hamby_test_barrels1and2` dataset.
+
+\vspace{0.25cm}
+
+```{r}
+cases_of_interest <- hamby_test_barrels1and2 %>%
+  filter(barrel1 == barrel2, bullet1 != bullet2, land1 == land2) %>%
+  pull(case)
+
+plot_features(hamby_explain_barrels1and2[1:12,])
+plot_features(hamby_explain_barrels1and2[13:24,])
+```
+
+### Plots of Random Forest Prediction Probabilities
+
+The plots below show the random forest score from the original data, my computed random forest score, 1 minus the label probability from `lime`, the model prediction probability from `lime`, and the same source variable from the original data for the comparisons of lands between barrel 1 and barrel 2. The plot with my calculated prediction probabilities matches the random forest score from the data given to me. However, they do not agree with the probability output by `lime`, the label probabilities, or the `samesource` variable. I will need to look more into this. Note that the `samesource` variable is incorrect, so that plot should be ignored.
+
+\vspace{0.25cm}
+
+```{r}
+# Plot of the random forest score already in the data
+ggplot(hamby_barrels1and2, aes(x = land1, y = land2)) + 
+  geom_tile(aes(fill = rfscore)) +
+  facet_grid(barrelbullet1 ~ barrelbullet2) +
+  theme_bw()
+
+# Plot of the random forest score calculated by myself
+ggplot(hamby_barrels1and2, aes(x = land1, y = land2)) + 
+  geom_tile(aes(fill = mypred)) + 
+  facet_grid(barrelbullet1 ~ barrelbullet2) + 
+  theme_bw()
+
+# Plot of the random forest score calculated by lime
+ggplot(hamby_barrels1and2, aes(x = land1, y = land2)) + 
+  geom_tile(aes(fill = 1 - label_prob)) + 
+  facet_grid(barrelbullet1 ~ barrelbullet2) + 
+  theme_bw()
+
+# Plot of the prediction probability calculated by the simple model in lime
+ggplot(hamby_barrels1and2, aes(x = land1, y = land2)) + 
+  geom_tile(aes(fill = model_prediction)) + 
+  facet_grid(barrelbullet1 ~ barrelbullet2) + 
+  theme_bw()
+
+# Plot of the samesource variable
+ggplot(hamby_barrels1and2, aes(x = land1, y = land2)) + 
+  geom_tile(aes(fill = samesource)) + 
+  facet_grid(barrelbullet1 ~ barrelbullet2) + 
+  theme_bw()
+```
+
+\vspace{0.25cm}
+
+Below are computations to check how similar the prediction probabilities are. These varify the claims I made above after looking at the plots.
+
+\vspace{0.25cm}
+
+```{r}
+# Comparing the random forest score and my calculated probability
+sum(hamby_barrels1and2$rfscore - hamby_barrels1and2$mypred)
+
+# Comparing the random forest score and 1 minus the lime label probability
+sum(hamby_barrels1and2$rfscore - (1 - hamby_barrels1and2$label_prob))
+
+# Comparing the random forest score and the lime model prediction
+sum(hamby_barrels1and2$rfscore - hamby_barrels1and2$model_prediction)
+```
+
+### Plots of LIME Explanations
+
+Below is a plot created by `lime` that shows all of the explanations for the comparisons between barrel 1 and barrel 2.
+
+\vspace{0.25cm}
+
+```{r}
+lime::plot_explanations(hamby_explain_barrels1and2)
+```
+
+\vspace{0.25cm}
+
+I tried to recreate the above plot myself. This plot is shown below.
+
+\vspace{0.25cm}
+
+```{r}
+ggplot(hamby_barrels1and2, aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(. ~ label)
+```
+
+\vspace{0.25cm}
+
+I also created a plot that only includes the maximum absolute value of the feature weight within a case.
+
+\vspace{0.25cm}
+
+```{r}
+hamby_barrels1and2_max <- hamby_barrels1and2 %>%
+  group_by(case) %>%
+  filter(row_number(feature_weight) == n())
+
+ggplot(hamby_barrels1and2_max, aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(. ~ label)
+```
+
+\vspace{0.25cm}
+
+I also wanted to try improving the plot by faceting by the features. This plot is included below.
+
+\vspace{0.25cm}
+
+```{r}
+ggplot(hamby_barrels1and2, aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(feature ~ label, space = "free", scale = "free")
+```
+
+\vspace{0.25cm}
+
+The plots below separate the above plot so that each plot only contains the explanations within a barrel to barrel comparison.
+
+\vspace{0.25cm}
+
+```{r}
+hamby_barrels1and2 %>%
+  filter(barrel1 == "1", barrel2 == "1") %>%
+  ggplot(aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(feature ~ label, space = "free", scale = "free") + 
+  theme(axis.text.x = element_text(angle = 90))
+
+hamby_barrels1and2 %>%
+  filter(barrel1 == "1", barrel2 == "2") %>%
+  ggplot(aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(feature ~ label, space = "free", scale = "free") + 
+  theme(axis.text.x = element_text(angle = 90))
+
+hamby_barrels1and2 %>%
+  filter(barrel1 == "2", barrel2 == "1") %>%
+  ggplot(aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(feature ~ label, space = "free", scale = "free") + 
+  theme(axis.text.x = element_text(angle = 90))
+
+hamby_barrels1and2 %>%
+  filter(barrel1 == "2", barrel2 == "2") %>%
+  ggplot(aes(x = case, y = feature_desc)) + 
+  geom_tile(aes(fill = feature_weight)) + 
+  facet_grid(feature ~ label, space = "free", scale = "free") + 
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r include = FALSE, eval = FALSE}
+characters <- strsplit(hamby_barrels1and2$feature_desc, " ")
+mymax <- characters %>% lapply(length) %>% unlist %>% max
+new_characters <- characters %>% lapply(function(x) c(x, rep(NA, mymax-length(x))))
+as.data.frame(matrix(unlist(new_characters), ncol = 5, byrow = TRUE))
+```
+
+```{r include = FALSE, eval = FALSE}
+## OLD CODE
+
+# Load in the LIME explanations
+hamby_explain5000 <- readRDS("../data/hamby_explain5000.rds")
+
+lime::plot_features(hamby_explain5000[1:(4*2),])
+lime::plot_explanations(hamby_explain5000)
+
+ggplot(hamby_explain5000, aes(x = feature_value, y = feature_weight)) +
+  geom_point() + 
+  facet_grid(feature ~ .)
+
+# Need to create a variable for the truth
+# ggplot(hamby_explain5000, aes(x = feature_value, y = feature_weight)) +
+#   geom_point(aes(color = truth)) + 
+#   facet_grid(feature ~ .)
+
+# ggplot(hamby_explain5000, aes(x = feature_weight)) +
+#   geom_histogram(bins = 30, aes(fill = truth)) + 
+#   facet_grid(feature ~ truth)
+
+ggplot(hamby_explain5000, aes(x = case, y = feature_weight)) +
+  geom_point(aes(color = feature))
+
+ggplot(hamby_explain5000, aes(x = case, y = feature_weight)) +
+  geom_point(aes(color = feature))
+
+ggplot(hamby_explain5000, aes(x = case, y = abs(feature_weight))) +
+  geom_point(aes(color = feature))
+
+# Compute the number of cases explained
+(num_cases <- dim(hamby_explain5000)[1] / 2)
+
+# Subset the data to only have the rows with the maximum feature weight for
+# each case
+hamby_explain5000_max <- hamby_explain5000 %>%
+  group_by(case) %>%
+  top_n(1, feature_weight)
+
+# Change feature to a factor variable
+hamby_explain5000_max$feature <- as.factor(hamby_explain5000_max$feature)
+
+# Check to make sure the number of cases in this new dataset are the same as
+# the original
+length(unique(hamby_explain5000_max$case))
+
+# Create a dataset with only the rows for largest feature weights for each
+# of the cases
+hamby_explain5000_max <- hamby_explain5000_max %>%
+  arrange(by = feature_weight)
+
+# Number of times each feature is the top explanation
+summary(hamby_explain5000_max$feature)
+
+ggplot(hamby_explain5000_max, aes(x = case, y = feature_weight)) +
+  geom_point(aes(color = feature))
+
+# ggplot(hamby_explain5000_max, aes(x = case, y = feature_weight)) +
+#   geom_point(aes(color = feature)) +
+#   facet_grid(truth ~ .)
+
+# ggplot(hamby_explain5000_max, aes(x = feature_value, y = feature_weight)) +
+#   geom_point(aes(color = truth), alpha = 0.5) +
+#   facet_grid(feature ~ truth)
+```

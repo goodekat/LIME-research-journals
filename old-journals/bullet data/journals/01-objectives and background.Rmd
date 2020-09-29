@@ -1,0 +1,54 @@
+---
+title: "Objectives and Background for Applying LIME to the Hamby Bullet Data"
+author: "Katherine Goode"
+date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, eval = TRUE)
+```
+
+# Overview
+
+This journal explains the objectives of the project on applying LIME to the Hamby bullet data that is detailed in this series of journals. It also provides some background material on the study including a description of the Hamby data and the random forest model that was fit to the training portion of the Hamby data. References are provided that contain additional details on the Hamby data and the random forest model.
+
+# Objectives
+
+CSAFE is developing a predictive model that is able to match a bullet to the gun barrel that fired the bullet. They have acquired some sets of the data from the Hamby study. This data will be referred to as the Hamby data throughout this journal series. Part of this data was used to train a random forest model, and the remaining portion of the data will be used as a testing dataset. CSAFE would now like to understand the predictions made by the random forest to be able to provide a better explanation of how the model works to the firearm examiners. Thus, it is of interest to apply the LIME algorithm to the predictions made by the random forest model on the testing data to see which variables LIME suggests are driving the predictions. This journal series goes through the process of applying LIME to the predictions made by the random forest model and considering the results produced by LIME.
+
+# Background
+
+## Description of the Hamby Data
+
+The Hamby data is based on several test sets of bullets from the study described in the paper "The Identification of Bullets Fired from 10 Consecutively Rifled 9mm Ruger Pistol Barrels: A Research Project Involving 507 Participants from 20 Countries" by James E. Hamby Et. Al. In this study, sets of bullets from both "known" and "unknown" gun barrels were sent to firearm examiners around the world. The examiners were asked to use the known bullets to identify which barrels the unknown bullets came from.
+
+The test sets were created using 1 pistol and 10 barrels. Each test set contains a total of 35 bullets, which are made up of 20 known bullets and 15 unknown bullets. The 20 known bullets were created by firing two bullets from each of the 10 barrels. These are referred to as known bullets, because when they were sent to the firearm examiners, the barrel number that each bullet was fired from was listed with the bullet. The 15 unknown bullets were created by firing 15 bullets in some manner from the 10 barrels such that at least one unknown bullet came from each barrel and no more than three unknown bullets came from the same barrel. These are referred to as the unknown bullets, because when they were sent to the firearm examiners, the barrel number that the bullet was fired from was not listed with the bullet. A total of 240 test sets were created for the study.
+
+CSAFE has access to test sets 44, 173, and 252. The bullets were scanned 6 times using a high powered microscope to obtain an image of each of the 6 lands from the bullets. The scans for test sets 173 and 252 were done by NIST, and the scans for test set 44 was done by CSAFE. The data from these images were processed to obtain a signature associated with each land. The paper "Automatic Matching of Bullet Land Impressions" by Hare, Hofmann, and Carriquiry (https://arxiv.org/abs/1601.05788) provides more descriptions of how the signatures were obtained.
+
+CSAFE aggregated the signatures from test sets 173 and 252 and left the signatures from test set 44 separate. Within these two groups, pairs of lands were evaluated to determine how similar the signuatrues from the two lands were. This was done by measuring a set of variables they determined that would capture how alike the two signatures where. Some of these variables are described in Hare, Hofmann, and Carriquiry. The vignette at https://github.com/heike/bulletxtrctr/blob/master/vignettes/features.Rmd includes some additional descriptions. Note that it was not possible to evaluate all pairs of lands due to tank rash on some of the lands. The next journal further explores and explains the number of comparisons that were done. The dataset created from the comparisons of test sets 173 and 252 will be referred to as `hamby173and252` throughout these journals, and the dataset created from the comparisons of test sets 44 will be referred to as `hamby44`. 
+
+Hare, Hofmann, and Carriquiry used `hamby173and252` as a training dataset to fit a random forest model. The next section describes this model. The dataset `hamby44` has been used as a testing dataset by CSAFE. In this journal series, the features from `hamby44` will be input in the random forest to obtain predictions, and LIME will be applied to these predictions.
+
+## Description of the Random Forest Model
+
+The random forest model that was fit to the Hamby training dataset is discussed in the paper "Automatic Matching of Bullet Land Impressions" by E. Hare Et. Al. The model is available through the GitHub version of the `bulletr` package. The link to the GitHub repository for `bulletr` is https://github.com/CSAFE-ISU/bulletr. 
+
+The `bulletr` package is loaded below. The random forest model is stored in the package as a data object called `rtrees`. The paper does not include many details about the model fitting process, so I looked at some of the model features, which are printed below. These values told me that the model was fit using the predictive features of `ccf`, `rough_cor`, `D`, `sd_D`, `matches`, `mismatches`, `cms`, `non_cms`, and `sum_peaks` with 300 trees and the parameter of `mtry` set to 3, which is the "number of variables randomly sampled as candidates at each split" as explained in the `randomforest` package documentation. This is the random forest model that will be used throughout this journal series.
+
+```{r}
+# Load the library
+library(bulletr)
+
+# Importance values from the random forest
+rtrees$importance
+
+# The number of trees used in the random forest
+rtrees$ntree
+
+# "Number of variables randomly sampled as candidates at each split"
+rtrees$mtry
+```
+
+

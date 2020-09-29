@@ -1,0 +1,35 @@
+---
+title: "Conclusions from Applying LIME to the Hamby Bullet Data"
+author: "Katherine Goode"
+date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+
+This journal contains some of my concluding thoughts from going through the process of applying LIME to the Hamby bullet data.
+
+# Conclusions
+
+- I was concerned that the $R^2$ values were too low, and I was thinking that we may need to make some corrections to the LIME specificiations. Heike thinks that as long as the LIME results make sense we should be okay to ignore the low $R^2$ values. She thinks that the variables that should be important most of the time would be `ccf` and `matches`.
+- Heike thinks that the variables that LIME is showing as being important are what she would expect.
+
+# Concerns with LIME
+
+- It would be nice if LIME output the model AIC in addition to the $R^2$ value.
+- I would like a way to check if the results LIME produces are trustworthy. How can this be done? Is the $R^2$ value enough?
+- I'm nervous about the fact that the results can change due to the permutations. Is there a way to check for consistencey? Does this only happen if you have correlated variables, or can it also happen with uncorrelated variables?
+- When you have a large number of predictions to assess, would it be a good idea to focus in on the ones that have the best fitting linear model or produce the most consistent results?
+- What can be done to improve the linear regression model fit? Maybe adjusting the number of bins or the kernel width would help with this.
+
+# Future Work
+
+- When writing the paper, we will need to redo this process with the updated version of the random forest model.
+- The new random forest model will be fit using some different Hamby test set data. Possibly Hamby 44 and Hamby 244. 
+- The new random forest will also use the updated features.
+- I need to add interactivity to the plots of the plots of the land comparisons with the random forest prediction probabilities.
+- I need to figure out why the LIME probabilities do not match the random forest scores.

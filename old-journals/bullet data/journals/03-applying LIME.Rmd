@@ -1,0 +1,121 @@
+---
+title: "Applying LIME to the Bullet Data"
+author: "Katherine Goode"
+date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, eval = FALSE)
+```
+
+# Overview
+
+The journal goes through the process applying the `lime` and `explain` functions from the `lime` R package to the random forest model fit to the bullet training data.
+
+The following R libraries will be used.
+
+\vspace{0.25cm}
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(lime)
+library(randomForest)
+library(bulletr)
+```
+
+# Applying LIME to Comparisons within Barrels 1 and 2 of the Testing Data
+
+The training and testing datasets are loaded in below. To start, I am only going to obtain explanations for a small subset of the testing data. For now, I have subset the data to only contain the comparisons of lands within barrels 1 and 2. This leads to a dataset with 552 observations.
+
+\vspace{0.25cm}
+
+```{r}
+# Load in the training data
+hamby_train <- read.csv("../data/hamby_train.csv")
+
+# Load in the testing data
+hamby_test <- read.csv("../data/hamby_test.csv")
+
+# Subset the testing data to only contain the comparisons within barrels 1 and 2
+hamby_test_barrels1and2 <- hamby_test %>% filter(barrel1 %in% c(1, 2), barrel2 %in% c(1, 2))
+
+# Save the subset data for later use
+write.csv(hamby_test_barrels1and2, "../data/hamby_test_barrels1and2.csv", row.names = FALSE)
+```
+
+\vspace{0.25cm}
+
+When the functions from `lime` are applied to the bullet data, only the features used to fit the random forest model `rtrees` should be included. Thus, a vector containing the random forest features is created below.
+
+\vspace{0.25cm}
+
+```{r}
+# Create a vector of the random forest features to be included
+rf_features <- c("ccf", "rough_cor", "D", "sd_D", "matches", 
+                 "mismatches", "cms", "non_cms", "sum_peaks")
+
+```
+
+\vspace{0.25cm}
+
+The code below applies the LIME algorithm to the random forest model `rtrees` and the bullet testing data using the `lime` R package. First, a seed is set, so that the same results are returned each time the code in this journal is run since the LIME algorithm creates random permutations. Next, the `lime` function with default settings from the `lime` package is applied to the training data and random forest model to obtain what I will refer to as the "lime" object. The default settings for the `lime` function are as follows.
+
+- `bin_continuous = TRUE`: If set to `TRUE`, the continuous variables will be binned when making the explanations. If they are not binned, then perturbations will be obtained by either simulating using kernel density estimation or a normal distribution depending on what the option of `use_density` is set to. 
+- `bins = 4`: The number of bins to divide the continuous variables into. The default is 4 bins.
+- `quantile_bins = TRUE`: If set to `TRUE`, the bins will be be based on `n_bins` quantiles. Otherwise, the bins will be spread evenly over the range of the training data.
+- `use_density = TRUE`: If `bin_continuous` is set to `FALSE` and this is set to `TRUE`, then the continuous data will be sampled using kernel density estimation. Otherwise, it will be assumed that the continuous features follow a normal distribution and samples will be drawn from a normal distribution with the mean and standard deviation set to the sample mean and standard deviation associated with the feature.
+
+The "lime" object is saved as an .rds file.
+
+\vspace{0.25cm}
+
+```{r}
+# Set a seed
+set.seed(84902)
+
+# Apply the lime function from the lime package
+# Note that the as_classifier must be added since rtrees is from the
+# randomForest package and not fit using caret or one of the other 
+# available models specified in the lime package. Additionally, the
+# randomForest package must be loaded in order to run the functions
+# from the lime package.
+hamby_lime <- lime::lime(x = hamby_train %>% select(rf_features),
+                         model = as_classifier(rtrees))
+
+# Save the lime object
+saveRDS(hamby_lime, "../data/hamby_lime.rds")
+```
+
+\vspace{0.25cm}
+
+Next, the `explain` function is applied to the testing data and "lime" object to obtain the "explain" object. The number of labels (`n_labels`) for the response variable is set to 1, the number of features to include in the explanations (`n_features`) is set to 2, and the remaining options are set to the default values. These default values are as follows. 
+
+- `n_permutations = 5000`: The number of perturbations generated for each feature.
+- `feature_select = 'auto'`: This is the feature selection method for choosing the number of features specified. This uses forward selection if $m\le 6$ and otherwise highest weights. The other feature selection options are as follows.
+    - `none`: Use all features for the explanation. Not advised unless you have very few features.
+    - `forward selection`: Features are added one by one based on their improvements to a ridge regression fit of the complex model outcome.
+    - `highest weights`: The m features with highest absolute weight in a ridge regression fit of the complex model outcome are chosen.
+    - `lasso`: The m features that are least prone to shrinkage based on the regularization path of a lasso fit of the complex model outcome is chosen.
+    - `tree`: A tree is fitted with log2(m) splits, to use at max m features. It may possibly select less.
+- `dist_fun = 'gower'`: The distance function to be used for determining how close a perturbation is to the test point.
+- `kernel_width = NULL`: If `dist_fun` is not set to `gower`, then this is the kernel width that will be used in the distance function.
+
+The "explain" object is saved as .rds files.
+
+\vspace{0.25cm}
+
+```{r}
+# Set a seed
+set.seed(84902)
+
+# Apply the explain function from the lime package
+hamby_explain_barrels1and2 <- lime::explain(hamby_test_barrels1and2 %>% select(rf_features), 
+                                       hamby_lime, 
+                                       n_labels = 1, 
+                                       n_features = 3)
+
+# Save the explain object
+saveRDS(hamby_explain_barrels1and2, "../data/hamby_explain_barrels1and2.rds")
+```
