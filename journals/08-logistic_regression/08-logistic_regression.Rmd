@@ -12,12 +12,14 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, 
-                      message = FALSE,
-                      warning = FALSE, 
-                      eval = TRUE,
-                      cache = TRUE, 
-                      fig.width = 12)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  eval = TRUE,
+  cache = FALSE,
+  fig.width = 12
+)
 ```
 
 This journal includes LIME examples with a logistic regression model fit to the sine data.
@@ -116,7 +118,7 @@ Plot the LIME explanation plot and my EOI plot for each prediction in the test d
 # Plot the explanation of interest
 join_plots <- function(id, exp) {
   p1 <- lime::plot_features(exp$explain[id:(id+1),])
-  p2 <- eoi_plot(exp$explain[id:(id+1),])
+  p2 <- limeaid::plot_explain_scatter(exp$explain[id:(id+1),])
   plot_grid(p1, p2)
 }
 ```
