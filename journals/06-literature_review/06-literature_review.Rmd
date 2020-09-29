@@ -15,8 +15,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Overview
-
 This journal contains some information on papers relating to LIME.
 
 # Locality Assumption
