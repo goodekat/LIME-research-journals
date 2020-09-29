@@ -12,11 +12,13 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, 
-                      message = FALSE,
-                      warning = FALSE, 
-                      eval = TRUE,
-                      cache = TRUE)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  eval = TRUE,
+  cache = FALSE
+)
 ```
 
 This journal includes a description of the Hamby datasets and models fit to the data. The specification and cleaning of the training and testing datasets are documented, and some initial visualizations of the random forest model are included. The models included are the random forest model `rtrees` and several logistic regression models. 
@@ -187,7 +189,7 @@ hamby173and252_train <- hamby173and252_train_cleaning %>%
   select(-bbl1, -bbl2)
 ```
 
-When I look at the dimensions of my training data now and the number of predictions from `rtrees`, then agree now!
+When I look at the dimensions of my training data now and the number of predictions from `rtrees`, they agree now!
 
 ```{r}
 # Compare the dimensions of my further cleaned training data and the
