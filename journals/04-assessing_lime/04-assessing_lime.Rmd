@@ -22,8 +22,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Overview
-
 This journal visualizes and compares the results from the different LIME implementations.
 
 ```{r}
