@@ -10,17 +10,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Repository for research journals for my research projects related to LIME. See below for descriptions of the contents of this repository. For easy viewing of the journals, use these links: 
 
-0. [Objectives and Ideas]()
-1. [Information on Hamby Data and Models]()
-2. [Understanding LIME]()
-3. [Applying LIME to Hamby Data]()
-4. [Assessing LIME on Hamby Data]()
-5. [Applying and Assessing LIME on Iris Data]()
-6. [Notes on Readings]()
-7. [Computational Issues]()
-8. [LIME Applied to Logistic Regression]()
-9. [Identifying `rtrees` Training Data]()
-10. [LIME Variability Across Hamby Data and Models]()
+0. [Objectives and Ideas](https://goodekat.github.io/LIME-research-journals/journals/00-objectives_and_ideas/00-objectives_and_ideas.html)
+1. [Information on Hamby Data and Models](https://goodekat.github.io/LIME-research-journals/journals/01-hamby_data_and_models/01-hamby_data_and_models.html)
+2. [Understanding LIME](https://goodekat.github.io/LIME-research-journals/journals/02-understanding_lime/02-understanding_lime.html)
+3. [Applying LIME to Hamby Data](https://goodekat.github.io/LIME-research-journals/journals/03-applying_lime/03-applying_lime.html)
+4. [Assessing LIME on Hamby Data](https://goodekat.github.io/LIME-research-journals/journals/04-assessing_lime/04-assessing_lime.html)
+5. [Applying and Assessing LIME on Iris Data](https://goodekat.github.io/LIME-research-journals/journals/05-iris_comparison/05-iris_comparison.html)
+6. [Notes on Readings](https://goodekat.github.io/LIME-research-journals/journals/06-literature_review/06-literature_review.html)
+7. [Computational Issues](https://goodekat.github.io/LIME-research-journals/journals/07-computation_issues/07-computation_issues.html)
+8. [LIME Applied to Logistic Regressions on Sine Data](https://goodekat.github.io/LIME-research-journals/journals/08-logistic_regression/08-logistic_regression.html)
+9. [Identifying `rtrees` Training Data](https://goodekat.github.io/LIME-research-journals/journals/09-identifying-rtrees-training-data/09-identifying-rtrees-training-data.html)
+10. [LIME Variability Across Hamby Data and Models](https://goodekat.github.io/LIME-research-journals/journals/10-LIME-hamby-variability/10-LIME-hamby-variability.html)
 
 ## Repository Contents
 

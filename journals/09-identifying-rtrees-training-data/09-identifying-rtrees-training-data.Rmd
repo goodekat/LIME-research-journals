@@ -972,9 +972,6 @@ plot_grid(
 )
 ```
 
-
-# LIME Explanation Comparison
-
 # Session Info
 
 ```{r}
