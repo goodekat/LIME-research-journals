@@ -104,7 +104,7 @@ This paper would assess the explainations produced by LIME. It would introduce s
 
 **Statistical Paper Assessing LIME**
 
-This paper would be an explanation of how the application of LIME to the Hamby bullet data can help firearm examiners understand the random forest model predictions. When we first applied LIME to the bullet matching dataset, we found that the explanations were not as good as we wanted them to be. This has led us to try to understand why the LIME algorithm is not working well. We even tried some new sampling methods to improve the algorithm. They mde a bit of improvement, but the improvements could be much better. This paper could discuss isusses we found with the current LIME agorithm, describe our proposed approaches, and compare the results.
+This paper would be an explanation of how the application of LIME to the Hamby bullet data can help firearm examiners understand the random forest model predictions. When we first applied LIME to the bullet matching dataset, we found that the explanations were not as good as we wanted them to be. This has led us to try to understand why the LIME algorithm is not working well. We even tried some new sampling methods to improve the algorithm. They made a bit of improvement, but the improvements could be much better. This paper could discuss isusses we found with the current LIME algorithm, describe our proposed approaches, and compare the results.
 
 **Firearm Examiner's Paper**
 
@@ -114,11 +114,11 @@ CSAFE is developing a predictive model that is able to match a bullet to the gun
 
 The following are some of the concerns that we have with the current state of the LIME algorithm.
 
-- I'm nervous about the fact that the results can change due to the permutations. Is there a way to check for consistencey? Does this only happen if you have correlated variables, or can it also happen with uncorrelated variables?
+- I'm nervous about the fact that the results can change due to the permutations. Is there a way to check for consistency? Does this only happen if you have correlated variables, or can it also happen with uncorrelated variables?
 - When you have a large number of predictions to assess, would it be a good idea to focus in on the ones that have the best fitting linear model or produce the most consistent results?
 - What can be done to improve the linear regression model fit? Maybe adjusting the number of bins or the kernel width would help with this.
 - We think that the model explainer needs to be close enough to the complex model that it is trying to explain in order to do a good job of providing explanations. For example, the binned regression works okay with neural networks, but it does not work well with a random forest. Maybe a tree explainer or a logistic regression explainer would work better with a random forest.
 
 # General Thoughts
 
-- LIME is kind of like a jacknife technique
+- LIME is kind of like a jackknife technique
