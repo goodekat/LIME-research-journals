@@ -23,10 +23,10 @@ easy viewing of the journals, use these links:
     Issues](https://goodekat.github.io/LIME-research-journals/journals/07-computation_issues/07-computation_issues.html)
 8.  [LIME Applied to Logistic Regressions on Sine
     Data](https://goodekat.github.io/LIME-research-journals/journals/08-logistic_regression/08-logistic_regression.html)
-9.  [Identifying `rtrees` Training
+9.  [Identifying rtrees Training
     Data](https://goodekat.github.io/LIME-research-journals/journals/09-identifying-rtrees-training-data/09-identifying-rtrees-training-data.html)
 10. [LIME Variability Across Hamby Data and
-    Models](https://goodekat.github.io/LIME-research-journals/journals/10-lime_hamby_variability/10-LIME_hamby_variability.html)
+    Models](https://goodekat.github.io/LIME-research-journals/journals/10-lime_hamby_variability/10-lime_hamby_variability.html)
 
 ## Repository Contents
 
