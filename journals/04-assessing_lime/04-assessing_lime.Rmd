@@ -12,12 +12,14 @@ output:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, 
-                      eval = TRUE, 
-                      message = FALSE, 
-                      warning = FALSE, 
-                      error = FALSE, 
-                      cache = TRUE)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  error = FALSE,
+  cache = FALSE
+)
 ```
 
 # Overview
