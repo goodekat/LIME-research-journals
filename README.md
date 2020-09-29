@@ -1,83 +1,32 @@
 
 # LIME Research <img align="right" height="200" src="./figures/lime.png">
 
-Repository for research projects on LIME
+Repository for research journals for my research projects related to
+LIME. See below for descriptions of the contents of this repository. For
+easy viewing of the journals, use these links:
 
-Link to csafe server: <https://isu-csafe.stat.iastate.edu/rstudio/>
-
-## Ideas
-
-**LIME diagnostics**
-
-  - turn repetitive code into functions
-  - try out different weights
-  - change distance matrix in seriation to be 5-\# of variables shared
-    between two rows
-  - try using distance matrix computed on the feature value with
-    seriation
-  - add in feature selection methods to LIME input options
-  - think of a way to compute consistency across top two features
-  - Siggi suggests refitting the RF model to the perturbations and then
-    continuing with LIME with the RF predictions from the new model -
-    this may help to understand if the problems are due to the sampling
-    procedure or LIME itself
-  - he also suggested looking into SMOTE for dealing the imbalance in
-    the classes with sampling
-  - compare the simple models based on different number of bins using an
-    F-test
-  - look into computing a diversity or consistency measure for the
-    sensitivity analysis
-  - include a penalty for the number of parameters when choosing bins
-  - look at the AUC after binning
-  - compute a likelihood ratio prob TRUE / prob FALSE from the LIME
-    ridge regression
-  - try visualizing the features from the test data using dimension
-    reduction and coloring them by variables suggested to be important
-    by lime
-
-**Explainer Models**
-
-  - read through papers giving an overview of the current explanation
-    methods
-  - look into iml (<https://www.youtube.com/watch?v=jP6Rg13PEkQ>)
-  - look more into Molnar and his adviser Bernd
-  - look into
-    [MAPLE](https://blog.ml.cmu.edu/2019/07/13/towards-interpretable-tree-ensembles/)
-
-**Understanding LIME**
-
-  - edit details in understanding LIME journal
-  - look at the RF in the local region lime is considering to see if it
-    agrees with the lime explanations
-  - try fitting LASSO logistic model and leave one out approach (for
-    multicollinarity)
-  - assess lime results on logistic regression models
-  - try retriculate to apply python version of lime
-  - look into literature on binning methods
-  - think about why R^2 would be better for some binning methods
-  - read new paper on Anchor
-
-**Possible Improvements to LIME**
-
-  - determine the best number of bins to use for each variable
-  - try out subsampling idea
-
-**Simulation with RF**
-
-  - think about how to implement a simulation with a random forest
-  - look back at 601 notes from Kaiser for model assessment
-  - look at Hadley’s ‘removing the blindfold’ for ideas
-  - read book Dr. Dixon lent me on sensitivity analyses
-
-**Random Forests Confidence Intervals**
-
-  - look into papers by Giles Hooker and Lucas Mentch
-  - Dr. Nettleton paper
-
-**Random Forest Interpretations**
-
-  - read
-    <https://www.r-bloggers.com/explaining-predictions-random-forest-post-hoc-analysis-randomforestexplainer-package/>
+0.  [Objectives and
+    Ideas](https://goodekat.github.io/LIME-research-journals/journals/00-objectives_and_ideas/00-objectives_and_ideas.html)
+1.  [Information on Hamby Data and
+    Models](https://goodekat.github.io/LIME-research-journals/journals/01-hamby_data_and_models/01-hamby_data_and_models.html)
+2.  [Understanding
+    LIME](https://goodekat.github.io/LIME-research-journals/journals/02-understanding_lime/02-understanding_lime.html)
+3.  [Applying LIME to Hamby
+    Data](https://goodekat.github.io/LIME-research-journals/journals/03-applying_lime/03-applying_lime.html)
+4.  [Assessing LIME on Hamby
+    Data](https://goodekat.github.io/LIME-research-journals/journals/04-assessing_lime/04-assessing_lime.html)
+5.  [Applying and Assessing LIME on Iris
+    Data](https://goodekat.github.io/LIME-research-journals/journals/05-iris_comparison/05-iris_comparison.html)
+6.  [Notes on
+    Readings](https://goodekat.github.io/LIME-research-journals/journals/06-literature_review/06-literature_review.html)
+7.  [Computational
+    Issues](https://goodekat.github.io/LIME-research-journals/journals/07-computation_issues/07-computation_issues.html)
+8.  [LIME Applied to Logistic Regressions on Sine
+    Data](https://goodekat.github.io/LIME-research-journals/journals/08-logistic_regression/08-logistic_regression.html)
+9.  [Identifying `rtrees` Training
+    Data](https://goodekat.github.io/LIME-research-journals/journals/09-identifying-rtrees-training-data/09-identifying-rtrees-training-data.html)
+10. [LIME Variability Across Hamby Data and
+    Models](https://goodekat.github.io/LIME-research-journals/journals/10-lime_hamby_variability/10-LIME_hamby_variability.html)
 
 ## Repository Contents
 
