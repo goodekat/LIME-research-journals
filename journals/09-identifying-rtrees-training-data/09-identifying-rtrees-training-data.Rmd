@@ -511,6 +511,211 @@ plot_grid(
 
 # Training New Random Forests
 
+## Try Old Seeds
+
+The seeds used were selected by Heike based on ones she believes were used at the time of training `rtrees`.
+
+Code for training random forest models based on the random forest fit in Eric's code found [here](https://github.com/erichare/imaging-paper/blob/master/code/full_run.R), which is believed to be the code used to train the original `rtrees`. 
+
+```{r}
+set.seed(20140501)
+rtrees2 <-
+  randomForest(
+    factor(same_source) ~ ., 
+    data = CCFs_withlands %>% select(rtrees_features, same_source), 
+    ntree = 300
+  )
+
+set.seed(20170222)
+rtrees3 <-
+  randomForest(
+    factor(same_source) ~ ., 
+    data = CCFs_withlands %>% select(rtrees_features, same_source), 
+    ntree = 300
+  )
+```
+
+```{r}
+set.seed(20170222)
+rtrees4 <-
+  randomForest(
+    factor(same_source) ~ .,
+    data = hamby_comparisons_filtered %>% select(rtrees_features, same_source),
+    ntree = 300
+  )
+
+set.seed(20140501)
+rtrees5 <-
+  randomForest(
+    factor(same_source) ~ .,
+    data = hamby_comparisons_filtered %>% select(rtrees_features, same_source),
+    ntree = 300
+  )
+```
+
+```{r}
+plot(rtrees2$votes, rtrees3$votes)
+plot(rtrees2$votes, bulletxtrctr::rtrees$votes)
+plot(rtrees3$votes, bulletxtrctr::rtrees$votes)
+```
+
+```{r}
+plot(rtrees4$votes, rtrees5$votes)
+plot(rtrees4$votes, bulletxtrctr::rtrees$votes)
+plot(rtrees5$votes, bulletxtrctr::rtrees$votes)
+```
+
+```{r}
+plot(sort(rtrees2$votes), sort(bulletxtrctr::rtrees$votes))
+plot(sort(rtrees3$votes), sort(bulletxtrctr::rtrees$votes))
+plot(sort(rtrees4$votes), sort(bulletxtrctr::rtrees$votes))
+plot(sort(rtrees5$votes), sort(bulletxtrctr::rtrees$votes))
+```
+
+```{r}
+bulletxtrctr::rtrees$confusion
+rtrees2$confusion
+rtrees3$confusion
+rtrees4$confusion
+rtrees5$confusion
+```
+
+## Distribution Across Seeds
+
+Randomly select 100 seeds (using a random seed): 
+
+```{r}
+#set.seed(20200917)
+set.seed(20200925)
+seeds = sample(x = 10000000:100000000, size = 250, replace = FALSE)
+seeds
+```
+
+Function for fitting random forests to mimic rtrees with different seeds:
+
+```{r}
+fit_rf <- function(seed, data) {
+  set.seed(seed)
+  bullet_rf <-
+    randomForest(
+      y = factor(data$same_source),
+      x = data %>% select(all_of(rtrees_features)),
+      ntree = bulletxtrctr::rtrees$ntree,
+      mtry = bulletxtrctr::rtrees$mtry
+    )
+  return(bullet_rf)
+}
+```
+
+Fit 250 new random forests and save or load:
+
+```{r}
+rfs_hamby_comparison_file = "../../../data/rfs_hamby_comparison.rds"
+if (!file.exists(rfs_hamby_comparison_file)) {
+  rfs_hamby_comparison = map(.x = seeds, .f = fit_rf, data = hamby_comparisons_filtered)
+  saveRDS(object = bullet_rfs, file = rfs_hamby_comparison_file)
+} else {
+  rfs_hamby_comparison = readRDS(rfs_hamby_comparison_file)
+}
+
+rfs_CCFs_withlands_file = "../../../data/rfs_CCFs_withlands.rds"
+if (!file.exists(rfs_CCFs_withlands_file)) {
+  rfs_CCFs_withlands = map(.x = seeds, .f = fit_rf, data = CCFs_withlands)
+  saveRDS(object = rfs_CCFs_withlands, file = rfs_CCFs_withlands_file)
+} else {
+  rfs_CCFs_withlands = readRDS(rfs_CCFs_withlands_file)
+}
+```
+
+Function for extracting the confusion matrices from the model and put in a nice data frame:
+
+```{r}
+extract_confus <- function(model) {
+  data.frame(model$confusion) %>%
+    rename("FALSE" = "FALSE.", "TRUE" = "TRUE.", "class_error" = "class.error") %>%
+    mutate(observed = rownames(model$confusion)) %>%
+    pivot_wider(names_from = observed, values_from = everything())  
+}
+```
+
+Extract the confusion matrices and importance values from all random forest models:
+
+```{r}
+hamby_comparison_confus <-
+  map_df(.x = hamby_comparison_rfs, .f = extract_confus, .id = "rf_model_id")
+CCFs_withlands_confus <-
+  map_df(.x = CCFs_withlands_rfs, .f = extract_confus, .id = "rf_model_id")
+```
+
+Function for extracting the importance values, computing the rank of the features based on importance, and putting in a data frame: 
+
+```{r}
+extract_importance <- function(model) {
+  data.frame(model$importance) %>%
+    mutate(features = rownames(model$importance)) %>%
+    arrange(desc(MeanDecreaseGini)) %>%
+    mutate(rank = 1:n()) %>%
+    rename("importance" = "MeanDecreaseGini") %>%
+    select(features, importance, rank)
+}
+```
+
+```{r}
+hamby_comparison_importance <-
+  map_df(.x = hamby_comparison_rfs, .f = extract_importance, .id = "rf_model_id")
+CCFs_withlands_importance <-
+  map_df(.x = CCFs_withlands_rfs, .f = extract_importance, .id = "rf_model_id")
+```
+
+### Visualizations of Class Errors
+
+Obtain the class errors from `rtrees` and the paper random forest:
+
+```{r}
+rtrees_values <-
+  data.frame(
+    model = "rtrees",
+    class_error_true = rtrees$confusion[2, 3],
+    class_error_false = rtrees$confusion[1, 3]
+  )
+```
+
+Histograms of the class errors (true and false) show that the rtrees values appear to be in the extreme (false) or outside of the new random forest models (true):
+
+```{r fig.width = 10, fig.height = 4.5}
+hist_true_hc <-
+  hamby_comparison_confus %>%
+  ggplot(aes(x = class_error_TRUE)) +
+  geom_histogram() +
+  geom_vline(data = rtrees_values,
+             mapping = aes(xintercept = class_error_true, color = model))
+
+hist_false_hc <- 
+  CCFs_withlands_confus %>%
+  ggplot(aes(x = class_error_FALSE)) +
+  geom_histogram() +
+  geom_vline(data = rtrees_values,
+             mapping = aes(xintercept = class_error_false, color = model))
+
+hist_true_ccfwl <-
+  CCFs_withlands_confus %>%
+  ggplot(aes(x = class_error_TRUE)) +
+  geom_histogram() +
+  geom_vline(data = rtrees_values,
+             mapping = aes(xintercept = class_error_true, color = model))
+
+hist_false_ccfwl <- 
+  CCFs_withlands_confus %>%
+  ggplot(aes(x = class_error_FALSE)) +
+  geom_histogram() +
+  geom_vline(data = rtrees_values,
+             mapping = aes(xintercept = class_error_false, color = model))
+
+plot_grid(hist_true_hc, hist_false_hc, hist_true_ccfwl, hist_false_ccfwl)
+```
+
+# LIME Explanation Comparison
+
 # Session Info
 
 ```{r}
