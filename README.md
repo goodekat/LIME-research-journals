@@ -32,7 +32,7 @@ easy viewing of the journals, use these links:
 
 Descriptions of the materials in this repository are listed below.
 
-[**code**](code/)
+#### [**code**](code/)
 
 Place for storing R code used in the research journals:
 
@@ -41,7 +41,7 @@ Place for storing R code used in the research journals:
   - [helper\_functions.R](code/helper_functions.R): R script with
     functions that I use in the journals
 
-[**figures**](figures)
+#### [**figures**](figures)
 
 Contains static images:
 
@@ -54,7 +54,7 @@ Contains static images:
     python LIME package showing the use of a ridge regression as the
     explainer
 
-[**journals**](journals)
+#### [**journals**](journals)
 
 Contains folders with research journals:
 
@@ -95,14 +95,14 @@ for more details on the correct dataset. The correct data is used in the
 LIME diagnostics paper. For time reasons, the results in these journals
 have not been updated.
 
-[**old-journals**](old-journals)
+#### [**old-journals**](old-journals)
 
 Contains materials from my earliest research journals relating to the
 LIME project. It is likely that the code in these files will not run.
 However, the knit versions of the R markdown documents may still be
 useful, so I included them in the repository.
 
-**main**
+#### **main**
 
 Files contained in the main folder of the repository:
 
