@@ -11,7 +11,7 @@
 
 <meta name="author" content="Katherine Goode" />
 
-<meta name="date" content="2020-09-29" />
+<meta name="date" content="2020-09-30" />
 
 <title>Objectives and Ideas</title>
 
@@ -1510,7 +1510,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Objectives and Ideas</h1>
 <h4 class="author">Katherine Goode</h4>
-<h4 class="date">September 29, 2020</h4>
+<h4 class="date">September 30, 2020</h4>
 
 </div>
 
@@ -1530,22 +1530,17 @@ div.tocify {
 <h3>Ideas</h3>
 <p><strong>LIME diagnostics</strong></p>
 <ul>
-<li>turn repetitive code into functions</li>
-<li>try out different weights</li>
-<li>change distance matrix in seriation to be 5-# of variables shared between two rows</li>
-<li>try using distance matrix computed on the feature value with seriation</li>
 <li>add in feature selection methods to LIME input options</li>
 <li>think of a way to compute consistency across top two features</li>
 <li>Siggi suggests refitting the RF model to the perturbations and then continuing with LIME with the RF predictions from the new model - this may help to understand if the problems are due to the sampling procedure or LIME itself</li>
 <li>he also suggested looking into SMOTE for dealing the imbalance in the classes with sampling</li>
 <li>compare the simple models based on different number of bins using an F-test</li>
-<li>look into computing a diversity or consistency measure for the sensitivity analysis</li>
 <li>include a penalty for the number of parameters when choosing bins</li>
 <li>look at the AUC after binning</li>
 <li>compute a likelihood ratio prob TRUE / prob FALSE from the LIME ridge regression</li>
 <li>try visualizing the features from the test data using dimension reduction and coloring them by variables suggested to be important by lime</li>
-<li>Could try fitting a regression with interactions and see if LIME does a good job of explaining a model that is already interpretable.</li>
-<li>Maybe we could come up with a test to compare between global and local explanations (but how would we do this?)</li>
+<li>could try fitting a regression with interactions and see if LIME does a good job of explaining a model that is already interpretable</li>
+<li>come up with a test to compare between global and local explanations</li>
 </ul>
 <p><strong>Explainer Models</strong></p>
 <ul>
@@ -1563,10 +1558,7 @@ div.tocify {
 <li>could include interactions in the model</li>
 <li>does lime find the local models?</li>
 </ul></li>
-<li>edit details in understanding LIME journal</li>
-<li>look at the RF in the local region lime is considering to see if it agrees with the lime explanations</li>
 <li>try fitting LASSO logistic model and leave one out approach (for multicollinarity)</li>
-<li>assess lime results on logistic regression models</li>
 <li>try reticulate R package to apply python version of lime</li>
 <li>look into literature on binning methods</li>
 <li>think about why R^2 would be better for some binning methods</li>
@@ -1593,20 +1585,6 @@ div.tocify {
 <ul>
 <li>read <a href="https://www.r-bloggers.com/explaining-predictions-random-forest-post-hoc-analysis-randomforestexplainer-package/" class="uri">https://www.r-bloggers.com/explaining-predictions-random-forest-post-hoc-analysis-randomforestexplainer-package/</a></li>
 </ul>
-</div>
-<div id="possible-papers" class="section level3">
-<h3>Possible Papers</h3>
-<p>Here are ideas for possible papers.</p>
-<p><strong>Statistical Paper Presenting Visual Diagnostic Tools for LIME</strong></p>
-<p>This paper would assess the explainations produced by LIME. It would introduce some visual diagnostics for LIME to assess its performance. Key points that will be made:</p>
-<ol style="list-style-type: decimal">
-<li>Explainer model is really bad (probably due to the binning)</li>
-<li>Local explanations at not local</li>
-</ol>
-<p><strong>Statistical Paper Assessing LIME</strong></p>
-<p>This paper would be an explanation of how the application of LIME to the Hamby bullet data can help firearm examiners understand the random forest model predictions. When we first applied LIME to the bullet matching dataset, we found that the explanations were not as good as we wanted them to be. This has led us to try to understand why the LIME algorithm is not working well. We even tried some new sampling methods to improve the algorithm. They made a bit of improvement, but the improvements could be much better. This paper could discuss isusses we found with the current LIME algorithm, describe our proposed approaches, and compare the results.</p>
-<p><strong>Firearm Examiner’s Paper</strong></p>
-<p>CSAFE is developing a predictive model that is able to match a bullet to the gun barrel that fired the bullet. They have acquired some sets of the data from the Hamby study. Part of this data was used to train a random forest model (<code>rtrees</code>), and the remaining portion of the data will be used as a testing dataset. CSAFE would now like to understand the predictions made by the random forest to be able to provide a better explanation of how the model works to the firearm examiners. Thus, it is of interest to apply the LIME algorithm to the predictions made by the random forest model on the testing data to see which variables LIME suggests are driving individual predictions.</p>
 </div>
 </div>
 <div id="concerns" class="section level1">

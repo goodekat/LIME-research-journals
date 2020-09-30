@@ -88,7 +88,7 @@ summary(hamby_comparisons_raw %>% filter(flag == FALSE) %>% select(all_of(rtrees
 
 Comparing visualizations of the distributions of the features used to train `rtrees` from the two datasets to again see the differences in distributions of `D` and `sd_D`:
 
-```{r fig.width = 10, fig.height = 3}
+```{r}
 bind_rows(
   hamby_comparisons_raw %>%
     filter(flag == FALSE) %>%
@@ -100,8 +100,9 @@ bind_rows(
     mutate(dataset = "CCFs_withlands")
 ) %>%
   ggplot(aes(x = value, fill = dataset)) + 
-  geom_histogram() +
-  facet_grid(dataset ~ name)
+  geom_histogram(position = "dodge") +
+  facet_wrap(. ~ name, scales = "free") + 
+  theme(legend.position = "bottom")
 ```
 
 # Data Cleaning
@@ -451,7 +452,7 @@ ccfwl_pred = predict(bulletxtrctr::rtrees, CCFs_withlands %>% select(all_of(rtre
 all_pred <-
   data.frame(
     dataset = c(
-      rep("internal", length(rtrees_pred)),
+      rep("Internal (OOB)", length(rtrees_pred)),
       rep("Hamby comparisons", length(hc_pred)),
       rep("CCFs with lands", length(ccfwl_pred))
     ),
@@ -483,7 +484,7 @@ plot_grid(
     group_by(dataset) %>%
     mutate(case = 1:n()) %>%
     pivot_wider(names_from = "dataset", values_from = "pred") %>%
-    ggplot(aes(x = `Hamby comparisons`, y = internal)) +
+    ggplot(aes(x = `Hamby comparisons`, y = `Internal (OOB)`)) +
     geom_point() + 
     theme(aspect.ratio = 1) +
     labs(title = "Comparing internal to Hamby Comparisons (not sorted)"),
@@ -493,7 +494,7 @@ plot_grid(
     arrange(pred) %>%
     mutate(case = 1:n()) %>%
     pivot_wider(names_from = "dataset", values_from = "pred") %>%
-    ggplot(aes(x = `Hamby comparisons`, y = internal)) +
+    ggplot(aes(x = `Hamby comparisons`, y = `Internal (OOB)`)) +
     geom_point() + 
     theme(aspect.ratio = 1) +
     labs(title = "Comparing internal to Hamby Comparisons (sorted)"),
@@ -502,7 +503,7 @@ plot_grid(
     group_by(dataset) %>%
     mutate(case = 1:n()) %>%
     pivot_wider(names_from = "dataset", values_from = "pred") %>%
-    ggplot(aes(x = `CCFs with lands`, y = internal)) +
+    ggplot(aes(x = `CCFs with lands`, y = `Internal (OOB)`)) +
     geom_point() + 
     theme(aspect.ratio = 1) +
     labs(title = "Comparing internal to CCFs with lands (not sorted)"), 
@@ -512,7 +513,7 @@ plot_grid(
     arrange(pred) %>%
     mutate(case = 1:n()) %>%
     pivot_wider(names_from = "dataset", values_from = "pred") %>%
-    ggplot(aes(x = `CCFs with lands`, y = internal)) +
+    ggplot(aes(x = `CCFs with lands`, y = `Internal (OOB)`)) +
     geom_point() + 
     theme(aspect.ratio = 1) +
     labs(title = "Comparing internal to CCFs with lands (sorted)")
@@ -879,30 +880,57 @@ hist_true_hc <-
   ggplot(aes(x = class_error_TRUE)) +
   geom_histogram(bins = 20) +
   geom_vline(data = rtrees_values,
-             mapping = aes(xintercept = class_error_true, color = model))
+             mapping = aes(xintercept = class_error_true, color = model)) + 
+    labs(title = "Models Trained on Hamby Comparison Data")
 
 hist_false_hc <- 
   hamby_comparison_confus %>%
   ggplot(aes(x = class_error_FALSE)) +
   geom_histogram(bins = 20) +
   geom_vline(data = rtrees_values,
-             mapping = aes(xintercept = class_error_false, color = model))
+             mapping = aes(xintercept = class_error_false, color = model)) + 
+    labs(title = "Models Trained on Hamby Comparison Data")
 
 hist_true_ccfwl <-
   CCFs_withlands_confus %>%
   ggplot(aes(x = class_error_TRUE)) +
   geom_histogram(bins = 20) +
   geom_vline(data = rtrees_values,
-             mapping = aes(xintercept = class_error_true, color = model))
+             mapping = aes(xintercept = class_error_true, color = model)) +
+  labs(title = "Models Trained on CCFs with Lands Data")
 
 hist_false_ccfwl <- 
   CCFs_withlands_confus %>%
   ggplot(aes(x = class_error_FALSE)) +
   geom_histogram(bins = 20) +
   geom_vline(data = rtrees_values,
-             mapping = aes(xintercept = class_error_false, color = model))
+             mapping = aes(xintercept = class_error_false, color = model)) +
+  labs(title = "Models Trained on CCFs with Lands Data")
 
 plot_grid(hist_true_hc, hist_false_hc, hist_true_ccfwl, hist_false_ccfwl)
+```
+
+Plots of true versus false class errors:
+
+```{r fig.width = 10, fig.height = 4.5}
+plot_grid(
+  ggplot() +
+    geom_point(data = hamby_comparison_confus, aes(x = class_error_FALSE, y = class_error_TRUE)) +
+    geom_point(
+      data = rtrees_values,
+      aes(x = class_error_false, y = class_error_true, color = model)
+    ) + 
+    labs(title = "Models Trained on Hamby Comparison Data") + 
+    theme(legend.position = "bottom"),
+  ggplot() +
+    geom_point(data = CCFs_withlands_confus, aes(x = class_error_FALSE, y = class_error_TRUE)) +
+    geom_point(
+      data = rtrees_values,
+      aes(x = class_error_false, y = class_error_true, color = model)
+    ) + 
+    labs(title = "Models Trained on CCFs with Lands Data") + 
+    theme(legend.position = "bottom")
+)
 ```
 
 ### Comparing Feature Importance
@@ -955,7 +983,7 @@ plot_grid(
     scale_color_manual(values = c("black", "purple")) +
     theme_bw() +
     labs(
-      x = "Random Forest Model", 
+      x = "Feature Importance Rank",
       y = "Feature", 
       title = "Comparing rtrees importance to random forests fit \nusing Hamby comparisons data"
     ), 
@@ -980,7 +1008,7 @@ plot_grid(
     geom_line() +
     scale_color_manual(values = c("black", "purple")) +
     theme_bw() +
-    labs(x = "Random Forest Model",
+    labs(x = "Feature Importance Rank",
          y = "Feature",
          title = "Comparing rtrees importance to random forests fit \nusing CCFs with lands data")
 )

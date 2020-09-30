@@ -2,8 +2,9 @@
 # LIME Research <img align="right" height="200" src="https://i.pinimg.com/originals/de/18/33/de18338e3313edd97d8156d987244e74.jpg">
 
 Repository for research journals for my research projects related to
-LIME. See below for descriptions of the contents of this repository. For
-easy viewing of the journals, use these links:
+LIME. See below for descriptions of the contents of this repository.
+Beware of typos in the journals. Not all of them have been proof read.
+For easy viewing of the journals, use these links:
 
 0.  [Objectives and
     Ideas](https://goodekat.github.io/LIME-research-journals/journals/00-objectives_and_ideas/00-objectives_and_ideas.html)
