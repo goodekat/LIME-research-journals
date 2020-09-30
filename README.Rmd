@@ -42,7 +42,7 @@ Contains static images:
 
 [**journals**](journals)
 
-This folder contains folders with research journals.
+Contains folders with research journals:
 
 - [00-objectives_and_ideas](journals/00-objectives_and_ideas): background of the research project, goals of the project, concerns with LIME, and ideas to try
 - [01-hamby_data_and_models](journals/01-hamby_data_and_models)***: information on the Hamby data, cleaning of the training and testing data, visualizations of the data, and models fit to the data (rtrees and logistic regressions)
@@ -60,11 +60,11 @@ This folder contains folders with research journals.
 
 [**old-journals**](old-journals)
 
-Contain materials from my earliest research journals relating to the LIME project. It is likely that the code in these files will not run. However, the knit versions of the R markdown documents may still be useful.
+Contains materials from my earliest research journals relating to the LIME project. It is likely that the code in these files will not run. However, the knit versions of the R markdown documents may still be useful, so I included them in the repository.
 
 **main**
 
-The documents contained in the top folder are as follows:
+Files contained in the main folder of the repository:
 
 - [.gitignore](.gitignore): files to ignore
 - [notes from Heike.pdf](notes from Heike.pdf): scans of notes written by Heike for this project

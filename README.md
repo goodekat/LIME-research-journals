@@ -56,7 +56,7 @@ Contains static images:
 
 [**journals**](journals)
 
-This folder contains folders with research journals.
+Contains folders with research journals:
 
   - [00-objectives\_and\_ideas](journals/00-objectives_and_ideas):
     background of the research project, goals of the project, concerns
@@ -97,14 +97,14 @@ have not been updated.
 
 [**old-journals**](old-journals)
 
-Contain materials from my earliest research journals relating to the
+Contains materials from my earliest research journals relating to the
 LIME project. It is likely that the code in these files will not run.
 However, the knit versions of the R markdown documents may still be
-useful.
+useful, so I included them in the repository.
 
 **main**
 
-The documents contained in the top folder are as follows:
+Files contained in the main folder of the repository:
 
   - [.gitignore](.gitignore): files to ignore
   - [notes from Heike.pdf](notes%20from%20Heike.pdf): scans of notes
