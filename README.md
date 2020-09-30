@@ -32,57 +32,79 @@ easy viewing of the journals, use these links:
 
 Descriptions of the materials in this repository are listed below.
 
-**code**
+[**code**](code/)
 
-This folder is a place for storing code that is used throughout the
-project:
+Place for storing R code used in the research journals:
 
-  - `app.R`: code for the Shiny app for visualizing the LIME
+  - [app.R](code/app.R): code for the Shiny app for visualizing the LIME
     explanations associated with the bullet land comparisons
-  - `helper_functions.R`: R script with functions that I use in the
-    journals and will probably end up using in the papers as well
+  - [helper\_functions.R](code/helper_functions.R): R script with
+    functions that I use in the journals
 
-**figures**
+[**figures**](figures)
 
-This folder contains static images:
+Contains static images:
 
-  - `lime.png`: fun picture of a lime to use in the readme
-  - `python-ridge1`, `python-ridge2`, and `python-ridge3`: screen shots
-    of the python LIME package showing the use of a ridge regression as
-    the explainer
+  - [laugel-lime-concept.png](figures/laugel-lime-concept.png) and
+    [laugel-locality-metric](figures/laugel-locality-metric.png):
+    figures from the Laugel et al. (2018) paper
+  - [python-ridge1](figures/python-ridge1.png),
+    [python-ridge2](figures/python-ridge2.png), and
+    [python-ridge3](figures/python-ridge3.png): screen shots of the
+    python LIME package showing the use of a ridge regression as the
+    explainer
 
-**journals**
+[**journals**](journals)
 
 This folder contains folders with research journals.
 
-  - `00-objectives_and_ideas`: background of the research project, goals
-    of the project, concerns with LIME, and ideas to try
-  - `01-hamby_data_and_models`: information on the Hamby data, cleaning
-    of the training and testing data, visualizations of the data, and
-    models fit to the data (rtrees and logistic regressions)
-  - `02-understanding_lime`: explanation of LIME procedure
-  - `03-applying_lime`: applications of LIME to the models fit to the
-    Hamby data
-  - `04-assessing_lime`: visual diagnostics for assessing the lime
-    explanations
-  - `05-iris_comparison`: applying LIME to a random forest fit to the
-    iris data
-  - `06-literature_review`: notes on papers relating to LIME
-  - `07-computation_issues`: documentation of some of the computation
-    issues I ran into during the project
-  - `08-logistic_regression`: examples of applying LIME to explain
-    logistic regression models
-  - `09-refitting-rtrees`: examples where I retrain the rtrees model
-    with the “current” version of the training data and compare the
-    results
+  - [00-objectives\_and\_ideas](journals/00-objectives_and_ideas):
+    background of the research project, goals of the project, concerns
+    with LIME, and ideas to try
+  - [01-hamby\_data\_and\_models](journals/01-hamby_data_and_models)\*\*\*:
+    information on the Hamby data, cleaning of the training and testing
+    data, visualizations of the data, and models fit to the data (rtrees
+    and logistic regressions)
+  - [02-understanding\_lime](journals/02-understanding_lime): work done
+    to understand the LIME algorithm
+  - [03-applying\_lime](journals/03-applying_lime)\*\*\*: applications
+    of LIME to the models fit to the Hamby data
+  - [04-assessing\_lime](journals/04-assessing_lime)\*\*\*: visual
+    diagnostics for assessing the lime explanations
+  - [05-iris\_comparison](journals/05-iris_comparison): applying LIME to
+    a random forest fit to the iris data and assessing the explanations
+  - [06-literature\_review](journals/06-literature_review/): notes on
+    papers relating to LIME
+  - [07-computation\_issues](journals/07-computation_issues/):
+    documentation of some of the computation issues I ran into during
+    the project
+  - [08-logistic\_regression](journals/08-logistic_regression): examples
+    of applying and diagnosing LIME with logistic regression models fit
+    to the sine data
+  - [09-identifying\_rtrees\_training\_data](journals/09-identifying_rtrees_training_data/):
+    examples where I retrain the rtrees model with the “current” version
+    of the training data and compare the results
+  - [10-lime\_hamby\_variability](journals/10-lime_hamby_variability/):
+    investigating variability between LIME explanations using diagnostic
+    figures for random forest models trained on the Hamby bullet data
+
+\*\*\* **Note: We have realized that the training dataset for the
+`rtrees` model is not the one used in this file. See:
+[09-identifying\_rtrees\_training\_data](journals/09-identifying_rtrees_training_data)**
+
+[**old-journals**](old-journals)
+
+Contain materials from my earliest research journals relating to the
+LIME project. It is likely that the code in these files will not run.
+However, the knit versions of the R markdown documents may still be
+useful.
 
 **main**
 
 The documents contained in the top folder are as follows:
 
-  - `.gitattributes`: attributes relating to git
-  - `.gitignore`: files to ignore
-  - `notes from Heike.pdf`: scans of notes written by Heike for this
-    project
-  - `README`: document containing to do list and contents of this
-    repository
+  - [.gitignore](.gitignore): files to ignore
+  - [notes from Heike.pdf](notes%20from%20Heike.pdf): scans of notes
+    written by Heike for this project
+  - [README.md](README.md) and [README.Rmd](README.Rmd): this README and
+    the R markdown document used to generate this README
