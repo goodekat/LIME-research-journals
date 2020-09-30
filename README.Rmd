@@ -46,17 +46,17 @@ This folder contains folders with research journals.
 
 - [00-objectives_and_ideas](journals/00-objectives_and_ideas): background of the research project, goals of the project, concerns with LIME, and ideas to try
 - [01-hamby_data_and_models](journals/01-hamby_data_and_models)***: information on the Hamby data, cleaning of the training and testing data, visualizations of the data, and models fit to the data (rtrees and logistic regressions)
-- [02-understanding_lime](journals/02-understanding_lime): work done to understand the LIME algorithm
+- [02-understanding_lime](journals/02-understanding_lime)***: work done to understand the LIME algorithm
 - [03-applying_lime](journals/03-applying_lime)***: applications of LIME to the models fit to the Hamby data
 - [04-assessing_lime](journals/04-assessing_lime)***: visual diagnostics for assessing the lime explanations
 - [05-iris_comparison](journals/05-iris_comparison): applying LIME to a random forest fit to the iris data and assessing the explanations
 - [06-literature_review](journals/06-literature_review/): notes on papers relating to LIME
-- [07-computation_issues](journals/07-computation_issues/): documentation of some of the computation issues I ran into during the project
+- [07-computation_issues](journals/07-computation_issues/)***: documentation of some of the computation issues I ran into during the project
 - [08-logistic_regression](journals/08-logistic_regression): examples of applying and diagnosing LIME with logistic regression models fit to the sine data
 - [09-identifying_rtrees_training_data](journals/09-identifying_rtrees_training_data/): examples where I retrain the rtrees model with the "current" version of the training data and compare the results
 - [10-lime_hamby_variability](journals/10-lime_hamby_variability/): investigating variability between LIME explanations using diagnostic figures for random forest models trained on the Hamby bullet data
 
-*** **Note: We have realized that the training dataset for the `rtrees` model is not the one used in this file. See: [09-identifying_rtrees_training_data](journals/09-identifying_rtrees_training_data)**
+*** **Note**: We have realized that the training dataset for the `rtrees` model is not the one used in these files. See [09-identifying_rtrees_training_data](journals/09-identifying_rtrees_training_data) for more details on the correct dataset. The correct data is used in the LIME diagnostics paper. For time reasons, the results in these journals have not been updated.
 
 [**old-journals**](old-journals)
 

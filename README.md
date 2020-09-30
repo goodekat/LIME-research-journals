@@ -65,8 +65,8 @@ This folder contains folders with research journals.
     information on the Hamby data, cleaning of the training and testing
     data, visualizations of the data, and models fit to the data (rtrees
     and logistic regressions)
-  - [02-understanding\_lime](journals/02-understanding_lime): work done
-    to understand the LIME algorithm
+  - [02-understanding\_lime](journals/02-understanding_lime)\*\*\*: work
+    done to understand the LIME algorithm
   - [03-applying\_lime](journals/03-applying_lime)\*\*\*: applications
     of LIME to the models fit to the Hamby data
   - [04-assessing\_lime](journals/04-assessing_lime)\*\*\*: visual
@@ -75,7 +75,7 @@ This folder contains folders with research journals.
     a random forest fit to the iris data and assessing the explanations
   - [06-literature\_review](journals/06-literature_review/): notes on
     papers relating to LIME
-  - [07-computation\_issues](journals/07-computation_issues/):
+  - [07-computation\_issues](journals/07-computation_issues/)\*\*\*:
     documentation of some of the computation issues I ran into during
     the project
   - [08-logistic\_regression](journals/08-logistic_regression): examples
@@ -88,9 +88,12 @@ This folder contains folders with research journals.
     investigating variability between LIME explanations using diagnostic
     figures for random forest models trained on the Hamby bullet data
 
-\*\*\* **Note: We have realized that the training dataset for the
-`rtrees` model is not the one used in this file. See:
-[09-identifying\_rtrees\_training\_data](journals/09-identifying_rtrees_training_data)**
+\*\*\* **Note**: We have realized that the training dataset for the
+`rtrees` model is not the one used in these files. See
+[09-identifying\_rtrees\_training\_data](journals/09-identifying_rtrees_training_data)
+for more details on the correct dataset. The correct data is used in the
+LIME diagnostics paper. For time reasons, the results in these journals
+have not been updated.
 
 [**old-journals**](old-journals)
 
