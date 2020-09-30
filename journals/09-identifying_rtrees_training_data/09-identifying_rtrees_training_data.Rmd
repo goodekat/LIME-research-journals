@@ -318,13 +318,13 @@ length(hamby_comparisons_ids)
 length(CCFs_withlands_ids)
 ```
 
-Identify the land ID in `CCFs_withlands` but not in `hamby-comparisons`:
+Identify the land ID in `CCFs_withlands` but not in `hamby-comparisons` (Heike identified that Hamby173-Br3-B2-L1 has damage on the bullet, but she is not sure why Hamby173-BrUnk-BM-L4 was left out):
 
 ```{r}
 CCFs_withlands_ids[!(CCFs_withlands_ids %in% hamby_comparisons_ids)]
 ```
 
-Identify the land ID in `hamby-comparisons` but not in `CCFs_withlands`:
+Identify the land ID in `hamby-comparisons` but not in `CCFs_withlands` (Heike confirmed that bullet E is known to have issues):
 
 ```{r}
 hamby_comparisons_ids[!(hamby_comparisons_ids %in% CCFs_withlands_ids)]
