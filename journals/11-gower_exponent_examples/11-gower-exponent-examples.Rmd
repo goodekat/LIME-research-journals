@@ -1,0 +1,65 @@
+---
+title: "Gower Exponent Examples"
+author: "Katherine Goode"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    theme: cerulean
+    highlight: textmate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+This document contains an example that demonstrates the effect an exponent has on the similarity computation between a prediction of interest and another observation.
+
+```{r}
+# Load libraries
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
+In the *lime* R package, the similarity between the prediction of interest (*poi*) and another observation (*obs*) is computed as:
+
+> 1 - (Gower distance(*poi*, *obs*)^(exponent))
+
+where the "exponent" is specified by the user.
+
+The code below creates an example dataset that computes similarities based on various exponents from the same distances.
+
+```{r}
+# Prepare an example dataset
+dist_data <-
+  data.frame(distance = seq(0, 1, length.out = 100)) %>%
+  mutate(
+    sim0.1 = 1 - ((distance) ^ 0.1),
+    sim0.25 = 1 - ((distance) ^ 0.25),
+    sim0.5 = 1 - ((distance) ^ 0.5),
+    sim1 = 1 - ((distance) ^ 1),
+    sim10 = 1 - ((distance) ^ 10),
+    sim15 = 1 - ((distance) ^ 15),
+    sim5 = 1 - ((distance) ^ 5)
+  ) %>%
+  pivot_longer(names_to = "exponent",
+               values_to = "similarity",
+               cols = -distance) %>%
+  mutate(exponent = stringr::str_remove(exponent, "sim")) %>%
+  mutate(exponent = factor(
+    exponent,
+    levels = c("0.1", "0.25", "0.5", "1", "5", "10", "15")
+  ))
+
+# Print the head of the data
+head(dist_data)
+```
+
+The plot below shows the relationship between similarity and distance when different exponents are used. Note that the smallest exponent of 0.1 creates a more local region than the larger exponents.
+
+```{r}
+ggplot(dist_data, aes(x = distance, y = similarity, color = exponent)) +
+  geom_line() +
+  viridis::scale_color_viridis(option = "inferno", discrete = T)
+```
+
