@@ -23,6 +23,7 @@ Descriptions of the work done can be found in the journals. Beware of typos in t
 8. [LIME Applied to Logistic Regressions on Sine Data](https://goodekat.github.io/LIME-research-journals/journals/08-logistic_regression/08-logistic_regression.html)
 9. [Identifying rtrees Training Data](https://goodekat.github.io/LIME-research-journals/journals/09-identifying_rtrees_training_data/09-identifying_rtrees_training_data.html)
 10. [LIME Variability Across Hamby Data and Models](https://goodekat.github.io/LIME-research-journals/journals/10-lime_hamby_variability/10-lime_hamby_variability.html)
+11. [Gower Exponent Examples](https://goodekat.github.io/LIME-research-journals/journals/11-gower-exponent-examples/11-gower-exponent-examples.html)
 
 ## Repository Contents
 

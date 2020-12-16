@@ -30,6 +30,8 @@ viewing of the journals, use these links:
     Data](https://goodekat.github.io/LIME-research-journals/journals/09-identifying_rtrees_training_data/09-identifying_rtrees_training_data.html)
 10. [LIME Variability Across Hamby Data and
     Models](https://goodekat.github.io/LIME-research-journals/journals/10-lime_hamby_variability/10-lime_hamby_variability.html)
+11. [Gower Exponent
+    Examples](https://goodekat.github.io/LIME-research-journals/journals/11-gower-exponent-examples/11-gower-exponent-examples.html)
 
 ## Repository Contents
 
